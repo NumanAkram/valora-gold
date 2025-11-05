@@ -1,0 +1,782 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { Star, ChevronLeft, Plus, Minus, ShoppingCart, Heart, Share2, Facebook, Twitter, Instagram } from 'lucide-react';
+import { useCart } from '../context/CartContext';
+import { useToast } from '../context/ToastContext';
+import { useWishlist } from '../context/WishlistContext';
+import { useRecentlyViewed } from '../context/RecentlyViewedContext';
+import Breadcrumbs from '../components/Breadcrumbs';
+import RelatedProducts from '../components/RelatedProducts';
+import { productsAPI, reviewsAPI } from '../utils/api';
+
+const ProductDetail = () => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { addToCart } = useCart();
+  const { showToast } = useToast();
+  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
+  const { addToRecentlyViewed } = useRecentlyViewed();
+  const [quantity, setQuantity] = useState(1);
+  const [activeImage, setActiveImage] = useState(0);
+  // Start on reviews so the content doesn't appear empty to users at first view
+  const [activeTab, setActiveTab] = useState('reviews');
+  const [product, setProduct] = useState(null);
+  const [reviews, setReviews] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showAskModal, setShowAskModal] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [featuredProducts, setFeaturedProducts] = useState([]);
+  const [questionForm, setQuestionForm] = useState({ name: '', email: '', message: '' });
+  const [reviewForm, setReviewForm] = useState({ name: '', rating: 5, reviewText: '' });
+  const errorShownRef = useRef(false); // Track if error has been shown
+  const fetchingRef = useRef(false); // Track if currently fetching
+
+  const location = useLocation();
+
+  // Scroll to top when component mounts or product ID changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [id]);
+
+  useEffect(() => {
+    let isMounted = true; // Flag to prevent state updates if component unmounts
+    
+    // Reset error flag when id changes
+    errorShownRef.current = false;
+    fetchingRef.current = false;
+    
+    const fetchProduct = async () => {
+      if (!id || fetchingRef.current) return; // Prevent multiple simultaneous calls
+      
+      fetchingRef.current = true;
+      
+      // FIRST: Check for product in navigation state - this is always available
+      const stateProduct = location && location.state && location.state.product;
+      
+      if (stateProduct) {
+        // If we have product from state, use it immediately - no loading needed
+        if (isMounted) {
+          setProduct(stateProduct);
+          addToRecentlyViewed(stateProduct);
+          setLoading(false);
+          fetchingRef.current = false;
+        }
+        
+        // Still try to fetch reviews in background (optional)
+        try {
+          const reviewsResponse = await reviewsAPI.getByProduct(id);
+          if (reviewsResponse && reviewsResponse.success && reviewsResponse.data && isMounted) {
+            setReviews(reviewsResponse.data);
+          }
+        } catch (reviewError) {
+          console.log('Reviews not available:', reviewError);
+          // Don't show error for reviews, just use empty array
+        }
+        return; // Exit early - we have the product!
+      }
+      
+      // If no state product, try to fetch from API
+      try {
+        setLoading(true);
+        const response = await productsAPI.getById(id);
+        
+        if (!isMounted) return; // Check if component is still mounted
+        
+        if (response && response.success && response.data) {
+          const productData = response.data;
+          if (isMounted) {
+            setProduct(productData);
+            addToRecentlyViewed(productData);
+            errorShownRef.current = false; // Reset error flag on success
+          }
+          
+          // Fetch reviews (optional, don't fail if this fails)
+          try {
+            const reviewsResponse = await reviewsAPI.getByProduct(id);
+            if (reviewsResponse && reviewsResponse.success && reviewsResponse.data && isMounted) {
+              setReviews(reviewsResponse.data);
+            }
+          } catch (reviewError) {
+            console.log('Reviews not available:', reviewError);
+            // Don't show error for reviews, just use empty array
+          }
+        } else {
+          // Only show error if we don't have state product AND API fails
+          console.error('Product not found in API response');
+          if (isMounted) {
+            setProduct(null);
+            // Only show toast once per product load
+            if (!errorShownRef.current) {
+              errorShownRef.current = true;
+              showToast('Product not found. Please try again.', 'error');
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching product:', error);
+        
+        if (!isMounted) return;
+        
+        // Only show error if we don't have a product from state
+        if (!errorShownRef.current) {
+          errorShownRef.current = true;
+          
+          // Check if it's a network error or API error
+          const errorMessage = error.message || '';
+          if (errorMessage.includes('Failed to fetch') || errorMessage.includes('connect to server')) {
+            showToast('Unable to connect to server. Please check if backend is running.', 'error');
+          } else {
+            showToast('Error loading product details', 'error');
+          }
+        }
+        
+        // Only set product to null if we don't have state product
+        if (!stateProduct) {
+          if (isMounted) {
+            setProduct(null);
+          }
+        }
+      } finally {
+        if (isMounted && !stateProduct) {
+          // Only set loading false if we didn't already set it for state product
+          setLoading(false);
+        }
+        fetchingRef.current = false;
+      }
+    };
+    
+    fetchProduct();
+
+    // Load featured for "Special For You"
+    (async () => {
+      try {
+        const res = await productsAPI.getFeatured();
+        if (res && res.success && Array.isArray(res.data)) {
+          // random 4
+          const shuffled = [...res.data].sort(() => 0.5 - Math.random());
+          setFeaturedProducts(shuffled.slice(0, 4));
+        }
+      } catch (e) {
+        // ignore
+      }
+    })();
+    
+    // Cleanup function
+    return () => {
+      isMounted = false;
+      fetchingRef.current = false;
+    };
+  }, [id, location]); // Depend on id and location to catch state changes
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center py-12">
+            <p className="text-gray-600 font-sans">Loading product...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state if product not found
+  if (!product) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center py-12 space-y-4">
+            <h1 className="text-2xl font-bold text-gray-900 font-sans">Product Not Found</h1>
+            <p className="text-gray-600 font-sans">The product you're looking for doesn't exist or couldn't be loaded.</p>
+            <button
+              onClick={() => navigate('/')}
+              className="bg-logo-green text-white px-6 py-3 rounded-lg hover:bg-banner-green transition-colors font-sans font-medium"
+            >
+              Go Back Home
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Format product data
+  const productId = product._id || product.id;
+  const productName = product.name;
+  const productPrice = product.price || 0;
+  const productOriginalPrice = product.originalPrice || null;
+  const productImages = product.images && product.images.length > 0 ? product.images : ['/4.png'];
+  const productDescription = product.description || '';
+  const productIngredients = product.ingredients || '';
+  const productBenefits = product.benefits || [];
+  const productRating = product.rating || 0;
+  const productReviewsCount = product.numReviews || reviews.length;
+  const productInStock = product.inStock !== false;
+  const productStockCount = product.stockCount || 0;
+
+  const handleWishlist = () => {
+    if (isInWishlist(productId)) {
+      removeFromWishlist(productId);
+      showToast('Removed from wishlist', 'success');
+    } else {
+      addToWishlist({ ...product, id: productId });
+      showToast('Added to wishlist!', 'success');
+    }
+  };
+
+  const handleShare = (platform) => {
+    const url = window.location.href;
+    const text = `Check out this amazing product: ${productName}`;
+    
+    let shareUrl = '';
+    switch(platform) {
+      case 'facebook':
+        shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
+        break;
+      case 'twitter':
+        shareUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`;
+        break;
+      case 'whatsapp':
+        shareUrl = `https://wa.me/?text=${encodeURIComponent(text + ' ' + url)}`;
+        break;
+      default:
+        return;
+    }
+    window.open(shareUrl, '_blank');
+  };
+
+  const handleAddToCart = () => {
+    if (!productInStock) {
+      showToast('Product is out of stock', 'error');
+      return;
+    }
+    
+    const cartProduct = {
+      ...product,
+      id: productId,
+      price: productPrice,
+      images: productImages,
+      image: productImages[0]
+    };
+    
+    for (let i = 0; i < quantity; i++) {
+      addToCart(cartProduct);
+    }
+    showToast(`${quantity} item(s) added to cart!`, 'success');
+    navigate('/cart');
+  };
+
+  const decreaseQuantity = () => {
+    if (quantity > 1) {
+      setQuantity(quantity - 1);
+    }
+  };
+
+  const increaseQuantity = () => {
+    setQuantity(quantity + 1);
+  };
+
+  const handleBuyNow = () => {
+    if (!productInStock) {
+      showToast('Product is out of stock', 'error');
+      return;
+    }
+    const cartProduct = {
+      ...product,
+      id: productId,
+      price: productPrice,
+      images: productImages,
+      image: productImages[0]
+    };
+    for (let i = 0; i < quantity; i++) {
+      addToCart(cartProduct);
+    }
+    navigate('/checkout');
+  };
+
+  const defaultSeedReviews = [
+    { id: 'r1', customerName: 'Mrs Hassan', rating: 5, reviewText: 'Simple the best facewash, I am using it from a year.' },
+    { id: 'r2', customerName: 'Ayesha Sana', rating: 5, reviewText: 'Great quality, refreshing and gentle on skin.' },
+    { id: 'r3', customerName: 'Anas Khan', rating: 4, reviewText: 'Nice cleansing, smells good and controls oil.' },
+    { id: 'r4', customerName: 'Malaika Baig', rating: 5, reviewText: 'Helps with pimples and leaves skin fresh.' },
+    { id: 'r5', customerName: 'Muhammad Ilyas', rating: 5, reviewText: 'Good product at this price.' }
+  ];
+
+
+  const submitQuestion = async () => {
+    if (!questionForm.name || !questionForm.email || !questionForm.message) {
+      showToast('Please fill in all fields', 'error');
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append("access_key", "afa4d0ff-1965-4b0b-8d2f-928c81664de8");
+      formData.append("name", questionForm.name);
+      formData.append("email", questionForm.email);
+      formData.append("subject", `Product Question: ${productName}`);
+      formData.append("message", `${questionForm.message}\n\nProduct: ${productName} (${productId})`);
+
+      const response = await fetch("https://api.web3forms.com/submit", {
+        method: "POST",
+        body: formData
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        showToast('Question sent! We will reply soon.', 'success');
+        setShowAskModal(false);
+        setQuestionForm({ name: '', email: '', message: '' });
+      } else {
+        showToast('Failed to send question. Please try again.', 'error');
+      }
+    } catch (e) {
+      showToast('Failed to send question. Please try again.', 'error');
+    }
+  };
+
+  const submitReview = async () => {
+    try {
+      await reviewsAPI.create({
+        productId,
+        customerName: reviewForm.name,
+        rating: Number(reviewForm.rating),
+        reviewText: reviewForm.reviewText,
+      });
+      showToast('Review submitted!', 'success');
+      setShowReviewModal(false);
+      setReviewForm({ name: '', rating: 5, reviewText: '' });
+      // Optimistically add to local list
+      setReviews((prev) => [
+        ...prev,
+        { id: `local-${Date.now()}`, customerName: reviewForm.name, rating: Number(reviewForm.rating), reviewText: reviewForm.reviewText }
+      ]);
+    } catch (e) {
+      // Fallback: store review locally so the user sees immediate result
+      setReviews((prev) => [
+        ...prev,
+        { id: `local-${Date.now()}`, customerName: reviewForm.name || 'Anonymous', rating: Number(reviewForm.rating) || 5, reviewText: reviewForm.reviewText }
+      ]);
+      setShowReviewModal(false);
+      setReviewForm({ name: '', rating: 5, reviewText: '' });
+      showToast('Review saved locally (backend not reachable).', 'success');
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-white py-4 sm:py-6 md:py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <Breadcrumbs items={[
+          { label: 'Products', path: '/shop-all' },
+          { label: productName.substring(0, 20) + '...', path: `/product/${productId}` }
+        ]} />
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-8 lg:gap-12">
+          {/* Product Images */}
+          <div className="space-y-4">
+            {/* Main Image */}
+            <div className="relative bg-gray-50 rounded-lg overflow-hidden h-64 sm:h-80 md:h-96 lg:h-[500px]">
+              <img
+                src={productImages[activeImage]}
+                alt={productName}
+                className="w-full h-full object-contain p-4"
+              />
+            </div>
+            
+            {/* Thumbnail Images */}
+            <div className="flex space-x-2">
+              {productImages.map((image, index) => (
+                <button
+                  key={index}
+                  onClick={() => setActiveImage(index)}
+                  className={`border-2 rounded-lg overflow-hidden flex-shrink-0 ${
+                    activeImage === index ? 'border-logo-green' : 'border-gray-200'
+                  }`}
+                >
+                  <img
+                    src={image}
+                    alt={`${productName} ${index + 1}`}
+                    className="w-20 h-20 object-contain p-2"
+                  />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Product Info */}
+          <div className="space-y-4 sm:space-y-6">
+            <div>
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-3 sm:mb-4 font-sans">
+                {productName}
+              </h1>
+              
+              {/* Rating */}
+              <div className="flex items-center space-x-3 mb-4">
+                <div className="flex">
+                  {[...Array(5)].map((_, i) => (
+                    <Star
+                      key={i}
+                      className={`h-5 w-5 ${i < Math.floor(productRating) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
+                    />
+                  ))}
+                </div>
+                <span className="text-gray-600 text-sm font-sans">
+                  ({productReviewsCount} reviews)
+                </span>
+              </div>
+
+              {/* Price */}
+              <div className="mb-4">
+                <span className="text-3xl font-bold text-logo-green font-sans">
+                  Rs.{productPrice.toLocaleString()}
+                </span>
+                {productOriginalPrice && productOriginalPrice > productPrice && (
+                  <span className="text-xl text-gray-500 line-through ml-3 font-sans">
+                    Rs.{productOriginalPrice.toLocaleString()}
+                  </span>
+                )}
+              </div>
+
+              {/* Stock Status */}
+              <div className="mb-6">
+                {productInStock ? (
+                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 font-sans">
+                    ✓ In Stock {productStockCount > 0 ? `(${productStockCount} available)` : ''}
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800 font-sans">
+                    Out of Stock
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Action Buttons Row */}
+            <div className="flex items-center space-x-4 mb-6">
+              <button
+                onClick={handleWishlist}
+                className={`flex items-center space-x-2 px-4 py-2 rounded-lg border-2 transition-colors font-sans ${
+                  isInWishlist(productId)
+                    ? 'border-red-500 text-red-500 bg-red-50'
+                    : 'border-gray-300 text-gray-700 hover:border-red-500 hover:text-red-500'
+                }`}
+              >
+                <Heart className={`h-5 w-5 ${isInWishlist(productId) ? 'fill-current' : ''}`} />
+                <span>{isInWishlist(productId) ? 'In Wishlist' : 'Add to Wishlist'}</span>
+              </button>
+
+              <div className="relative group">
+                <button className="flex items-center space-x-2 px-4 py-2 rounded-lg border-2 border-gray-300 text-gray-700 hover:border-logo-green hover:text-logo-green transition-colors font-sans">
+                  <Share2 className="h-5 w-5" />
+                  <span>Share</span>
+                </button>
+                <div className="absolute left-0 top-full mt-2 bg-white rounded-lg shadow-lg p-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
+                  <button onClick={() => handleShare('facebook')} className="flex items-center space-x-2 px-3 py-2 hover:bg-gray-100 rounded w-full text-left">
+                    <Facebook className="h-4 w-4 text-blue-600" />
+                    <span className="text-sm font-sans">Facebook</span>
+                  </button>
+                  <button onClick={() => handleShare('twitter')} className="flex items-center space-x-2 px-3 py-2 hover:bg-gray-100 rounded w-full text-left">
+                    <Twitter className="h-4 w-4 text-blue-400" />
+                    <span className="text-sm font-sans">Twitter</span>
+                  </button>
+                  <button onClick={() => handleShare('whatsapp')} className="flex items-center space-x-2 px-3 py-2 hover:bg-gray-100 rounded w-full text-left">
+                    <span className="text-sm font-sans">WhatsApp</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Quantity Selector */}
+            <div className="flex items-center space-x-4">
+              <span className="font-semibold text-gray-900 font-sans">Quantity:</span>
+              <div className="flex items-center border border-gray-300 rounded-lg">
+                <button
+                  onClick={decreaseQuantity}
+                  className="p-2 hover:bg-gray-100 transition-colors"
+                >
+                  <Minus className="h-4 w-4" />
+                </button>
+                <span className="px-4 py-2 font-semibold font-sans">{quantity}</span>
+                <button
+                  onClick={increaseQuantity}
+                  className="p-2 hover:bg-gray-100 transition-colors"
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Cart Actions */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                onClick={handleAddToCart}
+                disabled={!productInStock}
+                className={`w-full font-bold py-4 px-6 rounded-lg text-lg uppercase transition-colors duration-300 flex items-center justify-center space-x-2 font-sans ${
+                  productInStock
+                    ? 'bg-logo-green text-white hover:bg-banner-green'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
+              >
+                <ShoppingCart className="h-5 w-5" />
+                <span>{productInStock ? 'Add to Cart' : 'Out of Stock'}</span>
+              </button>
+              <button
+                onClick={handleBuyNow}
+                disabled={!productInStock}
+                className={`w-full font-bold py-4 px-6 rounded-lg text-lg uppercase transition-colors duration-300 font-sans border-2 ${
+                  productInStock
+                    ? 'border-logo-green text-logo-green hover:bg-green-50'
+                    : 'border-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
+              >
+                Buy it now
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Product Tabs */}
+        <div className="mt-12 border-t border-gray-200 pt-8">
+          <div className="flex space-x-4 border-b border-gray-200 mb-6 overflow-x-auto">
+            {[
+              productDescription && 'description',
+              productIngredients && 'ingredients',
+              product.howToUse && 'how to use',
+              product.whoCanUse && 'who can use',
+              product.caution && 'caution',
+              product.faqs && 'faqs',
+              'reviews'
+            ].filter(Boolean).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`pb-4 px-2 font-semibold uppercase tracking-wide transition-colors font-sans ${
+                  activeTab === tab
+                    ? 'text-logo-green border-b-2 border-logo-green'
+                    : 'text-gray-600 hover:text-logo-green'
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+
+          <div className="min-h-[200px]">
+            {activeTab === 'description' && (
+              <div className="space-y-4">
+                <p className="text-gray-700 leading-relaxed font-sans">{productDescription}</p>
+                {productBenefits.length > 0 && (
+                  <div>
+                    <h3 className="font-bold text-gray-900 mb-3 font-sans">Benefits:</h3>
+                    <ul className="space-y-2">
+                      {productBenefits.map((benefit, index) => (
+                        <li key={index} className="flex items-start space-x-2">
+                          <span className="text-logo-green mt-1">✓</span>
+                          <span className="text-gray-600 font-sans">{benefit}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'ingredients' && (
+              <div>
+                <h3 className="font-bold text-gray-900 mb-3 font-sans">Key Ingredients:</h3>
+                <p className="text-gray-700 leading-relaxed font-sans">{productIngredients || 'No ingredients information available.'}</p>
+              </div>
+            )}
+
+            {activeTab === 'how to use' && (
+              <div>
+                <h3 className="font-bold text-gray-900 mb-3 font-sans">How to Use</h3>
+                <ul className="list-disc list-inside space-y-2 text-gray-700 font-sans">
+                  {(Array.isArray(product.howToUse) ? product.howToUse : [product.howToUse]).filter(Boolean).map((step, i) => (
+                    <li key={i}>{step}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {activeTab === 'who can use' && (
+              <div>
+                <h3 className="font-bold text-gray-900 mb-3 font-sans">Who Can Use</h3>
+                <ul className="list-disc list-inside space-y-2 text-gray-700 font-sans">
+                  {(Array.isArray(product.whoCanUse) ? product.whoCanUse : [product.whoCanUse]).filter(Boolean).map((item, i) => (
+                    <li key={i}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {activeTab === 'caution' && (
+              <div>
+                <h3 className="font-bold text-gray-900 mb-3 font-sans">Caution</h3>
+                <ul className="list-disc list-inside space-y-2 text-gray-700 font-sans">
+                  {(Array.isArray(product.caution) ? product.caution : [product.caution]).filter(Boolean).map((item, i) => (
+                    <li key={i}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {activeTab === 'faqs' && (
+              <div className="space-y-4">
+                <h3 className="font-bold text-gray-900 mb-3 font-sans">FAQs</h3>
+                {(Array.isArray(product.faqs) ? product.faqs : []).map((faq, i) => (
+                  <div key={i} className="border-b pb-3">
+                    <p className="font-semibold text-gray-900 font-sans">Q: {faq.q}</p>
+                    <p className="text-gray-700 font-sans">A: {faq.a}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {activeTab === 'reviews' && (
+              <div>
+                <div className="flex items-center justify-between flex-wrap gap-4 mb-6">
+                  <div className="text-center">
+                    <div className="text-4xl font-bold text-logo-green font-sans">{productRating.toFixed(1)}</div>
+                    <div className="flex items-center justify-center mt-2">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} className={`h-5 w-5 ${i < Math.floor(productRating) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} />
+                      ))}
+                    </div>
+                    <div className="text-sm text-gray-600 mt-2 font-sans">{productReviewsCount} reviews</div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button onClick={() => setShowReviewModal(true)} className="bg-logo-green text-white px-4 py-2 rounded-lg hover:bg-banner-green transition-colors font-sans">Write a Review</button>
+                    <button onClick={() => setShowAskModal(true)} className="border-2 border-logo-green text-logo-green px-4 py-2 rounded-lg hover:bg-green-50 transition-colors font-sans">Ask a Question</button>
+                  </div>
+                </div>
+                {(reviews.length > 0 ? reviews : defaultSeedReviews).length > 0 ? (
+                  <div className="space-y-4">
+                    {(reviews.length > 0 ? reviews : defaultSeedReviews).map((review) => (
+                      <div key={review._id || review.id} className="border-b border-gray-200 pb-4">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <span className="font-semibold text-gray-900 font-sans">{review.customerName}</span>
+                          <div className="flex">
+                            {[...Array(5)].map((_, i) => (
+                              <Star key={i} className={`h-4 w-4 ${i < review.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} />
+                            ))}
+                          </div>
+                        </div>
+                        <p className="text-gray-700 font-sans">{review.reviewText}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-600 font-sans">No reviews yet. Be the first to review this product!</p>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Conclusion */}
+        <div className="mt-12">
+          <h2 className="text-xl font-bold text-gray-900 mb-3 font-sans">Conclusion</h2>
+          <p className="text-gray-700 font-sans">Add <span className="font-semibold">{productName}</span> to your skincare routine. Use daily for visible, clearer skin.</p>
+        </div>
+
+        {/* Special For You */}
+        {featuredProducts.length > 0 && (
+          <div className="mt-12">
+            <h2 className="text-xl font-bold text-gray-900 mb-4 font-sans">Special For You</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {featuredProducts.map((p) => {
+                const prodId = p._id || p.id;
+                const prodImage = (p.images && p.images[0]) || '/4.png';
+                return (
+                <div key={prodId} className="border rounded-lg p-3 hover:shadow transition cursor-pointer" onClick={() => navigate(`/product/${prodId}`, { state: { product: { ...p, id: prodId, images: p.images || [prodImage], image: prodImage } } })}>
+                  <div className="h-40 bg-gray-50 rounded flex items-center justify-center overflow-hidden">
+                    <img src={prodImage} alt={p.name} className="object-contain w-full h-full p-3" />
+                  </div>
+                  <div className="mt-3">
+                    <div className="text-sm font-semibold text-gray-900 line-clamp-2 font-sans">{p.name}</div>
+                    <div className="text-logo-green font-bold font-sans">Rs.{(p.price || 0).toLocaleString()}</div>
+                  </div>
+                </div>
+              )})}
+            </div>
+          </div>
+        )}
+
+        {/* Recently Viewed */}
+        <RecentlyViewedList currentId={productId} />
+
+        {/* Related Products */}
+        <RelatedProducts currentProductId={productId} />
+      </div>
+
+      {/* Ask a Question Modal */}
+      {showAskModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg w-full max-w-lg p-6 space-y-4">
+            <h3 className="text-lg font-bold font-sans">Ask a Question</h3>
+            <input value={questionForm.name} onChange={(e)=>setQuestionForm({...questionForm,name:e.target.value})} placeholder="Your Name" className="w-full border rounded p-2 font-sans" />
+            <input value={questionForm.email} onChange={(e)=>setQuestionForm({...questionForm,email:e.target.value})} placeholder="Your Email" className="w-full border rounded p-2 font-sans" />
+            <textarea value={questionForm.message} onChange={(e)=>setQuestionForm({...questionForm,message:e.target.value})} placeholder="Your question" className="w-full border rounded p-2 h-28 font-sans" />
+            <div className="flex gap-2 justify-end">
+              <button onClick={()=>setShowAskModal(false)} className="px-4 py-2 border rounded-lg font-sans">Cancel</button>
+              <button onClick={submitQuestion} className="px-4 py-2 bg-logo-green text-white rounded-lg font-sans">Send</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Write a Review Modal */}
+      {showReviewModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg w-full max-w-lg p-6 space-y-4">
+            <h3 className="text-lg font-bold font-sans">Write a Review</h3>
+            <input value={reviewForm.name} onChange={(e)=>setReviewForm({...reviewForm,name:e.target.value})} placeholder="Your Name" className="w-full border rounded p-2 font-sans" />
+            <select value={reviewForm.rating} onChange={(e)=>setReviewForm({...reviewForm,rating:e.target.value})} className="w-full border rounded p-2 font-sans">
+              {[5,4,3,2,1].map(r=> (<option key={r} value={r}>{r} Stars</option>))}
+            </select>
+            <textarea value={reviewForm.reviewText} onChange={(e)=>setReviewForm({...reviewForm,reviewText:e.target.value})} placeholder="Your review" className="w-full border rounded p-2 h-28 font-sans" />
+            <div className="flex gap-2 justify-end">
+              <button onClick={()=>setShowReviewModal(false)} className="px-4 py-2 border rounded-lg font-sans">Cancel</button>
+              <button onClick={submitReview} className="px-4 py-2 bg-logo-green text-white rounded-lg font-sans">Submit</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default ProductDetail;
+
+// Recently Viewed inline component
+const RecentlyViewedList = ({ currentId }) => {
+  const { recentlyViewed } = useRecentlyViewed();
+  const navigate = useNavigate();
+  const items = (recentlyViewed || []).filter(p => (p._id || p.id) !== currentId).slice(0, 2);
+  if (items.length === 0) return null;
+  return (
+    <div className="mt-12">
+      <h2 className="text-xl font-bold text-gray-900 mb-4 font-sans">Recently Viewed</h2>
+      <div className="grid grid-cols-2 gap-4">
+        {items.map((p) => {
+          const prodId = p._id || p.id;
+          const prodImage = (p.images && p.images[0]) || '/4.png';
+          return (
+            <div key={prodId} onClick={() => navigate(`/product/${prodId}`, { state: { product: { ...p, id: prodId, images: p.images || [prodImage], image: prodImage } } })} className="border rounded-lg p-3 hover:shadow transition cursor-pointer">
+              <div className="h-36 bg-gray-50 rounded flex items-center justify-center overflow-hidden">
+                <img src={prodImage} alt={p.name} className="object-contain w-full h-full p-3" />
+              </div>
+              <div className="mt-3">
+                <div className="text-sm font-semibold text-gray-900 line-clamp-2 font-sans">{p.name}</div>
+                <div className="text-logo-green font-bold font-sans">Rs.{(p.price || 0).toLocaleString()}</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
