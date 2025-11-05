@@ -133,27 +133,27 @@ const Footer = () => {
             </h3>
             <ul className="space-y-2">
               <li>
-                <a href="/my-account" className="text-white text-sm hover:text-gray-200 transition-colors">
+                <Link to="/my-account" className="text-white text-sm hover:text-gray-200 transition-colors font-sans">
                   My Account
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="/order-history" className="text-white text-sm hover:text-gray-200 transition-colors">
+                <Link to="/order-history" className="text-white text-sm hover:text-gray-200 transition-colors font-sans">
                   Order History
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="/wishlist" className="text-white text-sm hover:text-gray-200 transition-colors">
+                <Link to="/wishlist" className="text-white text-sm hover:text-gray-200 transition-colors font-sans">
                   Wishlist
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="/track-order" className="text-white text-sm hover:text-gray-200 transition-colors">
+                <Link to="/track-order" className="text-white text-sm hover:text-gray-200 transition-colors font-sans">
                   Track My Order
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="/latest-news" className="text-white text-sm hover:text-gray-200 transition-colors">
+                <a href="/latest-news" className="text-white text-sm hover:text-gray-200 transition-colors font-sans">
                   Latest News
                 </a>
               </li>

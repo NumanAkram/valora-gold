@@ -1,12 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, User, Phone } from 'lucide-react';
+import { Mail, Lock, User, Phone, LogOut } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { authAPI } from '../utils/api';
 
 const SignUp = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userInfo, setUserInfo] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -16,6 +18,33 @@ const SignUp = () => {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Check if user is logged in
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const user = localStorage.getItem('user');
+    
+    if (token && user) {
+      setIsLoggedIn(true);
+      try {
+        setUserInfo(JSON.parse(user));
+      } catch (e) {
+        console.error('Error parsing user data:', e);
+      }
+    }
+  }, []);
+
+  // Handle Sign Out
+  const handleSignOut = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setIsLoggedIn(false);
+    setUserInfo(null);
+    showToast('Signed out successfully!', 'success');
+    // Redirect to login page after sign out
+    navigate('/signin');
+    window.location.reload(); // Reload to update auth state
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -49,16 +78,12 @@ const SignUp = () => {
         password: formData.password
       });
       
-      // Store token
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data));
+      // Don't auto-login after registration, just redirect to login page
+      showToast('Account created successfully! Please sign in.', 'success');
       
-      showToast('Account created successfully!', 'success');
-      
-      // Redirect to home
+      // Redirect to login page after registration
       setTimeout(() => {
-        navigate('/');
-        window.location.reload();
+        navigate('/signin');
       }, 500);
     } catch (err) {
       setError(err.message || 'Registration failed');
@@ -78,19 +103,60 @@ const SignUp = () => {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center py-6 sm:py-8 md:py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-6 sm:space-y-8">
-        <div>
-          <h2 className="text-center text-2xl sm:text-3xl font-extrabold text-logo-green font-sans">
-            Create Your Account
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600 font-sans">
-            Already have an account?{' '}
-            <Link to="/signin" className="font-medium text-logo-green hover:text-banner-green">
-              Sign in
-            </Link>
-          </p>
-        </div>
-        
-        <form className="mt-6 sm:mt-8 space-y-4 sm:space-y-6 bg-white p-4 sm:p-6 md:p-8 rounded-lg shadow-md" onSubmit={handleSubmit}>
+        {isLoggedIn ? (
+          // User is logged in - Show Sign Out UI
+          <div className="bg-white p-4 sm:p-6 md:p-8 rounded-lg shadow-md text-center">
+            <div className="mb-6">
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-logo-green font-sans mb-4">
+                You are Signed In
+              </h2>
+              {userInfo && (
+                <div className="mb-6">
+                  <p className="text-gray-700 font-sans text-lg mb-2">
+                    <span className="font-semibold">Email:</span> {userInfo.email}
+                  </p>
+                  {userInfo.name && (
+                    <p className="text-gray-700 font-sans text-lg">
+                      <span className="font-semibold">Name:</span> {userInfo.name}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+            
+            <div className="space-y-4">
+              <button
+                onClick={handleSignOut}
+                className="w-full bg-red-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-red-700 transition-colors duration-300 font-sans flex items-center justify-center space-x-2"
+              >
+                <LogOut className="h-5 w-5" />
+                <span>Sign Out</span>
+              </button>
+              
+              <Link
+                to="/"
+                className="block w-full bg-logo-green text-white font-bold py-3 px-4 rounded-lg hover:bg-banner-green transition-colors duration-300 font-sans text-center"
+              >
+                Go to Home
+              </Link>
+            </div>
+          </div>
+        ) : (
+          // User is not logged in - Show Sign Up Form
+          <>
+            <div>
+              <h2 className="text-center text-2xl sm:text-3xl font-extrabold text-logo-green font-sans">
+                Create Your Account
+              </h2>
+              <p className="mt-2 text-center text-sm text-gray-600 font-sans">
+                Already have an account?{' '}
+                <Link to="/signin" className="font-medium text-logo-green hover:text-banner-green">
+                  Sign in
+                </Link>
+              </p>
+            </div>
+            
+            <form className="mt-6 sm:mt-8 space-y-4 sm:space-y-6 bg-white p-4 sm:p-6 md:p-8 rounded-lg shadow-md" onSubmit={handleSubmit}>
           {error && (
             <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded font-sans">
               {error}
@@ -217,6 +283,8 @@ const SignUp = () => {
             </button>
           </div>
         </form>
+        </>
+        )}
       </div>
     </div>
   );

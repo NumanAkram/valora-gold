@@ -14,14 +14,20 @@
     "autoprefixer": "^10.4.14",
     "postcss": "^8.4.21",
     "sharp": "^0.34.4",
-    "tailwindcss": "^3.2.7"
+    "tailwindcss": "^3.2.7",
+    "concurrently": "^8.2.2"
   },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "dev": "react-scripts start"
+    "dev": "react-scripts start",
+    "server": "cd server && npm start",
+    "server:dev": "cd server && npm run dev",
+    "server:seed": "cd server && npm run seed",
+    "dev:all": "concurrently \"npm run dev\" \"npm run server:dev\"",
+    "install:all": "npm install && cd server && npm install"
   },
   "eslintConfig": {
     "extends": [

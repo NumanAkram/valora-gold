@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ShoppingCart, Plus, Minus, X, ArrowLeft } from 'lucide-react';
-import { useCart } from '../context/CartContext';
+import { useCart, parsePrice } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 
 const Cart = () => {
@@ -57,7 +57,10 @@ const Cart = () => {
           {/* Cart Items */}
           <div className="lg:col-span-2 space-y-4">
             {cartItems.map((item) => {
-              const itemPrice = parseFloat((item.price || item.salePrice || '0').replace(/[^0-9.]/g, ''));
+              // Parse price using utility function
+              const itemPrice = parsePrice(item.salePrice || item.price || 0);
+              
+              // Calculate total: price * quantity
               const itemTotal = itemPrice * item.quantity;
 
               return (
@@ -80,11 +83,11 @@ const Cart = () => {
                     {/* Price */}
                     <div className="mb-4">
                       <span className="text-lg font-bold text-logo-green font-sans">
-                        {item.salePrice || item.price}
+                        Rs.{(parsePrice(item.salePrice || item.price || 0)).toLocaleString()}
                       </span>
-                      {item.originalPrice && item.salePrice && (
+                      {item.originalPrice && (
                         <span className="text-sm text-gray-500 line-through ml-2 font-sans">
-                          {item.originalPrice}
+                          Rs.{(parsePrice(item.originalPrice)).toLocaleString()}
                         </span>
                       )}
                     </div>
@@ -120,7 +123,7 @@ const Cart = () => {
                     {/* Item Total */}
                     <div className="mt-4">
                       <span className="text-lg font-bold text-gray-900 font-sans">
-                        Total: Rs.{itemTotal.toFixed(0)}
+                        Total: Rs.{itemTotal.toLocaleString()}
                       </span>
                     </div>
                   </div>
@@ -147,7 +150,7 @@ const Cart = () => {
               <div className="space-y-4 mb-6">
                 <div className="flex justify-between">
                   <span className="text-gray-600 font-sans">Subtotal:</span>
-                  <span className="font-semibold font-sans">Rs.{getCartTotal().toFixed(0)}</span>
+                  <span className="font-semibold font-sans">Rs.{getCartTotal().toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600 font-sans">Shipping:</span>
@@ -157,7 +160,7 @@ const Cart = () => {
                   <div className="flex justify-between">
                     <span className="text-lg font-bold text-gray-900 font-sans">Total:</span>
                     <span className="text-lg font-bold text-logo-green font-sans">
-                      Rs.{getCartTotal().toFixed(0)}
+                      Rs.{getCartTotal().toLocaleString()}
                     </span>
                   </div>
                 </div>

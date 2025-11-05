@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapPin, CreditCard, Truck, Lock } from 'lucide-react';
-import { useCart } from '../context/CartContext';
+import { useCart, parsePrice } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import { ordersAPI, authAPI } from '../utils/api';
 import Breadcrumbs from '../components/Breadcrumbs';
@@ -321,7 +321,9 @@ const Checkout = () => {
                 {/* Order Items */}
                 <div className="space-y-3 mb-6 max-h-64 overflow-y-auto">
                   {cartItems.map((item) => {
-                    const itemPrice = parseFloat((item.price || item.salePrice || '0').toString().replace(/[^0-9.]/g, ''));
+                    // Parse price using utility function
+                    const itemPrice = parsePrice(item.salePrice || item.price || 0);
+                    
                     return (
                       <div key={item._id || item.id} className="flex items-center space-x-3 pb-3 border-b">
                         <img

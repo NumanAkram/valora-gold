@@ -64,6 +64,11 @@ export const authAPI = {
   }),
   
   getMe: () => apiRequest('/auth/me'),
+  
+  forgotPassword: (email, newPassword) => apiRequest('/auth/forgot-password', {
+    method: 'POST',
+    body: { email, newPassword },
+  }),
 };
 
 // Products API

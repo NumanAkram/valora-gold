@@ -149,28 +149,80 @@ router.get('/featured', async (req, res) => {
 });
 
 // @route   GET /api/products/search
-// @desc    Search products
+// @desc    Search products by keywords (name, category, tags, etc.)
 // @access  Public
 router.get('/search', async (req, res) => {
   try {
     const { q } = req.query;
     
-    if (!q) {
+    if (!q || q.trim() === '') {
       return res.json({
         success: true,
         data: []
       });
     }
 
-    const products = await Product.find({
-      $or: [
-        { name: { $regex: q, $options: 'i' } },
-        { description: { $regex: q, $options: 'i' } },
-        { category: { $regex: q, $options: 'i' } }
-      ]
-    })
-      .limit(20)
-      .select('-reviews');
+    // Clean and prepare search query
+    const searchQuery = q.trim();
+    const searchWords = searchQuery.split(/\s+/).filter(word => word.length > 0);
+    
+    // Build comprehensive search query that searches in all relevant fields
+    const searchConditions = [];
+    
+    // For each search word, search in all relevant fields
+    searchWords.forEach(word => {
+      // Escape special regex characters for each word
+      const escapedWord = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      
+      // Add search conditions for this word
+      searchConditions.push(
+        // Search in product name (most important - matches any keyword from title/name)
+        { name: { $regex: escapedWord, $options: 'i' } },
+        // Search in description
+        { description: { $regex: escapedWord, $options: 'i' } },
+        // Search in category
+        { category: { $regex: escapedWord, $options: 'i' } },
+        // Search in subCategory
+        { subCategory: { $regex: escapedWord, $options: 'i' } },
+        // Search in tags array - match any element in array
+        { tags: new RegExp(escapedWord, 'i') },
+        // Search in ingredients
+        { ingredients: { $regex: escapedWord, $options: 'i' } },
+        // Search in benefits array - match any element in array
+        { benefits: new RegExp(escapedWord, 'i') },
+        // Search in slug
+        { slug: { $regex: escapedWord, $options: 'i' } }
+      );
+    });
+    
+    // Also search for the full query string (for exact phrase matches)
+    const fullQuery = searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    searchConditions.push(
+      { name: { $regex: fullQuery, $options: 'i' } },
+      { description: { $regex: fullQuery, $options: 'i' } },
+      { category: { $regex: fullQuery, $options: 'i' } },
+      { subCategory: { $regex: fullQuery, $options: 'i' } },
+      { tags: new RegExp(fullQuery, 'i') },
+      { ingredients: { $regex: fullQuery, $options: 'i' } },
+      { benefits: new RegExp(fullQuery, 'i') }
+    );
+    
+    // Use $or to match any of the conditions (flexible search)
+    // This means if ANY keyword matches in ANY field, the product will be returned
+    const query = {
+      $or: searchConditions
+    };
+
+    const products = await Product.find(query)
+      .limit(50)
+      .select('-reviews')
+      .sort({ 
+        // Prioritize products with matching names
+        isFeatured: -1,
+        isBestSeller: -1,
+        rating: -1,
+        createdAt: -1
+      });
 
     res.json({
       success: true,
