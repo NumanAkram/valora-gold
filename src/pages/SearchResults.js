@@ -25,8 +25,12 @@ const SearchResults = () => {
       setLoading(true);
       productsAPI.search(query)
         .then((response) => {
-          if (response.success) {
-            setSearchResults(response.data);
+          console.log('Search response:', response);
+          if (response && response.success) {
+            setSearchResults(response.data || []);
+          } else {
+            console.warn('Search response missing success flag:', response);
+            setSearchResults([]);
           }
         })
         .catch((error) => {

@@ -23,32 +23,32 @@ router.get('/', optionalAuth, async (req, res) => {
 
     // Build query
     const query = {};
-    
+
     if (category) {
       query.category = category;
     }
-    
+
     if (search) {
       query.$or = [
         { name: { $regex: search, $options: 'i' } },
         { description: { $regex: search, $options: 'i' } }
       ];
     }
-    
+
     if (minPrice || maxPrice) {
       query.price = {};
       if (minPrice) query.price.$gte = Number(minPrice);
       if (maxPrice) query.price.$lte = Number(maxPrice);
     }
-    
+
     if (inStock === 'true') {
       query.inStock = true;
     }
-    
+
     if (isBestSeller === 'true') {
       query.isBestSeller = true;
     }
-    
+
     if (isFeatured === 'true') {
       query.isFeatured = true;
     }
@@ -154,7 +154,7 @@ router.get('/featured', async (req, res) => {
 router.get('/search', async (req, res) => {
   try {
     const { q } = req.query;
-    
+
     if (!q || q.trim() === '') {
       return res.json({
         success: true,
@@ -163,66 +163,88 @@ router.get('/search', async (req, res) => {
     }
 
     // Clean and prepare search query
-    const searchQuery = q.trim();
-    const searchWords = searchQuery.split(/\s+/).filter(word => word.length > 0);
+    const searchQuery = q.trim().toLowerCase();
+    console.log('Search query received:', searchQuery);
+    
+    // Escape special regex characters
+    const escapedQuery = searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     
     // Build comprehensive search query that searches in all relevant fields
     const searchConditions = [];
-    
-    // For each search word, search in all relevant fields
-    searchWords.forEach(word => {
-      // Escape special regex characters for each word
-      const escapedWord = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      
-      // Add search conditions for this word
-      searchConditions.push(
-        // Search in product name (most important - matches any keyword from title/name)
-        { name: { $regex: escapedWord, $options: 'i' } },
-        // Search in description
-        { description: { $regex: escapedWord, $options: 'i' } },
-        // Search in category
-        { category: { $regex: escapedWord, $options: 'i' } },
-        // Search in subCategory
-        { subCategory: { $regex: escapedWord, $options: 'i' } },
-        // Search in tags array - match any element in array
-        { tags: new RegExp(escapedWord, 'i') },
-        // Search in ingredients
-        { ingredients: { $regex: escapedWord, $options: 'i' } },
-        // Search in benefits array - match any element in array
-        { benefits: new RegExp(escapedWord, 'i') },
-        // Search in slug
-        { slug: { $regex: escapedWord, $options: 'i' } }
-      );
-    });
-    
-    // Also search for the full query string (for exact phrase matches)
-    const fullQuery = searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    // Search in all relevant fields
+    // For arrays, we'll use a different approach
     searchConditions.push(
-      { name: { $regex: fullQuery, $options: 'i' } },
-      { description: { $regex: fullQuery, $options: 'i' } },
-      { category: { $regex: fullQuery, $options: 'i' } },
-      { subCategory: { $regex: fullQuery, $options: 'i' } },
-      { tags: new RegExp(fullQuery, 'i') },
-      { ingredients: { $regex: fullQuery, $options: 'i' } },
-      { benefits: new RegExp(fullQuery, 'i') }
+      // Search in product name (most important)
+      { name: { $regex: escapedQuery, $options: 'i' } },
+      // Search in title field (if exists)
+      { title: { $regex: escapedQuery, $options: 'i' } },
+      // Search in description
+      { description: { $regex: escapedQuery, $options: 'i' } },
+      // Search in category
+      { category: { $regex: escapedQuery, $options: 'i' } },
+      // Search in subCategory (if exists)
+      { subCategory: { $regex: escapedQuery, $options: 'i' } },
+      // Search in ingredients (if exists)
+      { ingredients: { $regex: escapedQuery, $options: 'i' } },
+      // Search in slug (if exists)
+      { slug: { $regex: escapedQuery, $options: 'i' } }
     );
     
+    // For arrays (tags, benefits), MongoDB will check each element
+    // Using $regex on array fields will match any element in the array
+    searchConditions.push(
+      { tags: { $regex: escapedQuery, $options: 'i' } },
+      { benefits: { $regex: escapedQuery, $options: 'i' } }
+    );
+
     // Use $or to match any of the conditions (flexible search)
-    // This means if ANY keyword matches in ANY field, the product will be returned
     const query = {
       $or: searchConditions
     };
-
+    
+    console.log('Search query object:', JSON.stringify(query, null, 2));
+    
+    // First, check total products in database
+    const totalProducts = await Product.countDocuments({});
+    console.log(`Total products in database: ${totalProducts}`);
+    
     const products = await Product.find(query)
       .limit(50)
       .select('-reviews')
-      .sort({ 
+      .sort({
         // Prioritize products with matching names
         isFeatured: -1,
         isBestSeller: -1,
         rating: -1,
         createdAt: -1
       });
+
+    console.log(`Found ${products.length} products for search: "${searchQuery}"`);
+
+    // If no results found, try a simpler search as fallback
+    if (products.length === 0 && totalProducts > 0) {
+      console.log('No results with complex search, trying simpler search...');
+      const simpleQuery = {
+        $or: [
+          { name: { $regex: escapedQuery, $options: 'i' } },
+          { description: { $regex: escapedQuery, $options: 'i' } },
+          { category: { $regex: escapedQuery, $options: 'i' } }
+        ]
+      };
+      
+      const simpleResults = await Product.find(simpleQuery)
+        .limit(50)
+        .select('-reviews')
+        .sort({ createdAt: -1 });
+      
+      console.log(`Simple search found ${simpleResults.length} products`);
+      
+      return res.json({
+        success: true,
+        data: simpleResults
+      });
+    }
 
     res.json({
       success: true,
@@ -232,7 +254,8 @@ router.get('/search', async (req, res) => {
     console.error('Search Products Error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error'
+      message: 'Server error',
+      error: error.message
     });
   }
 });
@@ -299,7 +322,7 @@ router.get('/category/:category', async (req, res) => {
 router.get('/:id/related', async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
-    
+
     if (!product) {
       return res.status(404).json({
         success: false,

@@ -15,67 +15,29 @@ const HairOil = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Demo Hair Oil Products
+  // Hair Oil Product
   const mockProducts = [
     {
       id: 1,
-      name: "Onion Hair Oil - 100ml For Hair Fall Control With Onion & Almond Oil",
-      title: "Onion Hair Oil - 100ml For Hair Fall Control With Onion & Almond Oil",
-      price: 1285,
-      originalPrice: 1500,
+      name: "Aura Hair Oil by Valora Gold",
+      title: "Aura Hair Oil by Valora Gold",
+      price: 2299,
+      originalPrice: 6000,
       rating: 5,
       numReviews: 24,
-      image: "/4.png"
-    },
-    {
-      id: 2,
-      name: "Rosemary Hair Growth Oil - 100ml With Rosemary, Castor & Coconut Oil",
-      title: "Rosemary Hair Growth Oil - 100ml With Rosemary, Castor & Coconut Oil",
-      price: 1350,
-      originalPrice: 1600,
-      rating: 5,
-      numReviews: 18,
-      image: "/4.png"
-    },
-    {
-      id: 3,
-      name: "Argan Hair Oil - 100ml For Hair Shine & Strength With Moroccan Argan Oil",
-      title: "Argan Hair Oil - 100ml For Hair Shine & Strength With Moroccan Argan Oil",
-      price: 1450,
-      originalPrice: 1700,
-      rating: 4,
-      numReviews: 15,
-      image: "/4.png"
-    },
-    {
-      id: 4,
-      name: "Coconut Hair Oil - 100ml For Deep Conditioning With Pure Coconut Oil",
-      title: "Coconut Hair Oil - 100ml For Deep Conditioning With Pure Coconut Oil",
-      price: 950,
-      originalPrice: 1200,
-      rating: 5,
-      numReviews: 32,
-      image: "/4.png"
-    },
-    {
-      id: 5,
-      name: "Amla Hair Oil - 100ml For Hair Growth & Thickness With Amla & Bhringraj",
-      title: "Amla Hair Oil - 100ml For Hair Growth & Thickness With Amla & Bhringraj",
-      price: 1100,
-      originalPrice: 1350,
-      rating: 5,
-      numReviews: 21,
-      image: "/4.png"
-    },
-    {
-      id: 6,
-      name: "Keratin Hair Repair Oil - 100ml For Damaged Hair With Keratin & Vitamin E",
-      title: "Keratin Hair Repair Oil - 100ml For Damaged Hair With Keratin & Vitamin E",
-      price: 1550,
-      originalPrice: 1800,
-      rating: 4,
-      numReviews: 12,
-      image: "/4.png"
+      image: "/hair-oil-1.jpg",
+      images: ["/hair-oil-1.jpg", "/hair-oil-2.jpg", "/hair-oil-3.jpg"],
+      description: "For strong, smooth and naturally healthy hair that feels revived from root to tip. Helps restore shine, improve texture and support faster, fuller hair growth. Start your hair recovery today with Aura Hair Oil and see the difference in softness, strength and overall hair health.",
+      benefits: [
+        "Strengthens weak and thinning roots",
+        "Helps reduce hair fall over time",
+        "Supports fast and healthy growth",
+        "Smooths frizz and dryness for better manageability",
+        "Deeply nourishes damaged strands",
+        "Helps reduce dandruff and scalp irritation",
+        "Lightweight formula that doesn't feel sticky",
+        "Softens hair and boosts natural shine"
+      ]
     }
   ];
 
@@ -151,7 +113,8 @@ const HairOil = () => {
                 const productRating = product.rating || 5;
                 const productReviews = product.numReviews || 0;
                 const hasSale = productOriginalPrice && productOriginalPrice > productPrice;
-                const salePercent = hasSale ? Math.round(((productOriginalPrice - productPrice) / productOriginalPrice) * 100) : 0;
+                // For this specific product, show 60% off tag
+                const salePercent = productId === 1 ? 60 : (hasSale ? Math.round(((productOriginalPrice - productPrice) / productOriginalPrice) * 100) : 0);
 
                 return (
                   <div key={productId} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden relative">

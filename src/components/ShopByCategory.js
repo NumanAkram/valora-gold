@@ -9,42 +9,41 @@ const ShopByCategory = () => {
   const categories = [
     {
       id: 1,
-      name: "Hair Oil",
-      image: "/5.png"
+      name: "Hair oil",
+      image: "/hair-oil-2.jpg",
+      link: "/hair-oil"
     },
     {
       id: 2,
-      name: "Hair Shampoo", 
-      image: "/5.png"
+      name: "Perfume", 
+      image: "/5.png",
+      link: "/perfume"
     },
     {
       id: 3,
-      name: "Face Wash",
-      image: "/5.png"
+      name: "Beauty Products",
+      image: "/5.png",
+      link: "/beauty-products"
     },
     {
       id: 4,
-      name: "Face Serum",
-      image: "/5.png"
-    },
-    {
-      id: 5,
-      name: "Face Cream",
-      image: "/5.png"
-    },
-    {
-      id: 6,
-      name: "Face Moisturizer",
-      image: "/5.png"
+      name: "other",
+      image: "/5.png",
+      link: "/other"
     }
   ];
 
   const nextSlide = () => {
-    setCurrentIndex((prev) => (prev + 1) % (categories.length - 3));
+    // Since we have exactly 4 categories, disable next if showing all
+    if (currentIndex < categories.length - 4) {
+      setCurrentIndex((prev) => prev + 1);
+    }
   };
 
   const prevSlide = () => {
-    setCurrentIndex((prev) => (prev - 1 + (categories.length - 3)) % (categories.length - 3));
+    if (currentIndex > 0) {
+      setCurrentIndex((prev) => prev - 1);
+    }
   };
 
   return (
@@ -81,11 +80,11 @@ const ShopByCategory = () => {
 
             {/* Categories Carousel - Responsive */}
             <div className="flex space-x-2 md:space-x-3 px-4 lg:px-20 overflow-x-auto scrollbar-hide">
-              {categories.slice(currentIndex, currentIndex + 4).map((category) => (
+              {categories.map((category) => (
                 <div 
                   key={category.id} 
                   className="bg-gray-50 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden flex-shrink-0 w-64 md:w-72 cursor-pointer"
-                  onClick={() => navigate('/shop-all')}
+                  onClick={() => navigate(category.link)}
                 >
                   {/* Category Image */}
                   <div className="relative h-80 md:h-96 bg-gray-50">
