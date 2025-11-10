@@ -30,17 +30,7 @@ const RelatedProducts = ({ currentProductId }) => {
     }
   }, [currentProductId]);
 
-  // Mock fallback - only if API returns no products
-  const mockProducts = [
-    { id: 2, name: "Vitamin C Face Wash", price: "Rs.855", rating: 5, reviews: 40, image: "/4.png" },
-    { id: 3, name: "Onion Hair Oil", price: "Rs.1,285", rating: 5, reviews: 41, image: "/4.png" },
-    { id: 4, name: "Vitamin C Face Serum", price: "Rs.1,350", rating: 5, reviews: 19, image: "/4.png" },
-    { id: 5, name: "Tea Tree Face Serum", price: "Rs.1,350", rating: 5, reviews: 29, image: "/4.png" },
-  ].filter(p => p.id !== currentProductId);
-
-  const displayProducts = relatedProducts.length > 0 ? relatedProducts : mockProducts;
-
-  if (displayProducts.length === 0) {
+  if (relatedProducts.length === 0) {
     return null;
   }
 
@@ -48,9 +38,12 @@ const RelatedProducts = ({ currentProductId }) => {
     <section className="mt-16 border-t border-gray-200 pt-12">
       <h2 className="text-2xl font-bold text-logo-green mb-8 font-sans">Related Products</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {displayProducts.map((product) => {
+        {relatedProducts.map((product) => {
           const productId = product._id || product.id;
-          const productPrice = product.price ? `Rs.${product.price.toLocaleString()}` : (product.originalPrice ? `Rs.${product.originalPrice.toLocaleString()}` : 'Rs.0');
+          const priceValue = typeof product.price === 'number'
+            ? product.price
+            : (typeof product.originalPrice === 'number' ? product.originalPrice : null);
+          const productPrice = priceValue !== null ? `Rs.${priceValue.toLocaleString()}` : 'Price not available';
           const productImage = product.images?.[0] || product.image || '/4.png';
           const productReviews = product.numReviews || 0;
           
@@ -80,8 +73,11 @@ const RelatedProducts = ({ currentProductId }) => {
               <div className="text-lg font-bold text-logo-green font-sans">{productPrice}</div>
               <button
                 onClick={() => {
-                  addToCart({ ...product, id: productId, price: product.price || product.originalPrice, image: productImage });
-                  showToast('Product added to cart!', 'success');
+                  if (priceValue === null) {
+                    showToast('Price not available yet for this product.', 'info');
+                    return;
+                  }
+                  addToCart({ ...product, id: productId, price: priceValue, image: productImage });
                 }}
                 className="w-full bg-logo-green text-white py-2 px-4 rounded hover:bg-banner-green transition-colors font-sans font-medium text-sm"
               >

@@ -12,7 +12,8 @@ router.post('/register', [
   body('name').trim().notEmpty().withMessage('Name is required'),
   body('email').isEmail().withMessage('Please provide a valid email'),
   body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
-  body('phone').optional().trim()
+  body('phone').optional().trim(),
+  body('role').optional().isIn(['user', 'admin']).withMessage('Invalid role value')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -23,7 +24,8 @@ router.post('/register', [
       });
     }
 
-    const { name, email, password, phone } = req.body;
+    const { name, email, password, phone, role } = req.body;
+    const normalizedRole = role === 'admin' ? 'admin' : 'user';
 
     // Check if user exists
     const userExists = await User.findOne({ email });
@@ -39,7 +41,8 @@ router.post('/register', [
       name,
       email,
       password,
-      phone
+      phone,
+      role: normalizedRole
     });
 
     res.status(201).json({
@@ -48,6 +51,7 @@ router.post('/register', [
         id: user._id,
         name: user.name,
         email: user.email,
+        role: user.role,
         token: generateToken(user._id)
       },
       message: 'Account created successfully'
@@ -103,12 +107,67 @@ router.post('/login', [
         id: user._id,
         name: user.name,
         email: user.email,
+        role: user.role,
         token: generateToken(user._id)
       },
       message: 'Successfully signed in'
     });
   } catch (error) {
     console.error('Login Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during login'
+    });
+  }
+});
+
+// @route   POST /api/auth/admin/login
+// @desc    Login admin user
+// @access  Public (validates admin role)
+router.post('/admin/login', [
+  body('email').isEmail().withMessage('Please provide a valid email'),
+  body('password').notEmpty().withMessage('Password is required')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        errors: errors.array()
+      });
+    }
+
+    const { email, password } = req.body;
+
+    const user = await User.findOne({ email }).select('+password');
+    if (!user || user.role !== 'admin') {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid credentials'
+      });
+    }
+
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid credentials'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        token: generateToken(user._id)
+      },
+      message: 'Successfully signed in'
+    });
+  } catch (error) {
+    console.error('Admin Login Error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error during login'

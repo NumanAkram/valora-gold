@@ -1,30 +1,39 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Star, ChevronLeft, ChevronRight, Heart } from 'lucide-react';
+import { Star, Heart } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import { useWishlist } from '../context/WishlistContext';
+import { useAdminAuth } from '../context/AdminAuthContext';
 import { productsAPI } from '../utils/api';
 
+const MAX_PRODUCTS = 4;
+const ADD_PRODUCT_BUTTON_ID = 'add-product-button';
+
 const BestSellers = () => {
-  const [currentIndex, setCurrentIndex] = useState(0);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { addToCart } = useCart();
   const { showToast } = useToast();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
+  const { isAuthenticated: isAdminAuthenticated } = useAdminAuth();
+  const [userRole, setUserRole] = useState(null);
   
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await productsAPI.getBestSellers();
-        if (response.success) {
-          setProducts(response.data);
+        const response = await productsAPI.getAll({ limit: MAX_PRODUCTS + 10, sort: 'newest' });
+        if (response.success && Array.isArray(response.data)) {
+          const filtered = response.data
+            .filter((item) => item && item.category && item.category.toLowerCase() !== 'other')
+            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+          setProducts(filtered.slice(0, MAX_PRODUCTS));
+        } else {
+          setProducts([]);
         }
       } catch (error) {
         console.error('Error fetching best sellers:', error);
-        // Fallback to empty array or show error
         setProducts([]);
       } finally {
         setLoading(false);
@@ -32,86 +41,81 @@ const BestSellers = () => {
     };
     fetchProducts();
   }, []);
+  useEffect(() => {
+    const handleProductAdded = (event) => {
+      const newProduct = event.detail;
+      if (!newProduct || !newProduct.category || newProduct.category.toLowerCase() === 'other') {
+        return;
+      }
 
-  // Mock products as fallback (remove this after seeding database)
-  const mockProducts = [
-    {
-      id: 1,
-      name: "Tea Tree Face Wash - 100ml For Acne & Pimples With Tea Tree & Salicylic Acid",
-      price: "Rs.855",
-      rating: 5,
-      reviews: "76 reviews"
-    },
-    {
-      id: 2,
-      name: "Vitamin C Face Wash - 100ml For Bright & Radiant Skin With Vitamin C & Lemon",
-      price: "Rs.855",
-      rating: 5,
-      reviews: "40 reviews"
-    },
-    {
-      id: 3,
-      name: "Onion Hair Oil - 100ml For Hair Fall Control With Onion & Almond Oil",
-      price: "Rs.1,285",
-      rating: 5,
-      reviews: "41 reviews"
-    },
-    {
-      id: 4,
-      name: "Vitamin C Face Serum - 30ml For Bright & Radiant Skin With Vitamin C & Lemon",
-      price: "Rs.1,350",
-      rating: 5,
-      reviews: "19 reviews"
-    },
-    {
-      id: 5,
-      name: "Tea Tree Face Serum - 30ml For Acne & Pimples With Neem, Tea Tree & Salicylic..",
-      price: "Rs.1,350",
-      rating: 5,
-      reviews: "29 reviews"
-    },
-    {
-      id: 6,
-      name: "Onion Hair Oil - 150ml For Hair Fall Control With Onion & Almond Oil",
-      price: "Rs.1,610",
-      rating: 5,
-      reviews: "47 reviews"
-    },
-    {
-      id: 7,
-      name: "Rosemary Hair Oil - 100ml For Long & Healthy Hair With Rosemary & Almond Oil",
-      price: "Rs.1,285",
-      rating: 5,
-      reviews: "35 reviews"
-    },
-    {
-      id: 8,
-      name: "Hyaluronic Acid Face Serum - 30ml For Hydration & Skin Repair",
-      price: "Rs.1,450",
-      rating: 5,
-      reviews: "28 reviews"
-    },
-    {
-      id: 9,
-      name: "Ubtan Face Wash - 100ml For Skin Glow & Tan Removal With Turmeric & Saffron",
-      price: "Rs.855",
-      rating: 5,
-      reviews: "52 reviews"
+      setProducts((prev) => {
+        const existingIndex = prev.findIndex(
+          (item) => (item._id || item.id)?.toString() === (newProduct._id || newProduct.id)?.toString()
+        );
+
+        const updated = existingIndex >= 0
+          ? prev.map((item, index) => (index === existingIndex ? { ...item, ...newProduct } : item))
+          : [{ ...newProduct }, ...prev];
+
+        const sorted = updated
+          .filter(Boolean)
+          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+        return sorted.slice(0, MAX_PRODUCTS);
+      });
+    };
+
+    window.addEventListener('product-added', handleProductAdded);
+    return () => window.removeEventListener('product-added', handleProductAdded);
+  }, []);
+
+  useEffect(() => {
+    try {
+      let resolvedRole = null;
+
+      const adminData = localStorage.getItem('valora_admin');
+      if (adminData) {
+        try {
+          const parsedAdmin = JSON.parse(adminData);
+          if (parsedAdmin?.role) {
+            resolvedRole = String(parsedAdmin.role).toLowerCase();
+          }
+        } catch (error) {
+          console.error('Failed to parse stored admin data', error);
+        }
+      }
+
+      if (!resolvedRole) {
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+          try {
+            const parsedUser = JSON.parse(storedUser);
+            if (parsedUser?.role) {
+              resolvedRole = String(parsedUser.role).toLowerCase();
+            }
+          } catch (error) {
+            console.error('Failed to parse stored user', error);
+          }
+        }
+      }
+
+      setUserRole(resolvedRole);
+    } catch (error) {
+      console.error('Failed to determine user role', error);
+      setUserRole(null);
     }
-  ];
+  }, []);
 
-  // Use API products or fallback to mock
-  const displayProducts = products.length > 0 ? products : mockProducts;
+  const canManageProducts = Boolean(
+    isAdminAuthenticated || (userRole && userRole.toLowerCase() === 'admin')
+  );
 
-  const nextSlide = () => {
-    if (displayProducts.length <= 5) return;
-    setCurrentIndex((prev) => (prev + 1) % (displayProducts.length - 4));
-  };
+  const handleAddProductClick = useCallback(() => {
+    const openEvent = new CustomEvent('admin-add-product-open');
+    window.dispatchEvent(openEvent);
+  }, []);
 
-  const prevSlide = () => {
-    if (displayProducts.length <= 5) return;
-    setCurrentIndex((prev) => (prev - 1 + (displayProducts.length - 4)) % (displayProducts.length - 4));
-  };
+  const displayProducts = products;
 
   if (loading) {
     return (
@@ -128,6 +132,8 @@ const BestSellers = () => {
     );
   }
 
+  const hasProducts = displayProducts.length > 0;
+
   return (
     <section className="bg-white py-6 sm:py-8 md:py-12 w-full">
       <div className="w-full px-4 sm:px-6 lg:px-8">
@@ -136,36 +142,70 @@ const BestSellers = () => {
           OUR BEST SELLERS
         </h2>
 
+        {canManageProducts && (
+          <div className="flex justify-center mb-6">
+            <button
+              id={ADD_PRODUCT_BUTTON_ID}
+              onClick={handleAddProductClick}
+              className="inline-flex items-center gap-2 px-6 py-2 rounded-full border border-logo-green text-logo-green font-semibold hover:bg-logo-green hover:text-white transition-colors"
+            >
+              <span className="text-xl leading-none">+</span>
+              Add Product
+            </button>
+          </div>
+        )}
+
         {/* Carousel Container */}
         <div className="relative w-full">
-          {/* Navigation Arrows - Hidden on mobile */}
-          <button
-            onClick={prevSlide}
-            className="hidden md:flex absolute left-2 md:left-4 top-1/2 transform -translate-y-1/2 z-10 w-8 h-8 md:w-10 md:h-10 lg:w-12 lg:h-12 bg-gray-200 rounded-full items-center justify-center hover:bg-gray-300 transition-colors duration-300"
-          >
-            <ChevronLeft className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6 text-gray-600" />
-          </button>
-
-          <button
-            onClick={nextSlide}
-            className="hidden md:flex absolute right-2 md:right-4 top-1/2 transform -translate-y-1/2 z-10 w-8 h-8 md:w-10 md:h-10 lg:w-12 lg:h-12 bg-gray-200 rounded-full items-center justify-center hover:bg-gray-300 transition-colors duration-300"
-          >
-            <ChevronRight className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6 text-gray-600" />
-          </button>
-
-          {/* Products Carousel - Responsive */}
-          <div className="flex justify-start md:justify-center space-x-2 sm:space-x-3 md:space-x-4 px-2 sm:px-4 md:px-8 lg:px-20 overflow-x-auto scrollbar-hide">
-            {displayProducts.slice(currentIndex, Math.min(currentIndex + 5, displayProducts.length)).map((product) => {
+          {/* Products Grid */}
+          {hasProducts ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+            {displayProducts.map((product) => {
               // Format product data for display
               const productId = product._id || product.id;
+              const productSlug = product.slug || (productId ? String(productId).toLowerCase() : null);
               const productName = product.name;
-              const productPrice = product.price ? `Rs.${product.price.toLocaleString()}` : (product.originalPrice ? `Rs.${product.originalPrice.toLocaleString()}` : 'Rs.0');
+              const formatCurrency = (value) => {
+                if (value === undefined || value === null) {
+                  return null;
+                }
+                if (typeof value === 'number') {
+                  return `Rs.${value.toLocaleString()}`;
+                }
+                if (typeof value === 'string') {
+                  const normalized = value.trim();
+                  return normalized.startsWith('Rs.') ? normalized : `Rs.${normalized}`;
+                }
+                return null;
+              };
+
+              const productPrice = formatCurrency(product.price) || formatCurrency(product.originalPrice) || 'Rs.0';
               const productImage = product.images?.[0] || product.image || '/4.png';
               const productRating = product.rating || 5;
-              const productReviews = product.numReviews || 0;
+              const productReviews = typeof product.numReviews === 'number'
+                ? product.numReviews
+                : Array.isArray(product.reviews)
+                  ? product.reviews.length
+                  : 0;
+
+              const getNumericPrice = (value) => {
+                if (value === undefined || value === null) {
+                  return null;
+                }
+                if (typeof value === 'number') {
+                  return value;
+                }
+                if (typeof value === 'string') {
+                  const numeric = parseFloat(value.replace(/[^0-9.]/g, ''));
+                  return Number.isNaN(numeric) ? null : numeric;
+                }
+                return null;
+              };
+
+              const priceForCart = getNumericPrice(product.price) ?? getNumericPrice(product.originalPrice) ?? 0;
               
               return (
-              <div key={productId} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden flex-shrink-0 w-[280px] sm:w-[300px] md:w-80 relative">
+              <div key={productId} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden relative">
                  {/* Wishlist Button */}
                  <button
                    onClick={() => {
@@ -184,7 +224,7 @@ const BestSellers = () => {
 
                  {/* Product Image - Clickable */}
                  <div 
-                   className="relative h-64 sm:h-80 md:h-96 bg-gray-50 cursor-pointer"
+                  className="relative h-64 sm:h-72 md:h-80 bg-gray-50 cursor-pointer"
                   onClick={() => navigate(`/product/${productId}`, { state: { product: { ...product, id: productId } } })}
                  >
                    <img
@@ -225,8 +265,14 @@ const BestSellers = () => {
                   {/* Add to Cart Button */}
                   <button 
                     onClick={() => {
-                      addToCart({ ...product, id: productId, price: product.price || product.originalPrice, image: productImage });
-                      showToast('Product added to cart!', 'success');
+                      addToCart({
+                        ...product,
+                        id: productId,
+                        _id: product._id || productId,
+                        slug: productSlug || product.slug,
+                        price: priceForCart,
+                        image: productImage,
+                      });
                     }}
                     className="w-full border border-logo-green text-logo-green font-bold py-2 px-4 rounded text-sm uppercase hover:bg-logo-green hover:text-white transition-colors duration-300"
                   >
@@ -237,6 +283,11 @@ const BestSellers = () => {
              );
            })}
            </div>
+          ) : (
+            <div className="py-10 text-center text-gray-500 font-sans">
+              No best sellers available yet. Please check back soon.
+            </div>
+          )}
         </div>
       </div>
     </section>

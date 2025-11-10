@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Product = require('../models/Product');
-const { optionalAuth } = require('../middleware/auth');
+const { optionalAuth, protect, authorize } = require('../middleware/auth');
 
 // @route   GET /api/products
 // @desc    Get all products with filters
@@ -31,7 +31,9 @@ router.get('/', optionalAuth, async (req, res) => {
     if (search) {
       query.$or = [
         { name: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } }
+        { description: { $regex: search, $options: 'i' } },
+        { tags: { $regex: search, $options: 'i' } },
+        { keywords: { $regex: search, $options: 'i' } }
       ];
     }
 
@@ -98,6 +100,353 @@ router.get('/', optionalAuth, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error'
+    });
+  }
+});
+
+// @route   POST /api/products
+// @desc    Create a new product
+// @access  Public (should be protected in production)
+router.post('/', protect, authorize('admin'), async (req, res) => {
+  try {
+    const {
+      name,
+      price,
+      description,
+      category,
+      imageUrl,
+      images = [],
+      tags = [],
+      benefits = [],
+      stockCount = 0,
+      inStock = true,
+      comingSoon = false,
+      isFeatured = false,
+      isBestSeller = false,
+      originalPrice,
+    } = req.body;
+
+    if (!name || !description || !category) {
+      return res.status(400).json({
+        success: false,
+        message: 'Name, description and category are required'
+      });
+    }
+
+    let numericPrice = null;
+    let numericOriginal = null;
+
+    if (!comingSoon) {
+      if (price === undefined || price === null || price === '') {
+        return res.status(400).json({
+          success: false,
+          message: 'Price is required unless the product is marked as coming soon'
+        });
+      }
+      numericPrice = Number(price);
+      if (Number.isNaN(numericPrice) || numericPrice < 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Price must be a positive number'
+        });
+      }
+      if (originalPrice !== undefined && originalPrice !== null && originalPrice !== '') {
+        numericOriginal = Number(originalPrice);
+        if (Number.isNaN(numericOriginal) || numericOriginal < 0) {
+          return res.status(400).json({
+            success: false,
+            message: 'Original price must be a positive number'
+          });
+        }
+      } else {
+        numericOriginal = numericPrice;
+      }
+    }
+
+    const numericStock = Number(stockCount);
+    if (Number.isNaN(numericStock) || numericStock < 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Stock count must be a non-negative number'
+      });
+    }
+
+    const imageList = Array.isArray(images) && images.length > 0
+      ? images.filter(Boolean)
+      : (imageUrl ? [imageUrl] : []);
+
+    if (!imageList.length) {
+      imageList.push('/4.png');
+    }
+
+    const product = await Product.create({
+      name: name.trim(),
+      price: numericPrice,
+      originalPrice: numericOriginal,
+      description: description.trim(),
+      category,
+      images: imageList,
+      tags,
+      benefits,
+      inStock: numericStock > 0 ? true : Boolean(inStock),
+      stockCount: numericStock,
+      isFeatured: Boolean(isFeatured),
+      isBestSeller: Boolean(isBestSeller),
+      comingSoon: Boolean(comingSoon)
+    });
+
+    res.status(201).json({
+      success: true,
+      data: product
+    });
+  } catch (error) {
+    console.error('Create Product Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create product',
+      error: error.message
+    });
+  }
+});
+
+// @route   PUT /api/products/:id
+// @desc    Update an existing product
+// @access  Private/Admin
+router.put('/:id', protect, authorize('admin'), async (req, res) => {
+  try {
+    const {
+      name,
+      price,
+      originalPrice,
+      description,
+      category,
+      imageUrl,
+      images,
+      tags,
+      benefits,
+      inStock,
+      stockCount,
+      isFeatured,
+      isBestSeller,
+      comingSoon,
+    } = req.body;
+
+    const product = await Product.findById(req.params.id);
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: 'Product not found'
+      });
+    }
+
+    if (name !== undefined) {
+      product.name = name.trim();
+    }
+
+    if (description !== undefined) {
+      product.description = description.trim();
+    }
+
+    if (category !== undefined) {
+      product.category = category;
+    }
+
+    if (price !== undefined) {
+      if (price === null || price === '') {
+        product.price = null;
+        product.comingSoon = true;
+      } else {
+        const numericPrice = Number(price);
+        if (Number.isNaN(numericPrice) || numericPrice < 0) {
+          return res.status(400).json({
+            success: false,
+            message: 'Price must be a positive number'
+          });
+        }
+        product.price = numericPrice;
+        if (originalPrice === undefined) {
+          product.originalPrice = numericPrice;
+        }
+      }
+    }
+
+    if (originalPrice !== undefined) {
+      if (originalPrice === null || originalPrice === '') {
+        product.originalPrice = null;
+      } else {
+        const numericOriginal = Number(originalPrice);
+        if (Number.isNaN(numericOriginal) || numericOriginal < 0) {
+          return res.status(400).json({
+            success: false,
+            message: 'Original price must be a positive number'
+          });
+        }
+        product.originalPrice = numericOriginal;
+      }
+    }
+
+    if (images !== undefined || imageUrl !== undefined) {
+      const imageList = Array.isArray(images) && images.length > 0
+        ? images.filter(Boolean)
+        : (imageUrl !== undefined ? (imageUrl ? [imageUrl] : []) : product.images);
+
+      if (imageList.length > 0) {
+        product.images = imageList;
+      } else if (imageUrl !== undefined && !imageUrl) {
+        product.images = ['/4.png'];
+      }
+    }
+
+    if (tags !== undefined) {
+      product.tags = Array.isArray(tags) ? tags : [];
+    }
+
+    if (benefits !== undefined) {
+      product.benefits = Array.isArray(benefits) ? benefits : [];
+    }
+
+    if (inStock !== undefined) {
+      product.inStock = Boolean(inStock);
+    }
+
+    if (stockCount !== undefined) {
+      const numericStock = Number(stockCount);
+      if (Number.isNaN(numericStock) || numericStock < 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Stock count must be a non-negative number'
+        });
+      }
+      product.stockCount = numericStock;
+      if (numericStock > 0) {
+        product.inStock = true;
+      }
+    }
+
+    if (typeof isFeatured === 'boolean') {
+      product.isFeatured = isFeatured;
+    }
+
+    if (typeof isBestSeller === 'boolean') {
+      product.isBestSeller = isBestSeller;
+    }
+
+    if (typeof comingSoon === 'boolean') {
+      product.comingSoon = comingSoon;
+      if (comingSoon) {
+        product.price = null;
+      }
+    }
+
+    if (!product.images || product.images.length === 0) {
+      product.images = ['/4.png'];
+    }
+
+    await product.save();
+
+    res.json({
+      success: true,
+      data: product,
+      message: 'Product updated successfully'
+    });
+  } catch (error) {
+    console.error('Update Product Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update product',
+      error: error.message
+    });
+  }
+});
+
+// @route   PUT /api/products/:id/price
+// @desc    Update price for a coming soon product
+// @access  Private/Admin
+router.put('/:id/price', protect, authorize('admin'), async (req, res) => {
+  try {
+    const { price, originalPrice } = req.body;
+
+    if (price === undefined || price === null || price === '') {
+      return res.status(400).json({
+        success: false,
+        message: 'Price is required'
+      });
+    }
+
+    const numericPrice = Number(price);
+    if (Number.isNaN(numericPrice) || numericPrice < 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Price must be a positive number'
+      });
+    }
+
+    let numericOriginal = numericPrice;
+    if (originalPrice !== undefined && originalPrice !== null && originalPrice !== '') {
+      numericOriginal = Number(originalPrice);
+      if (Number.isNaN(numericOriginal) || numericOriginal < 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Original price must be a positive number'
+        });
+      }
+    }
+
+    const product = await Product.findById(req.params.id);
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: 'Product not found'
+      });
+    }
+
+    product.price = numericPrice;
+    product.originalPrice = numericOriginal;
+    product.comingSoon = false;
+
+    await product.save();
+
+    res.json({
+      success: true,
+      data: product
+    });
+  } catch (error) {
+    console.error('Update Price Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update product price',
+      error: error.message
+    });
+  }
+});
+
+// @route   DELETE /api/products/:id
+// @desc    Delete a product
+// @access  Private/Admin
+router.delete('/:id', protect, authorize('admin'), async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id);
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: 'Product not found'
+      });
+    }
+
+    await product.deleteOne();
+
+    res.json({
+      success: true,
+      message: 'Product deleted successfully'
+    });
+  } catch (error) {
+    console.error('Delete Product Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete product'
     });
   }
 });

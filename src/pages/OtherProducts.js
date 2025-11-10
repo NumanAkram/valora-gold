@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Star, Heart } from 'lucide-react';
+import { Star, Heart, Tag } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import { useWishlist } from '../context/WishlistContext';
 import Breadcrumbs from '../components/Breadcrumbs';
 import { productsAPI } from '../utils/api';
+import SetPriceModal from '../components/SetPriceModal';
+
+const MAX_PRODUCTS = 4;
 
 const OtherProducts = () => {
   const navigate = useNavigate();
@@ -14,90 +17,8 @@ const OtherProducts = () => {
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  // Mock products as fallback (same as Bundles component)
-  const mockProducts = [
-    {
-      id: 1,
-      name: "Tea Tree Acne Control Kit | Face Wash 100ml + Serum 30ml + Cream 50g",
-      title: "Tea Tree Acne Control Kit | Face Wash 100ml + Serum 30ml + Cream 50g",
-      price: 2836,
-      originalPrice: 3337,
-      rating: 5,
-      numReviews: 12,
-      image: "/4.png"
-    },
-    {
-      id: 2,
-      name: "Onion Hair Fall Control Bundle | Oil 100ml + Shampoo 250ml + Conditioner 250ml",
-      title: "Onion Hair Fall Control Bundle | Oil 100ml + Shampoo 250ml + Conditioner 250ml",
-      price: 3203,
-      originalPrice: 3769,
-      rating: 5,
-      numReviews: 9,
-      image: "/4.png"
-    },
-    {
-      id: 3,
-      name: "Retinol Anti Aging Kit | Face Wash 100ml + Serum 30ml + Cream 50g",
-      title: "Retinol Anti Aging Kit | Face Wash 100ml + Serum 30ml + Cream 50g",
-      price: 3240,
-      originalPrice: 3812,
-      rating: 5,
-      numReviews: 7,
-      image: "/4.png"
-    },
-    {
-      id: 4,
-      name: "Ubtan Glow & Tan Removal Kit | Face Wash 100ml + Serum 30ml + Cream 50g",
-      title: "Ubtan Glow & Tan Removal Kit | Face Wash 100ml + Serum 30ml + Cream 50g",
-      price: 3055,
-      originalPrice: 3595,
-      rating: 5,
-      numReviews: 15,
-      image: "/4.png"
-    },
-    {
-      id: 5,
-      name: "Vitamin C Skin Brightening Kit | Face Wash 100ml + Face Serum 30ml + Night Cream 50g",
-      title: "Vitamin C Skin Brightening Kit | Face Wash 100ml + Face Serum 30ml + Night Cream 50g",
-      price: 3020,
-      originalPrice: 3553,
-      rating: 5,
-      numReviews: 11,
-      image: "/4.png"
-    },
-    {
-      id: 6,
-      name: "Ubtan Facial Kit for Skin Glow | Cleanser 60ml + Scrub 60ml + Soothing Gel 60ml + Massage Cream 60ml + Mask 60ml + Glow Cream 60ml",
-      title: "Ubtan Facial Kit for Skin Glow | Cleanser 60ml + Scrub 60ml + Soothing Gel 60ml + Massage Cream 60ml + Mask 60ml + Glow Cream 60ml",
-      price: 1836,
-      originalPrice: 2160,
-      rating: 5,
-      numReviews: 8,
-      image: "/4.png"
-    },
-    {
-      id: 7,
-      name: "Onion Hair Fall Control Bundle | Oil 100ml + Shampoo 250ml",
-      title: "Onion Hair Fall Control Bundle | Oil 100ml + Shampoo 250ml",
-      price: 2147,
-      originalPrice: 2527,
-      rating: 5,
-      numReviews: 13,
-      image: "/4.png"
-    },
-    {
-      id: 8,
-      name: "Rosemary Hair Growth Bundle 2 | Rosemary Oil 100ml + Rosemary Shampoo 250ml",
-      title: "Rosemary Hair Growth Bundle 2 | Rosemary Oil 100ml + Rosemary Shampoo 250ml",
-      price: 2147,
-      originalPrice: 2527,
-      rating: 5,
-      numReviews: 6,
-      image: "/4.png"
-    }
-  ];
+  const [priceProduct, setPriceProduct] = useState(null);
+  const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
 
   // Scroll to top when component mounts
   useEffect(() => {
@@ -108,21 +29,15 @@ const OtherProducts = () => {
     const fetchProducts = async () => {
       try {
         setLoading(true);
-        // Try to fetch from API first
-        const response = await productsAPI.getAll({ limit: 100 });
-        console.log('Other Products API Response:', response);
-        if (response && response.success && response.data && response.data.length > 0) {
-          // Show all products from API
-          setProducts(response.data);
+        const response = await productsAPI.getAll({ limit: MAX_PRODUCTS + 10, category: 'Other', sort: 'newest' });
+        if (response && response.success && Array.isArray(response.data)) {
+          setProducts(response.data.slice(0, MAX_PRODUCTS));
         } else {
-          // Fallback to mock products if API doesn't return data
-          console.warn('API returned no products, using mock data');
-          setProducts(mockProducts);
+          setProducts([]);
         }
       } catch (error) {
-        console.error('Error fetching products, using mock data:', error);
-        // Fallback to mock products on error
-        setProducts(mockProducts);
+        console.error('Error fetching other products:', error);
+        setProducts([]);
       } finally {
         setLoading(false);
       }
@@ -130,6 +45,44 @@ const OtherProducts = () => {
 
     fetchProducts();
   }, []);
+
+  useEffect(() => {
+    const handleProductAdded = (event) => {
+      const newProduct = event.detail;
+      if (!newProduct || newProduct.category !== 'Other') return;
+
+      setProducts((prev) => {
+        const existsIndex = prev.findIndex(
+          (item) => (item._id || item.id)?.toString() === (newProduct._id || newProduct.id)?.toString()
+        );
+
+        const updated = existsIndex >= 0
+          ? prev.map((item, index) => (index === existsIndex ? { ...item, ...newProduct } : item))
+          : [{ ...newProduct }, ...prev];
+
+        return updated
+          .filter(Boolean)
+          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+          .slice(0, MAX_PRODUCTS);
+      });
+    };
+
+    window.addEventListener('product-added', handleProductAdded);
+    return () => window.removeEventListener('product-added', handleProductAdded);
+  }, []);
+
+  const openPriceModal = (product) => {
+    setPriceProduct(product);
+    setIsPriceModalOpen(true);
+  };
+
+  const handlePriceUpdated = (updatedProduct) => {
+    setProducts((prev) =>
+      prev.map((item) =>
+        (item._id || item.id) === (updatedProduct._id || updatedProduct.id) ? { ...item, ...updatedProduct } : item
+      )
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -160,21 +113,22 @@ const OtherProducts = () => {
               </p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {products.map((product) => {
+              {products.slice(0, MAX_PRODUCTS).map((product) => {
                 const productId = product._id || product.id;
                 const productName = product.name || product.title || '';
-                const productPrice = product.price || 0;
-                const productOriginalPrice = product.originalPrice || null;
+                const productPrice = typeof product.price === 'number' ? product.price : null;
+                const productOriginalPrice = typeof product.originalPrice === 'number' ? product.originalPrice : null;
                 const productImage = product.images?.[0] || product.image || '/4.png';
                 const productRating = product.rating || 5;
                 const productReviews = product.numReviews || 0;
-                const hasSale = productOriginalPrice && productOriginalPrice > productPrice;
+                const isComingSoon = Boolean(product.comingSoon) || productPrice === null;
+                const hasSale = !isComingSoon && productOriginalPrice !== null && productPrice !== null && productOriginalPrice > productPrice;
                 const salePercent = hasSale ? Math.round(((productOriginalPrice - productPrice) / productOriginalPrice) * 100) : 0;
 
                 return (
                   <div key={productId} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden relative">
                     {/* Sale Badge */}
-                    {hasSale && (
+                    {hasSale && salePercent > 0 && (
                       <div className="absolute top-2 left-2 z-10">
                         <div className="bg-logo-green text-white text-xs font-bold px-2 py-1 rounded-full">
                           Sale {salePercent}%
@@ -189,7 +143,7 @@ const OtherProducts = () => {
                           removeFromWishlist(productId);
                           showToast('Removed from wishlist', 'success');
                         } else {
-                          addToWishlist({ ...product, id: productId, name: productName, price: productPrice, image: productImage });
+                          addToWishlist({ ...product, id: productId, name: productName, price: productPrice ?? 0, image: productImage });
                           showToast('Added to wishlist!', 'success');
                         }
                       }}
@@ -237,32 +191,49 @@ const OtherProducts = () => {
 
                       {/* Pricing */}
                       <div className="flex items-center space-x-2">
-                        <span className="text-lg font-bold text-red-600">
-                          Rs.{productPrice.toLocaleString()}
-                        </span>
-                        {productOriginalPrice && productOriginalPrice > productPrice && (
-                          <span className="text-sm text-gray-500 line-through">
-                            Rs.{productOriginalPrice.toLocaleString()}
+                        {isComingSoon ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-700 uppercase">
+                            <Tag className="h-3 w-3" />
+                            Coming Soon
                           </span>
+                        ) : (
+                          <>
+                            <span className="text-lg font-bold text-red-600">
+                              Rs.{productPrice?.toLocaleString()}
+                            </span>
+                            {productOriginalPrice && productOriginalPrice > productPrice && (
+                              <span className="text-sm text-gray-500 line-through">
+                                Rs.{productOriginalPrice.toLocaleString()}
+                              </span>
+                            )}
+                          </>
                         )}
                       </div>
 
-                      {/* Add to Cart Button */}
-                      <button
-                        onClick={() => {
-                          addToCart({
-                            ...product,
-                            id: productId,
-                            name: productName,
-                            price: productPrice,
-                            image: productImage
-                          });
-                          showToast('Product added to cart!', 'success');
-                        }}
-                        className="w-full border border-logo-green text-logo-green bg-white font-bold py-2 px-4 rounded text-sm uppercase hover:bg-logo-green hover:text-white transition-colors duration-300"
-                      >
-                        ADD TO CART
-                      </button>
+                      {/* Action Button */}
+                      {isComingSoon ? (
+                        <button
+                          onClick={() => openPriceModal(product)}
+                          className="w-full border border-logo-green text-logo-green font-bold py-2 px-4 rounded text-sm uppercase transition-colors duration-300 hover:bg-logo-green hover:text-white"
+                        >
+                          Set Price
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            addToCart({
+                              ...product,
+                              id: productId,
+                              name: productName,
+                              price: productPrice,
+                              image: productImage
+                            });
+                          }}
+                          className="w-full border border-logo-green text-logo-green font-bold py-2 px-4 rounded text-sm uppercase transition-colors duration-300 hover:bg-logo-green hover:text-white"
+                        >
+                          Add to Cart
+                        </button>
+                      )}
                     </div>
                   </div>
                 );
@@ -280,6 +251,15 @@ const OtherProducts = () => {
           </div>
         )}
       </div>
+      <SetPriceModal
+        open={isPriceModalOpen}
+        onClose={() => {
+          setIsPriceModalOpen(false);
+          setPriceProduct(null);
+        }}
+        product={priceProduct}
+        onPriceUpdated={handlePriceUpdated}
+      />
     </div>
   );
 };

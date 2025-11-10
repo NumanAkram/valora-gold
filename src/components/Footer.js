@@ -164,11 +164,6 @@ const Footer = () => {
                   Track My Order
                 </Link>
               </li>
-              <li>
-                <a href="/latest-news" className="text-white text-sm hover:text-gray-200 transition-colors font-sans">
-                  Latest News
-                </a>
-              </li>
             </ul>
           </div>
 
@@ -179,18 +174,8 @@ const Footer = () => {
             </h3>
             <ul className="space-y-2">
               <li>
-                <a href="/shipping-policy" className="text-white text-sm hover:text-gray-200 transition-colors">
-                  Shipping Policy
-                </a>
-              </li>
-              <li>
                 <a href="/privacy-policy" className="text-white text-sm hover:text-gray-200 transition-colors">
                   Privacy Policy
-                </a>
-              </li>
-              <li>
-                <a href="/return-exchange" className="text-white text-sm hover:text-gray-200 transition-colors">
-                  Return And Exchange
                 </a>
               </li>
               <li>
@@ -207,11 +192,6 @@ const Footer = () => {
                 <Link to="/contact" className="text-white text-sm hover:text-gray-200 transition-colors font-sans">
                   Contact Us
                 </Link>
-              </li>
-              <li>
-                <a href="/feedback" className="text-white text-sm hover:text-gray-200 transition-colors">
-                  Feedback
-                </a>
               </li>
               <li>
                 <a href="/faqs" className="text-white text-sm hover:text-gray-200 transition-colors">

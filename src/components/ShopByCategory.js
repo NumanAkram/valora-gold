@@ -1,37 +1,18 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import CATEGORIES from '../constants/categories';
 
 const ShopByCategory = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const navigate = useNavigate();
   
-  const categories = [
-    {
-      id: 1,
-      name: "Hair oil",
-      image: "/hair-oil-2.jpg",
-      link: "/hair-oil"
-    },
-    {
-      id: 2,
-      name: "Perfume", 
-      image: "/5.png",
-      link: "/perfume"
-    },
-    {
-      id: 3,
-      name: "Beauty Products",
-      image: "/5.png",
-      link: "/beauty-products"
-    },
-    {
-      id: 4,
-      name: "other",
-      image: "/5.png",
-      link: "/other"
-    }
-  ];
+  const categories = CATEGORIES.map((category, index) => ({
+    id: index,
+    name: category.label,
+    image: category.image,
+    link: category.path,
+  }));
 
   const nextSlide = () => {
     // Since we have exactly 4 categories, disable next if showing all

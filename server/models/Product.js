@@ -13,8 +13,8 @@ const productSchema = new mongoose.Schema({
   },
   price: {
     type: Number,
-    required: [true, 'Product price is required'],
-    min: 0
+    min: 0,
+    default: null
   },
   originalPrice: {
     type: Number,
@@ -27,7 +27,21 @@ const productSchema = new mongoose.Schema({
   category: {
     type: String,
     required: true,
-    enum: ['Necklaces', 'Earrings', 'Rings', 'Bracelets', 'Chains', 'Bundles', 'Face', 'Hair', 'Body', 'Baby Care']
+    enum: [
+      'Hair',
+      'Perfume',
+      'Beauty',
+      'Other',
+      'Bundles',
+      'Face',
+      'Body',
+      'Baby Care',
+      'Necklaces',
+      'Earrings',
+      'Rings',
+      'Bracelets',
+      'Chains'
+    ]
   },
   subCategory: {
     type: String
@@ -69,7 +83,15 @@ const productSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  comingSoon: {
+    type: Boolean,
+    default: false
+  },
   tags: [String],
+  keywords: {
+    type: [String],
+    default: []
+  },
   weight: String,
   dimensions: String,
   warranty: String,
@@ -89,6 +111,54 @@ productSchema.pre('save', function(next) {
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)/g, '');
   }
+
+  if (this.price === undefined || this.price === null || this.price === '') {
+    this.price = null;
+    this.comingSoon = true;
+  } else {
+    this.price = Number(this.price);
+    if (Number.isNaN(this.price) || this.price < 0) {
+      return next(new Error('Product price must be a positive number'));
+    }
+    this.comingSoon = false;
+  }
+
+  if (this.originalPrice !== undefined && this.originalPrice !== null && this.originalPrice !== '') {
+    this.originalPrice = Number(this.originalPrice);
+    if (Number.isNaN(this.originalPrice) || this.originalPrice < 0) {
+      return next(new Error('Original price must be a positive number'));
+    }
+  } else if (this.price !== null && (this.originalPrice === null || this.originalPrice === undefined)) {
+    this.originalPrice = this.price;
+  }
+
+  // Auto-build keyword list for richer search
+  const existingKeywords = Array.isArray(this.keywords)
+    ? this.keywords.map((keyword) => keyword.toLowerCase().trim()).filter(Boolean)
+    : [];
+
+  const sources = [
+    this.name,
+    this.category,
+    this.subCategory,
+    this.ingredients,
+    ...(this.tags || []),
+    ...(this.benefits || [])
+  ];
+
+  const generatedKeywords = sources
+    .filter(Boolean)
+    .flatMap((value) =>
+      value
+        .toString()
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, ' ')
+        .split(/\s+/)
+        .filter(Boolean)
+    );
+
+  this.keywords = Array.from(new Set([...existingKeywords, ...generatedKeywords]));
+
   next();
 });
 

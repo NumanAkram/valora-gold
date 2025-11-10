@@ -3,21 +3,27 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, User, Phone, LogOut } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { authAPI } from '../utils/api';
+import { useAdminAuth } from '../context/AdminAuthContext';
 
 const SignUp = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const { clearSession: clearAdminSession } = useAdminAuth();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userInfo, setUserInfo] = useState(null);
-  const [formData, setFormData] = useState({
+  const getInitialFormState = () => ({
     name: '',
     email: '',
     phone: '',
     password: '',
     confirmPassword: ''
   });
+
+  const [formData, setFormData] = useState(getInitialFormState);
+  const [activeTab, setActiveTab] = useState('user');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const isAdminTab = activeTab === 'admin';
 
   // Check if user is logged in
   useEffect(() => {
@@ -38,6 +44,8 @@ const SignUp = () => {
   const handleSignOut = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    clearAdminSession();
+    window.dispatchEvent(new Event('valora-user-updated'));
     setIsLoggedIn(false);
     setUserInfo(null);
     showToast('Signed out successfully!', 'success');
@@ -71,11 +79,13 @@ const SignUp = () => {
     }
 
     try {
-      const response = await authAPI.register({
+      clearAdminSession();
+      await authAPI.register({
         name: formData.name,
         email: formData.email,
         phone: formData.phone,
-        password: formData.password
+        password: formData.password,
+        role: isAdminTab ? 'admin' : 'user'
       });
       
       // Don't auto-login after registration, just redirect to login page
@@ -98,6 +108,14 @@ const SignUp = () => {
       ...formData,
       [e.target.name]: e.target.value
     });
+  };
+
+  const handleTabChange = (tab) => {
+    if (tab === activeTab) return;
+    clearAdminSession();
+    setActiveTab(tab);
+    setError('');
+    setFormData(getInitialFormState());
   };
 
   return (
@@ -144,18 +162,40 @@ const SignUp = () => {
         ) : (
           // User is not logged in - Show Sign Up Form
           <>
-            <div>
-              <h2 className="text-center text-2xl sm:text-3xl font-extrabold text-logo-green font-sans">
-                Create Your Account
-              </h2>
-              <p className="mt-2 text-center text-sm text-gray-600 font-sans">
-                Already have an account?{' '}
-                <Link to="/signin" className="font-medium text-logo-green hover:text-banner-green">
-                  Sign in
-                </Link>
-              </p>
+            <div className="space-y-4">
+              <div className="text-center">
+                <h2 className="text-center text-2xl sm:text-3xl font-extrabold text-logo-green font-sans">
+                  {isAdminTab ? 'Create Admin Account' : 'Create Your Account'}
+                </h2>
+                <p className="mt-2 text-center text-sm text-gray-600 font-sans">
+                  Already have an account?{' '}
+                  <Link to="/signin" className="font-medium text-logo-green hover:text-banner-green">
+                    Sign in
+                  </Link>
+                </p>
+              </div>
+
+              <div className="bg-white p-1 rounded-lg shadow-sm border border-gray-100 flex">
+                {[
+                  { key: 'user', label: 'User Account' },
+                  { key: 'admin', label: 'Admin Account' }
+                ].map((tab) => (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    onClick={() => handleTabChange(tab.key)}
+                    className={`flex-1 py-2 rounded-md text-sm font-semibold transition-colors ${
+                      activeTab === tab.key
+                        ? 'bg-logo-green text-white shadow'
+                        : 'text-gray-600 hover:text-logo-green'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
             </div>
-            
+
             <form className="mt-6 sm:mt-8 space-y-4 sm:space-y-6 bg-white p-4 sm:p-6 md:p-8 rounded-lg shadow-md" onSubmit={handleSubmit}>
           {error && (
             <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded font-sans">
@@ -184,6 +224,20 @@ const SignUp = () => {
                 />
               </div>
             </div>
+
+            {isAdminTab && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1 font-sans">
+                  Role
+                </label>
+                <input
+                  type="text"
+                  value="Admin"
+                  readOnly
+                  className="appearance-none block w-full px-3 py-2 border border-dashed border-logo-green text-logo-green font-semibold rounded-lg bg-logo-green/5 focus:outline-none sm:text-sm font-sans"
+                />
+              </div>
+            )}
             
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1 font-sans">
@@ -279,7 +333,11 @@ const SignUp = () => {
               disabled={loading}
               className="w-full bg-logo-green text-white font-bold py-3 px-4 rounded-lg hover:bg-banner-green transition-colors duration-300 font-sans disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Creating Account...' : 'Create Account'}
+              {loading
+                ? 'Creating Account...'
+                : isAdminTab
+                ? 'Create Admin Account'
+                : 'Create Account'}
             </button>
           </div>
         </form>

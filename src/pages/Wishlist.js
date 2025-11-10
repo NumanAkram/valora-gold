@@ -14,7 +14,6 @@ const Wishlist = () => {
 
   const handleAddToCart = (product) => {
     addToCart(product);
-    showToast('Product added to cart!', 'success');
   };
 
   const handleRemove = (productId) => {

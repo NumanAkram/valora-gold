@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { body, validationResult } = require('express-validator');
+const mongoose = require('mongoose');
 const Order = require('../models/Order');
 const User = require('../models/User');
 const Product = require('../models/Product');
@@ -9,6 +10,78 @@ const { protect } = require('../middleware/auth');
 // @route   POST /api/orders
 // @desc    Create new order
 // @access  Private
+const categoryMap = {
+  hair: 'Hair',
+  perfume: 'Perfume',
+  beauty: 'Beauty',
+  body: 'Body',
+  face: 'Face',
+  baby: 'Baby Care',
+  bundle: 'Bundles',
+  necklaces: 'Necklaces',
+  earrings: 'Earrings',
+  rings: 'Rings',
+  bracelets: 'Bracelets',
+  chains: 'Chains',
+  other: 'Other',
+};
+
+const findProductForItem = async (item = {}) => {
+  const { productId, id, slug, name } = item;
+
+  const identifiers = [
+    productId,
+    id,
+    slug,
+    typeof slug === 'string' ? slug.toLowerCase() : null,
+  ]
+    .filter(Boolean)
+    .map((value) => String(value).trim());
+
+  for (const identifier of identifiers) {
+    if (mongoose.Types.ObjectId.isValid(identifier)) {
+      const product = await Product.findById(identifier);
+      if (product) {
+        return product;
+      }
+    }
+
+    const slugMatch = await Product.findOne({ slug: identifier });
+    if (slugMatch) {
+      return slugMatch;
+    }
+  }
+
+  if (name) {
+    const nameMatch = await Product.findOne({ name });
+    if (nameMatch) {
+      return nameMatch;
+    }
+
+    const fuzzyMatch = await Product.findOne({
+      name: { $regex: new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') },
+    });
+    if (fuzzyMatch) {
+      return fuzzyMatch;
+    }
+  }
+
+  const normalizedIdentifier = String(productId || id || slug || '').trim().toLowerCase();
+
+  if (normalizedIdentifier.startsWith('mock-')) {
+    const mockKey = normalizedIdentifier.replace('mock-', '').toLowerCase();
+    const category = categoryMap[mockKey];
+    if (category) {
+      const categoryProduct = await Product.findOne({ category }).sort({ createdAt: -1 });
+      if (categoryProduct) {
+        return categoryProduct;
+      }
+    }
+  }
+
+  return null;
+};
+
 router.post('/', [
   protect,
   body('items').isArray({ min: 1 }).withMessage('At least one item is required'),
@@ -30,39 +103,49 @@ router.post('/', [
     const orderItems = [];
 
     for (const item of items) {
-      const product = await Product.findById(item.productId);
+      const identifier = item.productId || item.id || item.slug || item.name || 'unknown';
+      const product = await findProductForItem(item);
       if (!product) {
         return res.status(404).json({
           success: false,
-          message: `Product ${item.productId} not found`
+          message: `Product ${identifier} not found`
         });
       }
 
-      if (!product.inStock || product.stockCount < item.quantity) {
+      const quantity = Math.max(parseInt(item.quantity, 10) || 1, 1);
+      const currentStock = Number.isFinite(product.stockCount) ? product.stockCount : 0;
+
+      if (!product.inStock || currentStock < quantity) {
         return res.status(400).json({
           success: false,
-          message: `Product ${product.name} is out of stock or insufficient quantity`
+          message: `Product ${product.name} currently has ${currentStock} in stock. Please lower the quantity or restock before placing the order.`
         });
       }
 
-      const itemPrice = product.originalPrice || product.price;
-      const itemTotal = itemPrice * item.quantity;
+      const priceSource = product.price ?? product.originalPrice ?? 0;
+      const itemPrice = Number.isFinite(priceSource) ? priceSource : Number(priceSource) || 0;
+      const itemTotal = itemPrice * quantity;
       subtotal += itemTotal;
 
       orderItems.push({
         product: product._id,
         name: product.name,
         price: product.price,
-        quantity: item.quantity,
+        quantity,
         image: product.images[0]
       });
 
       // Update stock
-      product.stockCount -= item.quantity;
-      if (product.stockCount === 0) {
-        product.inStock = false;
-      }
+      product.stockCount = currentStock - quantity;
+      product.inStock = product.stockCount > 0;
       await product.save();
+    }
+
+    if (orderItems.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No valid products found for this order. Please refresh your cart and try again.'
+      });
     }
 
     const shippingCost = 0; // Free shipping as per website
@@ -84,8 +167,10 @@ router.post('/', [
 
     // Clear user cart
     const user = await User.findById(req.user._id);
-    user.cart = [];
-    await user.save();
+    if (user) {
+      user.cart = [];
+      await user.save();
+    }
 
     res.status(201).json({
       success: true,
@@ -96,7 +181,7 @@ router.post('/', [
     console.error('Create Order Error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error'
+      message: process.env.NODE_ENV === 'production' ? 'Server error' : error.message || 'Server error'
     });
   }
 });

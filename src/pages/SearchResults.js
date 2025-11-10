@@ -125,7 +125,6 @@ const SearchResults = () => {
                     <button
                       onClick={() => {
                         addToCart({ ...product, id: productId, price: product.price, image: productImage });
-                        showToast('Product added to cart!', 'success');
                       }}
                       className="w-full bg-logo-green text-white py-2 px-4 rounded hover:bg-banner-green transition-colors font-sans font-medium"
                     >

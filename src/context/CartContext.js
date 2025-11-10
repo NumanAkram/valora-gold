@@ -32,12 +32,64 @@ export const useCart = () => {
   return context;
 };
 
-export const CartProvider = ({ children }) => {
-  const [cartItems, setCartItems] = useState(() => {
-    // Load from localStorage on mount
+const normalizeCartItem = (item) => {
+  if (!item || typeof item !== 'object') {
+    return null;
+  }
+
+  const productId =
+    item._id ||
+    item.id ||
+    item.productId ||
+    item.product?._id ||
+    item.product?.id ||
+    null;
+
+  const canonicalId = productId ? String(productId) : item.slug ? String(item.slug) : null;
+
+  if (!canonicalId) {
+    console.warn('Skipping cart item without identifiable id:', item);
+    return null;
+  }
+
+  const quantity = Number.isFinite(item.quantity) && item.quantity > 0 ? item.quantity : 1;
+  const priceValue = parsePrice(item.salePrice || item.price || 0);
+
+  return {
+    ...item,
+    id: canonicalId,
+    _id: item._id ? String(item._id) : undefined,
+    quantity,
+    price: priceValue,
+    salePrice: priceValue,
+  };
+};
+
+const loadCartFromStorage = () => {
+  try {
     const savedCart = localStorage.getItem('cartItems');
-    return savedCart ? JSON.parse(savedCart) : [];
-  });
+    if (!savedCart) {
+      return [];
+    }
+    const parsed = JSON.parse(savedCart);
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+    const normalized = parsed.map(normalizeCartItem).filter(Boolean);
+    if (normalized.length !== parsed.length) {
+      localStorage.setItem('cartItems', JSON.stringify(normalized));
+    }
+    return normalized;
+  } catch (error) {
+    console.warn('Failed to parse saved cart items:', error);
+    return [];
+  }
+};
+
+export const CartProvider = ({ children }) => {
+  const [cartItems, setCartItems] = useState(loadCartFromStorage);
+  const [isSidebarOpen, setSidebarOpen] = useState(false);
+  const [lastAddedItemId, setLastAddedItemId] = useState(null);
 
   // Save to localStorage whenever cart changes
   useEffect(() => {
@@ -46,7 +98,13 @@ export const CartProvider = ({ children }) => {
 
   const addToCart = (product) => {
     setCartItems((prevItems) => {
-      const existingItem = prevItems.find(item => item.id === product.id);
+      const productId = product?._id || product?.id || product?.productId;
+      if (!productId) {
+        console.warn('Attempted to add product without valid id to cart:', product);
+        return prevItems;
+      }
+
+      const existingItem = prevItems.find((item) => item.id === productId);
       
       // Ensure price is stored as a number
       const priceValue = parsePrice(product.salePrice || product.price || 0);
@@ -54,7 +112,7 @@ export const CartProvider = ({ children }) => {
       if (existingItem) {
         // If item exists, increase quantity and ensure price is stored as number
         return prevItems.map(item =>
-          item.id === product.id
+          item.id === productId
             ? { 
                 ...item, 
                 quantity: item.quantity + 1,
@@ -65,14 +123,21 @@ export const CartProvider = ({ children }) => {
         );
       } else {
         // If new item, add with quantity 1 and ensure price is a number
-        return [...prevItems, { 
-          ...product, 
+        return [...prevItems, {
+          ...product,
+          id: productId,
           quantity: 1,
           price: priceValue,
           salePrice: priceValue
         }];
       }
     });
+
+    const productId = product?._id || product?.id || product?.productId;
+    if (productId) {
+      setLastAddedItemId(String(productId));
+    }
+    setSidebarOpen(true);
   };
 
   const removeFromCart = (productId) => {
@@ -94,6 +159,7 @@ export const CartProvider = ({ children }) => {
 
   const clearCart = () => {
     setCartItems([]);
+    setSidebarOpen(false);
   };
 
   const getCartTotal = () => {
@@ -110,6 +176,14 @@ export const CartProvider = ({ children }) => {
     return cartItems.reduce((total, item) => total + item.quantity, 0);
   };
 
+  const openCartSidebar = () => {
+    setSidebarOpen(true);
+  };
+
+  const closeCartSidebar = () => {
+    setSidebarOpen(false);
+  };
+
   const value = {
     cartItems,
     addToCart,
@@ -117,7 +191,11 @@ export const CartProvider = ({ children }) => {
     updateQuantity,
     clearCart,
     getCartTotal,
-    getCartItemsCount
+    getCartItemsCount,
+    isSidebarOpen,
+    openCartSidebar,
+    closeCartSidebar,
+    lastAddedItemId
   };
 
   return (

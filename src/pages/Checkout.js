@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapPin, CreditCard, Truck, Lock } from 'lucide-react';
+import { MapPin, CreditCard, Truck, Lock, ChevronDown, ClipboardList } from 'lucide-react';
 import { useCart, parsePrice } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import { ordersAPI, authAPI } from '../utils/api';
@@ -112,9 +112,11 @@ const Checkout = () => {
 
       // Prepare order data
       const orderData = {
-        items: cartItems.map(item => ({
+        items: cartItems.map((item) => ({
           productId: item._id || item.id,
-          quantity: item.quantity || 1
+          slug: item.slug,
+          name: item.name || item.title,
+          quantity: item.quantity || 1,
         })),
         shippingAddress: {
           street: formData.street,
@@ -281,16 +283,49 @@ const Checkout = () => {
                     <input
                       type="radio"
                       name="paymentMethod"
-                      value="Bank Transfer"
-                      checked={formData.paymentMethod === 'Bank Transfer'}
+                      value="Manual Payment"
+                      checked={formData.paymentMethod === 'Manual Payment'}
                       onChange={handleChange}
                       className="text-logo-green focus:ring-logo-green"
                     />
                     <div className="flex-1">
-                      <div className="font-semibold text-gray-900 font-sans">Bank Transfer</div>
-                      <div className="text-sm text-gray-600 font-sans">Transfer to our bank account</div>
+                      <div className="font-semibold text-gray-900 font-sans flex items-center gap-2">
+                        Online Payment (Manual)
+                        <ChevronDown
+                          className={`h-4 w-4 text-logo-green transition-transform ${formData.paymentMethod === 'Manual Payment' ? 'rotate-180' : ''}`}
+                        />
+                      </div>
+                      <div className="text-sm text-gray-600 font-sans">Pay via bank transfer or Easypaisa using manual confirmation</div>
                     </div>
+                    <ClipboardList className="h-5 w-5 text-logo-green" />
                   </label>
+
+                  {formData.paymentMethod === 'Manual Payment' && (
+                    <div className="bg-gray-50 border border-logo-green/40 rounded-lg p-4 space-y-5 animate-fade-in">
+                      <div>
+                        <h3 className="text-sm font-semibold text-logo-green uppercase tracking-wide font-sans">Bank of Punjab Manual Payment Details</h3>
+                        <ul className="mt-3 space-y-1 text-sm text-gray-700 font-sans">
+                          <li><span className="font-semibold">IBAN:</span> PK56BPUN5010028428800018</li>
+                          <li><span className="font-semibold">Account Number:</span> 5010028428800018</li>
+                          <li><span className="font-semibold">Account Title:</span> ZAHID IQBAL</li>
+                        </ul>
+                        <p className="mt-3 text-xs text-gray-600 font-sans">
+                          After sending the payment, share the screenshot of the successful payment on <a href="tel:03390005256" className="text-logo-green font-semibold">0339-0005256</a>. Once approved, your order will be placed and you will be notified.
+                        </p>
+                      </div>
+                      <div className="border-t border-gray-200 pt-4">
+                        <h3 className="text-sm font-semibold text-logo-green uppercase tracking-wide font-sans">Easypaisa Manual Payment Details</h3>
+                        <ul className="mt-3 space-y-1 text-sm text-gray-700 font-sans">
+                          <li><span className="font-semibold">IBAN:</span> PK96TMFB0000000016006034</li>
+                          <li><span className="font-semibold">Account Number:</span> 03483582165</li>
+                          <li><span className="font-semibold">Account Title:</span> ZAHID IQBAL</li>
+                        </ul>
+                        <p className="mt-3 text-xs text-gray-600 font-sans">
+                          After sending the payment, share the screenshot of the successful payment on <a href="tel:03390005256" className="text-logo-green font-semibold">0339-0005256</a>. Once approved, your order will be placed and you will be notified.
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 

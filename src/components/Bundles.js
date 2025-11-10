@@ -31,92 +31,7 @@ const Bundles = () => {
     fetchBundles();
   }, []);
 
-  // Mock bundles as fallback
-  const mockBundles = [
-    {
-      id: 1,
-      title: "Tea Tree Acne Control Kit | Face Wash 100ml + Serum 30ml + Cream 50g",
-      originalPrice: "Rs.3,337",
-      salePrice: "Rs.2,836",
-      rating: 5,
-      reviews: "12 reviews",
-      saleBadge: "Sale 15%",
-      image: "/4.png"
-    },
-    {
-      id: 2,
-      title: "Onion Hair Fall Control Bundle | Oil 100ml + Shampoo 250ml + Conditioner 250ml",
-      originalPrice: "Rs.3,769",
-      salePrice: "Rs.3,203",
-      rating: 5,
-      reviews: "9 reviews",
-      saleBadge: "Sale 15%",
-      image: "/4.png"
-    },
-    {
-      id: 3,
-      title: "Retinol Anti Aging Kit | Face Wash 100ml + Serum 30ml + Cream 50g",
-      originalPrice: "Rs.3,812",
-      salePrice: "Rs.3,240",
-      rating: 5,
-      reviews: "7 reviews",
-      saleBadge: "Sale 15%",
-      image: "/4.png"
-    },
-    {
-      id: 4,
-      title: "Ubtan Glow & Tan Removal Kit | Face Wash 100ml + Serum 30ml + Cream 50g",
-      originalPrice: "Rs.3,595",
-      salePrice: "Rs.3,055",
-      rating: 5,
-      reviews: "15 reviews",
-      saleBadge: "Sale 15%",
-      image: "/4.png"
-    },
-    {
-      id: 5,
-      title: "Vitamin C Skin Brightening Kit | Face Wash 100ml + Face Serum 30ml + Night Cream 50g",
-      originalPrice: "Rs.3,553",
-      salePrice: "Rs.3,020",
-      rating: 5,
-      reviews: "11 reviews",
-      saleBadge: "Sale 15%",
-      image: "/4.png"
-    },
-    {
-      id: 6,
-      title: "Ubtan Facial Kit for Skin Glow | Cleanser 60ml + Scrub 60ml + Soothing Gel 60ml + Massage Cream 60ml + Mask 60ml + Glow Cream 60ml",
-      originalPrice: "Rs.2,160",
-      salePrice: "Rs.1,836",
-      rating: 5,
-      reviews: "8 reviews",
-      saleBadge: "Sale 15%",
-      image: "/4.png"
-    },
-    {
-      id: 7,
-      title: "Onion Hair Fall Control Bundle | Oil 100ml + Shampoo 250ml",
-      originalPrice: "Rs.2,527",
-      salePrice: "Rs.2,147",
-      rating: 5,
-      reviews: "13 reviews",
-      saleBadge: "Sale 15%",
-      image: "/4.png"
-    },
-    {
-      id: 8,
-      title: "Rosemary Hair Growth Bundle 2 | Rosemary Oil 100ml + Rosemary Shampoo 250ml",
-      originalPrice: "Rs.2,527",
-      salePrice: "Rs.2,147",
-      rating: 5,
-      reviews: "6 reviews",
-      saleBadge: "Sale 15%",
-      image: "/4.png"
-    }
-  ];
-
-  // Use API bundles or fallback to mock
-  const displayBundles = bundles.length > 0 ? bundles : mockBundles;
+  const displayBundles = bundles;
 
   // Navigation removed - only showing 4 products
 
@@ -145,24 +60,29 @@ const Bundles = () => {
 
         {/* Products Container */}
         <div className="relative w-full">
-          {/* Other Products Grid - Show only 4 products */}
-          <div className="flex justify-start md:justify-center space-x-2 sm:space-x-3 md:space-x-4 px-2 sm:px-4 md:px-8 lg:px-20 overflow-x-auto scrollbar-hide">
+          {displayBundles.length === 0 ? (
+            <div className="py-10 text-center text-gray-500 font-sans">
+              No products available right now. Please check back soon.
+            </div>
+          ) : (
+            <div className="flex justify-start md:justify-center space-x-2 sm:space-x-3 md:space-x-4 px-2 sm:px-4 md:px-8 lg:px-20 overflow-x-auto scrollbar-hide">
             {displayBundles.slice(0, 4).map((bundle) => {
               // Format bundle data from API
               const bundleId = bundle._id || bundle.id;
               const bundleTitle = bundle.name || bundle.title;
-              const bundlePrice = bundle.price || bundle.originalPrice || 0;
-              const bundleOriginalPrice = bundle.originalPrice || null;
+              const bundlePrice = typeof bundle.price === 'number' ? bundle.price : null;
+              const bundleOriginalPrice = typeof bundle.originalPrice === 'number' ? bundle.originalPrice : null;
               const bundleImage = bundle.images?.[0] || bundle.image || '/4.png';
               const bundleRating = bundle.rating || 5;
               const bundleReviews = bundle.numReviews || 0;
-              const hasSale = bundleOriginalPrice && bundleOriginalPrice > bundlePrice;
+              const isComingSoon = Boolean(bundle.comingSoon) || bundlePrice === null;
+              const hasSale = !isComingSoon && bundleOriginalPrice !== null && bundlePrice !== null && bundleOriginalPrice > bundlePrice;
               const salePercent = hasSale ? Math.round(((bundleOriginalPrice - bundlePrice) / bundleOriginalPrice) * 100) : 0;
               
               return (
               <div key={bundleId} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden flex-shrink-0 w-[280px] sm:w-[300px] md:w-80 relative">
                 {/* Sale Badge - Top Left Corner - Responsive */}
-                {hasSale && (
+                {hasSale && salePercent > 0 && (
                   <div className="absolute top-1 left-1 md:top-2 md:left-2 z-10">
                     <div className="bg-logo-green text-white text-xs md:text-sm font-bold px-1 py-0.5 md:px-2 md:py-1 rounded-full">
                       Sale {salePercent}%
@@ -177,7 +97,7 @@ const Bundles = () => {
                       removeFromWishlist(bundleId);
                       showToast('Removed from wishlist', 'success');
                     } else {
-                      addToWishlist({ ...bundle, id: bundleId, name: bundleTitle, price: bundlePrice, image: bundleImage });
+                      addToWishlist({ ...bundle, id: bundleId, name: bundleTitle, price: bundlePrice ?? 0, image: bundleImage });
                       showToast('Added to wishlist!', 'success');
                     }
                   }}
@@ -223,19 +143,33 @@ const Bundles = () => {
 
                   {/* Pricing */}
                   <div className="flex items-center space-x-2">
-                    <span className="text-lg font-bold text-red-600">
-                      Rs.{bundlePrice.toLocaleString()}
-                    </span>
-                    {bundleOriginalPrice && bundleOriginalPrice > bundlePrice && (
-                      <span className="text-sm text-gray-500 line-through">
-                        Rs.{bundleOriginalPrice.toLocaleString()}
+                    {isComingSoon ? (
+                      <span className="text-base font-semibold text-gray-500 uppercase tracking-wide">
+                        Coming Soon
                       </span>
+                    ) : (
+                      <>
+                        <span className="text-lg font-bold text-red-600">
+                          Rs.{bundlePrice?.toLocaleString()}
+                        </span>
+                        {bundleOriginalPrice && bundleOriginalPrice > bundlePrice && (
+                          <span className="text-sm text-gray-500 line-through">
+                            Rs.{bundleOriginalPrice.toLocaleString()}
+                          </span>
+                        )}
+                      </>
                     )}
                   </div>
 
                   {/* Add to Cart Button */}
                   <button 
+                    disabled={isComingSoon}
                     onClick={() => {
+                      if (isComingSoon) {
+                        showToast('This product is coming soon!', 'info');
+                        return;
+                      }
+
                       addToCart({ 
                         ...bundle, 
                         id: bundleId,
@@ -245,15 +179,20 @@ const Bundles = () => {
                       });
                       showToast('Bundle added to cart!', 'success');
                     }}
-                    className="w-full border border-logo-green text-logo-green bg-white font-bold py-2 px-4 rounded text-sm uppercase hover:bg-logo-green hover:text-white transition-colors duration-300"
+                    className={`w-full border font-bold py-2 px-4 rounded text-sm uppercase transition-colors duration-300 ${
+                      isComingSoon
+                        ? 'border-gray-300 text-gray-400 bg-gray-100 cursor-not-allowed'
+                        : 'border-logo-green text-logo-green bg-white hover:bg-logo-green hover:text-white'
+                    }`}
                   >
-                    ADD TO CART
+                    {isComingSoon ? 'COMING SOON' : 'ADD TO CART'}
                   </button>
                 </div>
               </div>
               );
             })}
           </div>
+          )}
         </div>
 
         {/* View More Button */}

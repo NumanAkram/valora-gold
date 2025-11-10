@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, X, LogOut } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
+import { useAdminAuth } from '../context/AdminAuthContext';
 import { authAPI } from '../utils/api';
 
 const SignIn = () => {
@@ -23,6 +24,7 @@ const SignIn = () => {
   });
   const [forgotPasswordError, setForgotPasswordError] = useState('');
   const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
+  const { clearSession: clearAdminSession } = useAdminAuth();
 
   // Check if user is logged in
   useEffect(() => {
@@ -43,6 +45,8 @@ const SignIn = () => {
   const handleSignOut = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    clearAdminSession();
+    window.dispatchEvent(new Event('valora-user-updated'));
     setIsLoggedIn(false);
     setUserInfo(null);
     showToast('Signed out successfully!', 'success');
@@ -57,11 +61,13 @@ const SignIn = () => {
     setLoading(true);
     
     try {
+      clearAdminSession();
       const response = await authAPI.login(formData);
       
       // Store token
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('user', JSON.stringify(response.data));
+      window.dispatchEvent(new Event('valora-user-updated'));
       
       showToast('Successfully signed in!', 'success');
       

@@ -3,7 +3,7 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api
 
 // Helper function to get auth token
 const getToken = () => {
-  return localStorage.getItem('token');
+  return localStorage.getItem('admin_token') || localStorage.getItem('token');
 };
 
 // Helper function for API requests
@@ -89,6 +89,72 @@ export const productsAPI = {
   getByCategory: (category) => apiRequest(`/products/category/${category}`),
   
   getRelated: (id) => apiRequest(`/products/${id}/related`),
+
+  create: (productData) => apiRequest('/products', {
+    method: 'POST',
+    body: productData,
+  }),
+
+  updatePrice: (id, priceData) => apiRequest(`/products/${id}/price`, {
+    method: 'PUT',
+    body: priceData,
+  }),
+};
+
+export const adminAPI = {
+  login: (credentials) =>
+    apiRequest('/auth/admin/login', {
+      method: 'POST',
+      body: credentials,
+    }),
+
+  getDashboardMetrics: () => apiRequest('/admin/metrics'),
+
+  getProducts: (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return apiRequest(`/products?${queryString}`);
+  },
+
+  createProduct: (productData) =>
+    apiRequest('/products', {
+      method: 'POST',
+      body: productData,
+    }),
+
+  updateProduct: (id, productData) =>
+    apiRequest(`/products/${id}`, {
+      method: 'PUT',
+      body: productData,
+    }),
+
+  deleteProduct: (id) =>
+    apiRequest(`/products/${id}`, {
+      method: 'DELETE',
+    }),
+
+  getOrders: (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return apiRequest(`/admin/orders?${queryString}`);
+  },
+
+  updateOrderStatus: (orderId, payload) =>
+    apiRequest(`/admin/orders/${orderId}/status`, {
+      method: 'PUT',
+      body: payload,
+    }),
+
+  getOrderById: (orderId) => apiRequest(`/admin/orders/${orderId}`),
+
+  getUsers: (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return apiRequest(`/admin/users?${queryString}`);
+  },
+
+  updateUser: (userId, payload) =>
+    apiRequest(`/admin/users/${userId}`, {
+      method: 'PUT',
+      body: payload,
+    }),
 };
 
 // Cart API

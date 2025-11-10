@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Star, Heart } from 'lucide-react';
+import { Star, Heart, Tag } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import { useWishlist } from '../context/WishlistContext';
 import Breadcrumbs from '../components/Breadcrumbs';
 import { productsAPI } from '../utils/api';
+import SetPriceModal from '../components/SetPriceModal';
 
 const HairOil = () => {
   const navigate = useNavigate();
@@ -14,32 +15,8 @@ const HairOil = () => {
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  // Hair Oil Product
-  const mockProducts = [
-    {
-      id: 1,
-      name: "Aura Hair Oil by Valora Gold",
-      title: "Aura Hair Oil by Valora Gold",
-      price: 2299,
-      originalPrice: 6000,
-      rating: 5,
-      numReviews: 24,
-      image: "/hair-oil-1.jpg",
-      images: ["/hair-oil-1.jpg", "/hair-oil-2.jpg", "/hair-oil-3.jpg"],
-      description: "For strong, smooth and naturally healthy hair that feels revived from root to tip. Helps restore shine, improve texture and support faster, fuller hair growth. Start your hair recovery today with Aura Hair Oil and see the difference in softness, strength and overall hair health.",
-      benefits: [
-        "Strengthens weak and thinning roots",
-        "Helps reduce hair fall over time",
-        "Supports fast and healthy growth",
-        "Smooths frizz and dryness for better manageability",
-        "Deeply nourishes damaged strands",
-        "Helps reduce dandruff and scalp irritation",
-        "Lightweight formula that doesn't feel sticky",
-        "Softens hair and boosts natural shine"
-      ]
-    }
-  ];
+  const [priceProduct, setPriceProduct] = useState(null);
+  const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
 
   // Scroll to top when component mounts
   useEffect(() => {
@@ -53,20 +30,17 @@ const HairOil = () => {
         // Try to fetch from API first with category filter
         const response = await productsAPI.getAll({ 
           limit: 100,
-          category: 'hair-oil' 
+          category: 'Hair' 
         });
         console.log('Hair Oil API Response:', response);
-        if (response && response.success && response.data && response.data.length > 0) {
+        if (response && response.success && Array.isArray(response.data)) {
           setProducts(response.data);
         } else {
-          // Fallback to mock products if API doesn't return data
-          console.warn('API returned no products, using mock data');
-          setProducts(mockProducts);
+          setProducts([]);
         }
       } catch (error) {
-        console.error('Error fetching products, using mock data:', error);
-        // Fallback to mock products on error
-        setProducts(mockProducts);
+        console.error('Error fetching products:', error);
+        setProducts([]);
       } finally {
         setLoading(false);
       }
@@ -74,6 +48,43 @@ const HairOil = () => {
 
     fetchProducts();
   }, []);
+
+  useEffect(() => {
+    const handleProductAdded = (event) => {
+      const newProduct = event.detail;
+      if (!newProduct || newProduct.category !== 'Hair') return;
+
+      setProducts((prev) => {
+        const exists = prev.some(
+          (item) => (item._id || item.id)?.toString() === (newProduct._id || newProduct.id)?.toString()
+        );
+        if (exists) {
+          return prev.map((item) =>
+            (item._id || item.id)?.toString() === (newProduct._id || newProduct.id)?.toString()
+              ? { ...item, ...newProduct }
+              : item
+          );
+        }
+        return [...prev, newProduct];
+      });
+    };
+
+    window.addEventListener('product-added', handleProductAdded);
+    return () => window.removeEventListener('product-added', handleProductAdded);
+  }, []);
+
+  const openPriceModal = (product) => {
+    setPriceProduct(product);
+    setIsPriceModalOpen(true);
+  };
+
+  const handlePriceUpdated = (updatedProduct) => {
+    setProducts((prev) =>
+      prev.map((item) =>
+        (item._id || item.id) === (updatedProduct._id || updatedProduct.id) ? { ...item, ...updatedProduct } : item
+      )
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -107,19 +118,22 @@ const HairOil = () => {
               {products.map((product) => {
                 const productId = product._id || product.id;
                 const productName = product.name || product.title || '';
-                const productPrice = product.price || 0;
-                const productOriginalPrice = product.originalPrice || null;
+                const productPrice = typeof product.price === 'number' ? product.price : null;
+                const productOriginalPrice = typeof product.originalPrice === 'number' ? product.originalPrice : null;
                 const productImage = product.images?.[0] || product.image || '/4.png';
                 const productRating = product.rating || 5;
                 const productReviews = product.numReviews || 0;
-                const hasSale = productOriginalPrice && productOriginalPrice > productPrice;
-                // For this specific product, show 60% off tag
-                const salePercent = productId === 1 ? 60 : (hasSale ? Math.round(((productOriginalPrice - productPrice) / productOriginalPrice) * 100) : 0);
+                const isComingSoon = Boolean(product.comingSoon) || productPrice === null;
+                const hasSale = !isComingSoon && productOriginalPrice !== null && productPrice !== null && productOriginalPrice > productPrice;
+                // For this specific product, show 60% off tag when applicable
+                const salePercent = !isComingSoon && hasSale
+                  ? Math.round(((productOriginalPrice - productPrice) / productOriginalPrice) * 100)
+                  : 0;
 
                 return (
                   <div key={productId} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden relative">
                     {/* Sale Badge */}
-                    {hasSale && (
+                    {hasSale && salePercent > 0 && (
                       <div className="absolute top-2 left-2 z-10">
                         <div className="bg-logo-green text-white text-xs font-bold px-2 py-1 rounded-full">
                           Sale {salePercent}%
@@ -134,7 +148,7 @@ const HairOil = () => {
                           removeFromWishlist(productId);
                           showToast('Removed from wishlist', 'success');
                         } else {
-                          addToWishlist({ ...product, id: productId, name: productName, price: productPrice, image: productImage });
+                          addToWishlist({ ...product, id: productId, name: productName, price: productPrice ?? 0, image: productImage });
                           showToast('Added to wishlist!', 'success');
                         }
                       }}
@@ -182,32 +196,49 @@ const HairOil = () => {
 
                       {/* Pricing */}
                       <div className="flex items-center space-x-2">
-                        <span className="text-lg font-bold text-red-600">
-                          Rs.{productPrice.toLocaleString()}
-                        </span>
-                        {productOriginalPrice && productOriginalPrice > productPrice && (
-                          <span className="text-sm text-gray-500 line-through">
-                            Rs.{productOriginalPrice.toLocaleString()}
+                        {isComingSoon ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-700 uppercase">
+                            <Tag className="h-3 w-3" />
+                            Coming Soon
                           </span>
+                        ) : (
+                          <>
+                            <span className="text-lg font-bold text-red-600">
+                              Rs.{productPrice?.toLocaleString()}
+                            </span>
+                            {productOriginalPrice && productOriginalPrice > productPrice && (
+                              <span className="text-sm text-gray-500 line-through">
+                                Rs.{productOriginalPrice.toLocaleString()}
+                              </span>
+                            )}
+                          </>
                         )}
                       </div>
 
-                      {/* Add to Cart Button */}
-                      <button
-                        onClick={() => {
-                          addToCart({
-                            ...product,
-                            id: productId,
-                            name: productName,
-                            price: productPrice,
-                            image: productImage
-                          });
-                          showToast('Product added to cart!', 'success');
-                        }}
-                        className="w-full border border-logo-green text-logo-green bg-white font-bold py-2 px-4 rounded text-sm uppercase hover:bg-logo-green hover:text-white transition-colors duration-300"
-                      >
-                        ADD TO CART
-                      </button>
+                      {/* Action Button */}
+                      {isComingSoon ? (
+                        <button
+                          onClick={() => openPriceModal(product)}
+                          className="w-full border border-logo-green text-logo-green font-bold py-2 px-4 rounded text-sm uppercase transition-colors duration-300 hover:bg-logo-green hover:text-white"
+                        >
+                          Set Price
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            addToCart({
+                              ...product,
+                              id: productId,
+                              name: productName,
+                              price: productPrice,
+                              image: productImage
+                            });
+                          }}
+                          className="w-full border border-logo-green text-logo-green font-bold py-2 px-4 rounded text-sm uppercase transition-colors duration-300 hover:bg-logo-green hover:text-white"
+                        >
+                          Add to Cart
+                        </button>
+                      )}
                     </div>
                   </div>
                 );
@@ -225,6 +256,15 @@ const HairOil = () => {
           </div>
         )}
       </div>
+      <SetPriceModal
+        open={isPriceModalOpen}
+        onClose={() => {
+          setIsPriceModalOpen(false);
+          setPriceProduct(null);
+        }}
+        product={priceProduct}
+        onPriceUpdated={handlePriceUpdated}
+      />
     </div>
   );
 };

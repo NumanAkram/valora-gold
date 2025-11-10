@@ -1,8 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Menu, X, ShoppingCart, User, Search, ChevronDown, Leaf, X as CloseIcon, Heart } from 'lucide-react';
+import { Menu, X, ShoppingCart, User, Search, ChevronDown, Leaf, X as CloseIcon, Heart, PlusCircle } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
+import CATEGORIES from '../constants/categories';
+import AddProductModal from './AddProductModal';
+import { useAdminAuth } from '../context/AdminAuthContext';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -10,9 +13,87 @@ const Navbar = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isScrolledDown, setIsScrolledDown] = useState(false);
   const [lastScrollY, setLastScrollY] = useState(0);
+  const [userRole, setUserRole] = useState(null);
   const navigate = useNavigate();
-  const { getCartItemsCount } = useCart();
+  const { getCartItemsCount, openCartSidebar } = useCart();
   const { getWishlistCount } = useWishlist();
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const { isAuthenticated: isAdminAuthenticated } = useAdminAuth();
+
+  const syncUserRole = useCallback(() => {
+    try {
+      let resolvedRole = null;
+
+      const adminData = localStorage.getItem('valora_admin');
+      if (adminData) {
+        try {
+          const parsedAdmin = JSON.parse(adminData);
+          if (parsedAdmin?.role) {
+            resolvedRole = String(parsedAdmin.role).toLowerCase();
+          }
+        } catch (error) {
+          console.error('Failed to parse stored admin data', error);
+        }
+      }
+
+      if (!resolvedRole) {
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+          try {
+            const parsedUser = JSON.parse(storedUser);
+            if (parsedUser?.role) {
+              resolvedRole = String(parsedUser.role).toLowerCase();
+            }
+          } catch (error) {
+            console.error('Failed to parse stored user', error);
+          }
+        }
+      }
+
+      setUserRole(resolvedRole);
+    } catch (error) {
+      console.error('Failed to determine user role', error);
+      setUserRole(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    syncUserRole();
+    const handleStorage = (event) => {
+      if (event.key === 'user' || event.key === null) {
+        syncUserRole();
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    window.addEventListener('valora-user-updated', syncUserRole);
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('valora-user-updated', syncUserRole);
+    };
+  }, [syncUserRole]);
+
+  const canManageProducts = Boolean(
+    isAdminAuthenticated || (userRole && userRole.toLowerCase() === 'admin')
+  );
+
+  useEffect(() => {
+    if (!canManageProducts && isAddModalOpen) {
+      setIsAddModalOpen(false);
+    }
+  }, [canManageProducts, isAddModalOpen]);
+
+  useEffect(() => {
+    if (!canManageProducts) {
+      return;
+    }
+
+    const handleAddProductOpen = () => {
+      setIsAddModalOpen(true);
+    };
+
+    window.addEventListener('admin-add-product-open', handleAddProductOpen);
+    return () => window.removeEventListener('admin-add-product-open', handleAddProductOpen);
+  }, [canManageProducts]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -138,7 +219,11 @@ const Navbar = () => {
                 </Link>
 
                 {/* Shopping Cart */}
-                <Link to="/cart" className="flex flex-col items-center cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={openCartSidebar}
+                  className="flex flex-col items-center cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0"
+                >
                   <div className="relative">
                     <ShoppingCart className="h-4 w-4 sm:h-5 sm:w-5 text-text-gray" />
                     <span className="absolute -top-1.5 -right-1.5 sm:-top-2 sm:-right-2 bg-banner-green text-white text-[10px] sm:text-xs rounded-full min-w-[14px] sm:min-w-[18px] h-[14px] sm:h-[18px] flex items-center justify-center px-0.5 sm:px-1 font-semibold">
@@ -146,7 +231,7 @@ const Navbar = () => {
                     </span>
                   </div>
                   <span className="hidden sm:block text-xs text-text-gray mt-0.5 sm:mt-1 font-normal whitespace-nowrap">Cart</span>
-                </Link>
+                </button>
 
                 {/* My Account */}
                 <Link to="/signin" className="hidden sm:flex items-center space-x-1 lg:space-x-2 cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0">
@@ -194,12 +279,16 @@ const Navbar = () => {
                 </Link>
                 
                 {/* Cart Icon */}
-                <Link to="/cart" className="relative flex items-center justify-center p-2 text-text-gray hover:text-logo-green transition-colors">
+                <button
+                  type="button"
+                  onClick={openCartSidebar}
+                  className="relative flex items-center justify-center p-2 text-text-gray hover:text-logo-green transition-colors"
+                >
                   <ShoppingCart className="h-5 w-5" />
                   <span className="absolute top-0.5 right-0.5 bg-banner-green text-white text-[10px] rounded-full min-w-[16px] h-[16px] flex items-center justify-center px-1 font-semibold">
                     {getCartItemsCount()}
                   </span>
-                </Link>
+                </button>
 
                 {/* Search Icon */}
                 <button 
@@ -248,14 +337,18 @@ const Navbar = () => {
                     </span>
                   )}
                 </Link>
-                <Link to="/cart" className="relative flex items-center justify-center p-1.5 text-text-gray hover:text-logo-green transition-colors">
+                <button
+                  type="button"
+                  onClick={openCartSidebar}
+                  className="relative flex items-center justify-center p-1.5 text-text-gray hover:text-logo-green transition-colors"
+                >
                   <ShoppingCart className="h-4 w-4" />
                   {getCartItemsCount() > 0 && (
                     <span className="absolute top-0 right-0 bg-banner-green text-white text-[8px] rounded-full min-w-[12px] h-[12px] flex items-center justify-center px-0.5 font-semibold">
                       {getCartItemsCount()}
                     </span>
                   )}
-                </Link>
+                </button>
                 <button 
                   onClick={() => navigate('/search')}
                   className="flex items-center justify-center p-1.5 text-text-gray hover:text-logo-green transition-colors"
@@ -271,31 +364,26 @@ const Navbar = () => {
         <div className="bg-white border-b border-gray-200 hidden lg:block">
           <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
             <nav className="flex items-center justify-start flex-wrap gap-2 lg:gap-4 xl:gap-6 py-2 lg:py-3 md:pl-[calc(4rem+1rem+0.5rem)] lg:pl-[calc(4rem+1.5rem+1rem)]">
-            <Link
-              to="/hair-oil"
-              className="relative text-text-gray font-normal text-xs lg:text-sm hover:text-logo-green transition-colors after:content-[''] after:absolute after:left-0 after:-bottom-1 after:h-0.5 after:bg-logo-green after:w-0 hover:after:w-full after:transition-all after:duration-300 px-1"
-            >
-              Hair oil
-            </Link>
-            <Link
-              to="/perfume"
-              className="relative text-text-gray font-normal text-xs lg:text-sm hover:text-logo-green transition-colors after:content-[''] after:absolute after:left-0 after:-bottom-1 after:h-0.5 after:bg-logo-green after:w-0 hover:after:w-full after:transition-all after:duration-300 px-1"
-            >
-              Perfume
-            </Link>
-            <Link
-              to="/beauty-products"
-              className="relative text-text-gray font-normal text-xs lg:text-sm hover:text-logo-green transition-colors after:content-[''] after:absolute after:left-0 after:-bottom-1 after:h-0.5 after:bg-logo-green after:w-0 hover:after:w-full after:transition-all after:duration-300 px-1"
-            >
-              Beauty Products
-            </Link>
-            <Link
-              to="/other"
-              className="relative text-text-gray font-normal text-xs lg:text-sm hover:text-logo-green transition-colors after:content-[''] after:absolute after:left-0 after:-bottom-1 after:h-0.5 after:bg-logo-green after:w-0 hover:after:w-full after:transition-all after:duration-300 px-1"
-            >
-              other
-            </Link>
-          </nav>
+              {CATEGORIES.map((category) => (
+                <Link
+                  key={category.value}
+                  to={category.path}
+                  className="relative text-text-gray font-normal text-xs lg:text-sm hover:text-logo-green transition-colors after:content-[''] after:absolute after:left-0 after:-bottom-1 after:h-0.5 after:bg-logo-green after:w-0 hover:after:w-full after:transition-all after:duration-300 px-1"
+                >
+                  {category.label}
+                </Link>
+              ))}
+              {canManageProducts && (
+                <button
+                  type="button"
+                  onClick={() => setIsAddModalOpen(true)}
+                  className="ml-4 inline-flex items-center gap-1 rounded-full border border-logo-green/30 bg-logo-green/10 px-3 py-1.5 text-xs font-semibold text-logo-green hover:bg-logo-green hover:text-white transition-colors"
+                >
+                  <PlusCircle className="h-4 w-4" />
+                  Add Product
+                </button>
+              )}
+            </nav>
         </div>
       </div>
 
@@ -356,7 +444,11 @@ const Navbar = () => {
                   <span className="hidden sm:block text-xs text-text-gray mt-0.5 sm:mt-1 font-normal whitespace-nowrap">Wishlist</span>
                 </Link>
 
-                <Link to="/cart" className="flex flex-col items-center cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={openCartSidebar}
+                  className="flex flex-col items-center cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0"
+                >
                   <div className="relative">
                     <ShoppingCart className="h-4 w-4 sm:h-5 sm:w-5 text-text-gray" />
                     <span className="absolute -top-1.5 -right-1.5 sm:-top-2 sm:-right-2 bg-banner-green text-white text-[10px] sm:text-xs rounded-full min-w-[14px] sm:min-w-[18px] h-[14px] sm:h-[18px] flex items-center justify-center px-0.5 sm:px-1 font-semibold">
@@ -364,7 +456,7 @@ const Navbar = () => {
                     </span>
                   </div>
                   <span className="hidden sm:block text-xs text-text-gray mt-0.5 sm:mt-1 font-normal whitespace-nowrap">Cart</span>
-                </Link>
+                </button>
 
                 <Link to="/signin" className="hidden sm:flex items-center space-x-1 lg:space-x-2 cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0">
                   <User className="h-4 w-4 lg:h-5 lg:w-5 text-text-gray" />
@@ -382,31 +474,26 @@ const Navbar = () => {
         <div className="bg-white border-b border-gray-200 hidden lg:block">
           <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
             <nav className="flex items-center justify-start flex-wrap gap-2 lg:gap-4 xl:gap-6 py-2 lg:py-3 lg:pl-[calc(4rem+1.5rem+1rem)]">
-            <Link
-              to="/hair-oil"
-              className="relative text-text-gray font-normal text-xs lg:text-sm hover:text-logo-green transition-colors after:content-[''] after:absolute after:left-0 after:-bottom-1 after:h-0.5 after:bg-logo-green after:w-0 hover:after:w-full after:transition-all after:duration-300 px-1"
-            >
-              Hair oil
-            </Link>
-            <Link
-              to="/perfume"
-              className="relative text-text-gray font-normal text-xs lg:text-sm hover:text-logo-green transition-colors after:content-[''] after:absolute after:left-0 after:-bottom-1 after:h-0.5 after:bg-logo-green after:w-0 hover:after:w-full after:transition-all after:duration-300 px-1"
-            >
-              Perfume
-            </Link>
-            <Link
-              to="/beauty-products"
-              className="relative text-text-gray font-normal text-xs lg:text-sm hover:text-logo-green transition-colors after:content-[''] after:absolute after:left-0 after:-bottom-1 after:h-0.5 after:bg-logo-green after:w-0 hover:after:w-full after:transition-all after:duration-300 px-1"
-            >
-              Beauty Products
-            </Link>
-            <Link
-              to="/other"
-              className="relative text-text-gray font-normal text-xs lg:text-sm hover:text-logo-green transition-colors after:content-[''] after:absolute after:left-0 after:-bottom-1 after:h-0.5 after:bg-logo-green after:w-0 hover:after:w-full after:transition-all after:duration-300 px-1"
-            >
-              other
-            </Link>
-          </nav>
+              {CATEGORIES.map((category) => (
+                <Link
+                  key={category.value}
+                  to={category.path}
+                  className="relative text-text-gray font-normal text-xs lg:text-sm hover:text-logo-green transition-colors after:content-[''] after:absolute after:left-0 after:-bottom-1 after:h-0.5 after:bg-logo-green after:w-0 hover:after:w-full after:transition-all after:duration-300 px-1"
+                >
+                  {category.label}
+                </Link>
+              ))}
+              {canManageProducts && (
+                <button
+                  type="button"
+                  onClick={() => setIsAddModalOpen(true)}
+                  className="ml-4 inline-flex items-center gap-1 rounded-full border border-logo-green/30 bg-logo-green/10 px-3 py-1.5 text-xs font-semibold text-logo-green hover:bg-logo-green hover:text-white transition-colors"
+                >
+                  <PlusCircle className="h-4 w-4" />
+                  Add Product
+                </button>
+              )}
+            </nav>
         </div>
       </div>
       </div>
@@ -470,6 +557,9 @@ const Navbar = () => {
             </Link>
           </div>
         </div>
+      )}
+      {canManageProducts && (
+        <AddProductModal open={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} />
       )}
     </div>
   );

@@ -5,150 +5,276 @@ const connectDB = require('../config/database');
 
 dotenv.config();
 
-// Sample products for Valora Gold
+// Updated catalogue that mirrors the storefront categories
 const products = [
   {
-    name: "Classic Gold Necklace Set - 22K Premium Collection",
-    price: 85000,
-    originalPrice: 95000,
-    images: ["/4.png", "/4.png", "/4.png"],
-    category: "Necklaces",
-    description: "Exquisite 22K gold necklace set featuring traditional design with modern elegance. Perfect for weddings and special occasions.",
-    ingredients: "22K Pure Gold, Premium Craftsmanship",
+    name: "Herbal Hair Growth Oil 100ml",
+    price: 1295,
+    originalPrice: 1595,
+    images: ["/hair-oil-1.jpg", "/hair-oil-2.jpg", "/hair-oil-3.jpg", "/hair-oil-4.jpg"],
+    category: "Hair",
+    description: "Lightweight nourishing oil infused with rosemary, onion seed, and vitamin E to reduce hair fall while boosting shine.",
     benefits: [
-      "Authentic 22K Gold",
-      "Certified Purity",
-      "Lifetime Warranty",
-      "Elegant Design"
+      "Reduces breakage and hair fall",
+      "Stimulates healthy regrowth",
+      "Keeps scalp hydrated and flake free"
     ],
-    rating: 4.5,
+    rating: 4.8,
+    numReviews: 112,
+    inStock: true,
+    stockCount: 120,
+    isBestSeller: true,
+    isFeatured: true,
+    tags: ["hair", "oil", "growth", "anti hair fall"],
+    keywords: ["hair oil", "growth oil", "anti hair fall", "rosemary oil", "onion oil", "vitamin e", "valora gold hair"]
+  },
+  {
+    name: "Intense Repair Hair Oil 200ml",
+    price: 1895,
+    originalPrice: 2195,
+    images: ["/2perfume1.png"],
+    category: "Hair",
+    description: "Strengthening oil with amla, almond, and coconut extracts to repair chemically treated hair.",
+    benefits: [
+      "Deep conditioning blend",
+      "Repairs split ends",
+      "Adds mirror-like shine"
+    ],
+    rating: 4.6,
     numReviews: 76,
     inStock: true,
-    stockCount: 15,
+    stockCount: 85,
+    tags: ["hair", "oil", "repair"],
+    keywords: ["hair repair", "damage control", "amla oil", "almond oil", "coconut oil", "intense repair"]
+  },
+  {
+    name: "Vitamin C Brightening Face Serum 30ml",
+    price: 1450,
+    originalPrice: 1690,
+    images: ["/cream4.jpg", "/cream3.jpg"],
+    category: "Beauty",
+    description: "Daily vitamin C shot with niacinamide to fade dark spots and deliver a brighter complexion.",
+    benefits: [
+      "Targets pigmentation",
+      "Boosts collagen production",
+      "Non-greasy, fast absorbing"
+    ],
+    rating: 4.9,
+    numReviews: 98,
+    inStock: true,
+    stockCount: 150,
     isBestSeller: true,
-    isFeatured: true,
-    tags: ["necklace", "22k", "wedding", "premium"],
-    weight: "45g",
-    warranty: "Lifetime"
+    tags: ["face", "serum", "vitamin c", "brightening"],
+    keywords: ["vitamin c serum", "brightening serum", "dark spot remover", "niacinamide", "glow serum"]
   },
   {
-    name: "Gold Bracelet Collection - Premium 22K",
-    price: 45000,
-    originalPrice: 50000,
-    images: ["/4.png"],
-    category: "Bracelets",
-    description: "Beautiful 22K gold bracelets with intricate designs. Available in various styles.",
-    ingredients: "22K Pure Gold",
+    name: "Tea Tree Anti-Acne Face Wash 100ml",
+    price: 855,
+    originalPrice: 999,
+    images: ["/face-wash1.png", "/face-wash2.png", "/face-wash3.jpg", "/face-wash4.jpg"],
+    category: "Beauty",
+    description: "Gentle foaming cleanser powered by tea tree and salicylic acid to keep breakouts under control.",
     benefits: [
-      "Premium Quality",
-      "Multiple Styles",
-      "Certified Gold"
+      "Clears clogged pores",
+      "Reduces active acne",
+      "Soothes inflammation"
     ],
-    rating: 5,
-    numReviews: 40,
+    rating: 4.7,
+    numReviews: 134,
     inStock: true,
-    stockCount: 20,
-    isBestSeller: true,
-    tags: ["bracelet", "22k", "premium"],
-    weight: "25g"
+    stockCount: 200,
+    tags: ["face wash", "acne", "oil control"],
+    keywords: ["tea tree face wash", "anti acne", "salicylic acid", "oil control cleanser", "pimple face wash"]
   },
   {
-    name: "Gold Earrings Set - Classic Design",
-    price: 35000,
-    originalPrice: 38000,
-    images: ["/4.png"],
-    category: "Earrings",
-    description: "Elegant 22K gold earrings set with traditional patterns. Perfect for daily wear or special events.",
-    ingredients: "22K Pure Gold",
+    name: "Glow Boost Body Lotion 250ml",
+    price: 1195,
+    originalPrice: 1495,
+    images: ["/loshion1.png", "/loshion2.png", "/loshion3.jpg", "/loshion4.jpg"],
+    category: "Beauty",
+    description: "Silky body lotion enriched with shea butter and hyaluronic acid to lock in moisture for 48 hours.",
     benefits: [
-      "Comfortable Design",
-      "Hypoallergenic",
-      "Timeless Style"
-    ],
-    rating: 5,
-    numReviews: 41,
-    inStock: true,
-    stockCount: 30,
-    isBestSeller: true,
-    tags: ["earrings", "22k", "classic"],
-    weight: "12g"
-  },
-  {
-    name: "Premium Gold Ring - Solitaire Collection",
-    price: 55000,
-    originalPrice: 60000,
-    images: ["/4.png"],
-    category: "Rings",
-    description: "Stunning 22K gold ring with premium solitaire design. A symbol of elegance and luxury.",
-    ingredients: "22K Pure Gold, Premium Stones",
-    benefits: [
-      "Premium Design",
-      "Certified Quality",
-      "Luxury Collection"
-    ],
-    rating: 5,
-    numReviews: 19,
-    inStock: true,
-    stockCount: 12,
-    isFeatured: true,
-    tags: ["ring", "solitaire", "luxury"],
-    weight: "8g"
-  },
-  {
-    name: "Diamond Gold Collection - Exclusive",
-    price: 150000,
-    originalPrice: 175000,
-    images: ["/4.png"],
-    category: "Bundles",
-    description: "Exclusive diamond-studded gold collection featuring necklace, earrings, and ring set.",
-    ingredients: "22K Gold, Premium Diamonds",
-    benefits: [
-      "Diamond Studded",
-      "Complete Set",
-      "Premium Collection"
-    ],
-    rating: 5,
-    numReviews: 29,
-    inStock: true,
-    stockCount: 5,
-    isFeatured: true,
-    tags: ["diamond", "bundle", "exclusive"],
-    weight: "85g"
-  },
-  {
-    name: "Gold Chain Collection - Premium",
-    price: 65000,
-    originalPrice: 70000,
-    images: ["/4.png"],
-    category: "Chains",
-    description: "Premium 22K gold chains in various lengths and styles. Classic and modern designs available.",
-    ingredients: "22K Pure Gold",
-    benefits: [
-      "Multiple Styles",
-      "Various Lengths",
-      "Premium Quality"
+      "Long-lasting hydration",
+      "Restores skin glow",
+      "Non-sticky finish"
     ],
     rating: 4.5,
-    numReviews: 47,
+    numReviews: 64,
     inStock: true,
-    stockCount: 18,
+    stockCount: 140,
+    tags: ["body lotion", "hydration", "glow"],
+    keywords: ["body lotion", "glow lotion", "hydrating lotion", "shea butter", "hyaluronic body"]
+  },
+  {
+    name: "Signature Oud Perfume 50ml",
+    price: 3250,
+    originalPrice: 3650,
+    images: ["/perfume1.png", "/perfume2.png", "/perfume3.png", "/perfume4.jpg"],
+    category: "Perfume",
+    description: "Long-lasting oriental fragrance with notes of oud, amber, and saffron crafted for special evenings.",
+    benefits: [
+      "12-hour projection",
+      "Premium oriental blend",
+      "Elegant glass bottle"
+    ],
+    rating: 4.8,
+    numReviews: 57,
+    inStock: true,
+    stockCount: 60,
+    isFeatured: true,
+    tags: ["perfume", "oud", "fragrance"],
+    keywords: ["oud perfume", "valora gold perfume", "long lasting fragrance", "oriental scent", "saffron perfume"]
+  },
+  {
+    name: "Gentle Baby Massage Oil 120ml",
+    price: 699,
+    originalPrice: 799,
+    images: ["/cream1.png"],
+    category: "Other",
+    description: "Dermatologist-tested baby oil with almond, olive, and chamomile for soft and healthy skin.",
+    benefits: [
+      "Hypoallergenic",
+      "Supports bone strength",
+      "Relaxes and calms baby"
+    ],
+    rating: 4.9,
+    numReviews: 44,
+    inStock: true,
+    stockCount: 90,
+    tags: ["baby", "oil", "massage"],
+    keywords: ["baby massage oil", "almond baby oil", "olive baby oil", "chamomile baby", "newborn massage"]
+  },
+  {
+    name: "Soothing Baby Body Wash 200ml",
+    price: 845,
+    originalPrice: 995,
+    images: ["/soap1.png", "/soap2.png", "/soap3.jpg", "/soap4.jpg"],
+    category: "Other",
+    description: "Tear-free formula with oat milk and aloe vera to cleanse delicate baby skin.",
+    benefits: [
+      "No parabens or sulfates",
+      "Maintains natural moisture",
+      "Gentle calming fragrance"
+    ],
+    rating: 4.6,
+    numReviews: 38,
+    inStock: true,
+    stockCount: 110,
+    tags: ["baby wash", "gentle", "tear free"],
+    keywords: ["baby body wash", "tear free wash", "oat milk wash", "aloe vera baby", "gentle cleanser"]
+  },
+  {
+    name: "Ultimate Glow Bundle",
+    price: 4499,
+    originalPrice: 5295,
+    images: ["/2perfume2.png"],
+    category: "Other",
+    description: "Complete skin renewal set including vitamin C serum, tea tree face wash, and hydrating lotion.",
+    benefits: [
+      "Complete daily routine",
+      "Saves more than 10%",
+      "Suitable for all skin types"
+    ],
+    rating: 4.7,
+    numReviews: 51,
+    inStock: true,
+    stockCount: 75,
     isBestSeller: true,
-    tags: ["chain", "22k", "premium"],
-    weight: "35g"
+    tags: ["bundle", "glow", "skin care set"],
+    keywords: ["glow bundle", "skincare set", "vitamin c kit", "face wash bundle", "hydration combo"]
+  },
+  {
+    name: "Luxury Hair Care Bundle",
+    price: 3799,
+    originalPrice: 4495,
+    images: ["/hair-oil-1.jpg", "/face-wash1.png"],
+    category: "Other",
+    description: "Bundle of herbal hair oil, damage repair mask, and strengthening serum for complete care.",
+    benefits: [
+      "Comprehensive repair system",
+      "Visible results in 3 weeks",
+      "Free scalp massage brush"
+    ],
+    rating: 4.6,
+    numReviews: 62,
+    inStock: true,
+    stockCount: 65,
+    tags: ["bundle", "hair care", "oil"],
+    keywords: ["hair care bundle", "oil bundle", "scalp treatment kit", "hair serum set", "hair mask combo"]
+  },
+  {
+    name: "Radiant Glow Face Cream 50g",
+    price: 1499,
+    originalPrice: 1799,
+    images: ["/cream2.png", "/cream3.jpg"],
+    category: "Beauty",
+    description: "Daily brightening cream with SPF 30 to protect, brighten, and hydrate in one step.",
+    benefits: [
+      "Evens skin tone",
+      "Protects from UV damage",
+      "Improves texture"
+    ],
+    rating: 4.5,
+    numReviews: 87,
+    inStock: true,
+    stockCount: 130,
+    tags: ["face cream", "spf", "brightening"],
+    keywords: ["face cream", "brightening cream", "spf 30", "moisturizer", "daily glow cream"]
+  },
+  {
+    name: "Hydrating Hand & Foot Cream 80g",
+    price: 695,
+    originalPrice: 845,
+    images: ["/cream4.jpg"],
+    category: "Beauty",
+    description: "Intensive repair cream infused with cocoa butter to heal cracked hands and heels.",
+    benefits: [
+      "Repairs rough skin",
+      "Forms protective barrier",
+      "Fast-absorbing rich texture"
+    ],
+    rating: 4.4,
+    numReviews: 29,
+    inStock: true,
+    stockCount: 95,
+    tags: ["hand cream", "foot cream", "repair"],
+    keywords: ["hand cream", "foot cream", "cracked heel", "cocoa butter cream", "repair balm"]
   }
 ];
+
+const createSlug = (name) =>
+  name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)+/g, '');
 
 const seedProducts = async () => {
   try {
     await connectDB();
     
-    // Clear existing products
-    await Product.deleteMany({});
-    console.log('Cleared existing products');
+    const operations = products.map((product) => {
+      const slug = createSlug(product.name);
+      return {
+        updateOne: {
+          filter: { slug },
+          update: {
+            $set: {
+              ...product,
+              slug,
+            }
+          },
+          upsert: true
+        }
+      };
+    });
 
-    // Insert new products
-    await Product.insertMany(products);
-    console.log(`Seeded ${products.length} products`);
+    if (operations.length > 0) {
+      const result = await Product.bulkWrite(operations);
+      const upserts = result.upsertedCount ?? result.nUpserted ?? 0;
+      const updates = result.modifiedCount ?? result.nModified ?? 0;
+      console.log(`Products upserted: ${upserts}`);
+      console.log(`Products updated: ${updates}`);
+    }
 
     process.exit(0);
   } catch (error) {

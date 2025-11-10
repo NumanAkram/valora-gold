@@ -70,8 +70,8 @@ const orderSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Generate order number before saving
-orderSchema.pre('save', async function(next) {
+// Generate order number before validation to satisfy required constraint
+orderSchema.pre('validate', function(next) {
   if (!this.orderNumber) {
     this.orderNumber = `VG-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
   }
