@@ -8,6 +8,7 @@ import { useRecentlyViewed } from '../context/RecentlyViewedContext';
 import Breadcrumbs from '../components/Breadcrumbs';
 import RelatedProducts from '../components/RelatedProducts';
 import { productsAPI, reviewsAPI } from '../utils/api';
+import { getDisplayRating } from '../utils/ratings';
 
 // WhatsApp Icon Component - Official WhatsApp Logo
 const WhatsAppIcon = ({ className }) => (
@@ -222,7 +223,7 @@ const ProductDetail = () => {
   const productDescription = product.description || '';
   const productIngredients = product.ingredients || '';
   const productBenefits = product.benefits || [];
-  const productRating = product.rating || 0;
+  const productRating = getDisplayRating(product);
   const productReviewsCount = product.numReviews || reviews.length;
   const productInStock = product.inStock !== false;
   const productStockCount = product.stockCount || 0;
@@ -294,17 +295,19 @@ const ProductDetail = () => {
       showToast('Product is out of stock', 'error');
       return;
     }
-    const cartProduct = {
-      ...product,
-      id: productId,
-      price: productPrice,
-      images: productImages,
-      image: productImages[0]
-    };
-    for (let i = 0; i < quantity; i++) {
-      addToCart(cartProduct);
-    }
-    navigate('/checkout');
+
+    navigate('/checkout', {
+      state: {
+        buyNowProduct: {
+          ...product,
+          id: productId,
+          price: productPrice,
+          images: productImages,
+          image: productImages[0],
+          quantity,
+        },
+      },
+    });
   };
 
   const defaultSeedReviews = [
@@ -430,7 +433,7 @@ const ProductDetail = () => {
                   {[...Array(5)].map((_, i) => (
                     <Star
                       key={i}
-                      className={`h-5 w-5 ${i < Math.floor(productRating) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
+                      className={`h-5 w-5 ${i + 1 <= productRating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
                     />
                   ))}
                 </div>
@@ -655,7 +658,7 @@ const ProductDetail = () => {
                     <div className="text-4xl font-bold text-logo-green font-sans">{productRating.toFixed(1)}</div>
                     <div className="flex items-center justify-center mt-2">
                       {[...Array(5)].map((_, i) => (
-                        <Star key={i} className={`h-5 w-5 ${i < Math.floor(productRating) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} />
+                        <Star key={i} className={`h-5 w-5 ${i + 1 <= productRating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} />
                       ))}
                     </div>
                     <div className="text-sm text-gray-600 mt-2 font-sans">{productReviewsCount} reviews</div>
@@ -673,7 +676,7 @@ const ProductDetail = () => {
                           <span className="font-semibold text-gray-900 font-sans">{review.customerName}</span>
                           <div className="flex">
                             {[...Array(5)].map((_, i) => (
-                              <Star key={i} className={`h-4 w-4 ${i < review.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} />
+                              <Star key={i} className={`h-4 w-4 ${i + 1 <= (Number(review.rating) || 0) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} />
                             ))}
                           </div>
                         </div>

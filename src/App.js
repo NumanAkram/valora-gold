@@ -12,13 +12,14 @@ import ScrollToTop from './components/ScrollToTop';
 import CartSidebar from './components/CartSidebar';
 import WhatsAppButton from './components/WhatsAppButton';
 import SocialMediaSidebar from './components/SocialMediaSidebar';
+import SalesPopup from './components/SalesPopup';
 import AdminRoute from './components/admin/AdminRoute';
 import Home from './pages/Home';
 import ProductDetail from './pages/ProductDetail';
 import Cart from './pages/Cart';
 import SearchResults from './pages/SearchResults';
 import OtherProducts from './pages/OtherProducts';
-import HairOil from './pages/HairOil';
+import HairCare from './pages/HairOil';
 import Perfume from './pages/Perfume';
 import BeautyProducts from './pages/BeautyProducts';
 import Wishlist from './pages/Wishlist';
@@ -67,7 +68,7 @@ const AppShell = () => {
           <Route path="/search" element={<SearchResults />} />
           <Route path="/other-products" element={<OtherProducts />} />
           <Route path="/other" element={<OtherProducts />} />
-          <Route path="/hair-oil" element={<HairOil />} />
+          <Route path="/hair-care" element={<HairCare />} />
           <Route path="/perfume" element={<Perfume />} />
           <Route path="/beauty-products" element={<BeautyProducts />} />
           <Route path="/signin" element={<SignIn />} />
@@ -99,6 +100,7 @@ const AppShell = () => {
           <BackToTop />
           <WhatsAppButton />
           <SocialMediaSidebar />
+          <SalesPopup />
         </>
       )}
     </div>

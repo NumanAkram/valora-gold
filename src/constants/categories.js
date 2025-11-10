@@ -1,8 +1,8 @@
 const CATEGORIES = [
   {
-    label: 'Hair oil',
+    label: 'Hair Care',
     value: 'Hair',
-    path: '/hair-oil',
+    path: '/hair-care',
     image: '/hair-oil-2.jpg',
   },
   {

@@ -116,8 +116,8 @@ const Footer = () => {
             </h3>
             <ul className="space-y-2">
               <li>
-                <Link to="/hair-oil" className="text-white text-sm hover:text-gray-200 transition-colors font-sans">
-                  Hair oil
+                <Link to="/hair-care" className="text-white text-sm hover:text-gray-200 transition-colors font-sans">
+                  Hair Care
                 </Link>
               </li>
               <li>

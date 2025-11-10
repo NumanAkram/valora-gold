@@ -4,6 +4,7 @@ import { Star } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import { productsAPI } from '../utils/api';
+import { getDisplayRating } from '../utils/ratings';
 
 const RelatedProducts = ({ currentProductId }) => {
   const navigate = useNavigate();
@@ -46,6 +47,7 @@ const RelatedProducts = ({ currentProductId }) => {
           const productPrice = priceValue !== null ? `Rs.${priceValue.toLocaleString()}` : 'Price not available';
           const productImage = product.images?.[0] || product.image || '/4.png';
           const productReviews = product.numReviews || 0;
+          const displayRating = getDisplayRating(product);
           
           return (
           <div key={productId} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden">
@@ -67,7 +69,14 @@ const RelatedProducts = ({ currentProductId }) => {
                 {product.name}
               </h3>
               <div className="flex items-center space-x-2">
-                <Star className="h-4 w-4 text-yellow-400 fill-current" />
+                <div className="flex">
+                  {[...Array(5)].map((_, i) => (
+                    <Star
+                      key={i}
+                      className={`h-4 w-4 ${i + 1 <= displayRating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
+                    />
+                  ))}
+                </div>
                 <span className="text-xs text-gray-600 font-sans">({productReviews} reviews)</span>
               </div>
               <div className="text-lg font-bold text-logo-green font-sans">{productPrice}</div>

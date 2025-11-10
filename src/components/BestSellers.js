@@ -4,6 +4,7 @@ import { Star, Heart } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import { useWishlist } from '../context/WishlistContext';
+import { getDisplayRating } from '../utils/ratings';
 import { useAdminAuth } from '../context/AdminAuthContext';
 import { productsAPI } from '../utils/api';
 
@@ -69,7 +70,7 @@ const BestSellers = () => {
     return () => window.removeEventListener('product-added', handleProductAdded);
   }, []);
 
-  useEffect(() => {
+  const syncUserRole = useCallback(() => {
     try {
       let resolvedRole = null;
 
@@ -105,6 +106,30 @@ const BestSellers = () => {
       setUserRole(null);
     }
   }, []);
+
+  useEffect(() => {
+    syncUserRole();
+
+    const handleStorage = (event) => {
+      if (
+        event.key === 'user' ||
+        event.key === 'valora_admin' ||
+        event.key === null
+      ) {
+        syncUserRole();
+      }
+    };
+
+    window.addEventListener('storage', handleStorage);
+    window.addEventListener('valora-user-updated', syncUserRole);
+    window.addEventListener('admin-auth-changed', syncUserRole);
+
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('valora-user-updated', syncUserRole);
+      window.removeEventListener('admin-auth-changed', syncUserRole);
+    };
+  }, [syncUserRole]);
 
   const canManageProducts = Boolean(
     isAdminAuthenticated || (userRole && userRole.toLowerCase() === 'admin')
@@ -179,9 +204,12 @@ const BestSellers = () => {
                 return null;
               };
 
-              const productPrice = formatCurrency(product.price) || formatCurrency(product.originalPrice) || 'Rs.0';
+              const formattedPrice = formatCurrency(product.price);
+              const formattedOriginal = formatCurrency(product.originalPrice);
+              const hasDiscount =
+                formattedPrice && formattedOriginal && formattedPrice !== formattedOriginal;
               const productImage = product.images?.[0] || product.image || '/4.png';
-              const productRating = product.rating || 5;
+              const ratingValue = getDisplayRating(product);
               const productReviews = typeof product.numReviews === 'number'
                 ? product.numReviews
                 : Array.isArray(product.reviews)
@@ -250,7 +278,7 @@ const BestSellers = () => {
                        {[...Array(5)].map((_, i) => (
                          <Star
                            key={i}
-                           className={`h-4 w-4 ${i < Math.floor(productRating) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
+                           className={`h-4 w-4 ${i + 1 <= ratingValue ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
                          />
                        ))}
                      </div>
@@ -258,8 +286,15 @@ const BestSellers = () => {
                    </div>
 
                    {/* Price */}
-                   <div className="text-base font-bold text-gray-900">
-                     {productPrice}
+                   <div className="flex items-center space-x-2">
+                     {hasDiscount && formattedOriginal && (
+                       <span className="text-sm text-red-600 line-through">
+                         {formattedOriginal}
+                       </span>
+                     )}
+                     <span className="text-base font-bold text-gray-900">
+                       {formattedPrice || formattedOriginal || 'Rs.0'}
+                     </span>
                    </div>
 
                   {/* Add to Cart Button */}

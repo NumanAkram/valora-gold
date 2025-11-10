@@ -20,12 +20,27 @@ export const RecentlyViewedProvider = ({ children }) => {
     localStorage.setItem('recentlyViewed', JSON.stringify(recentlyViewed));
   }, [recentlyViewed]);
 
-  const addToRecentlyViewed = (product) => {
+  const addToRecentlyViewed = (product = {}) => {
+    const productId = product._id || product.id;
+    const productName = product.name || product.title;
+
+    if (!productId || !productName) {
+      return;
+    }
+
     setRecentlyViewed((prev) => {
-      // Remove if already exists
-      const filtered = prev.filter(item => item.id !== product.id);
-      // Add to beginning, limit to 10 items
-      return [product, ...filtered].slice(0, 10);
+      const normalizedId = String(productId);
+      const filtered = prev.filter((item) => (item._id || item.id)?.toString() !== normalizedId);
+
+      const entry = {
+        ...product,
+        id: normalizedId,
+        name: productName,
+        price: product.price ?? product.salePrice ?? product.originalPrice ?? null,
+        images: Array.isArray(product.images) ? product.images : (product.image ? [product.image] : []),
+      };
+
+      return [entry, ...filtered].slice(0, 10);
     });
   };
 

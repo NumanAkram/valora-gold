@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { MapPin, CreditCard, Truck, Lock, ChevronDown, ClipboardList } from 'lucide-react';
 import { useCart, parsePrice } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
@@ -9,6 +9,21 @@ import Breadcrumbs from '../components/Breadcrumbs';
 const Checkout = () => {
   const navigate = useNavigate();
   const { cartItems, getCartTotal, clearCart } = useCart();
+  const location = useLocation();
+  const buyNowProduct = location.state?.buyNowProduct;
+
+  const displayItems = buyNowProduct
+    ? [{ ...buyNowProduct, quantity: buyNowProduct.quantity || 1 }]
+    : cartItems;
+
+  const computeSubtotal = () => {
+    if (buyNowProduct) {
+      const priceValue = parsePrice(buyNowProduct.price);
+      const qty = buyNowProduct.quantity || 1;
+      return priceValue * qty;
+    }
+    return getCartTotal();
+  };
   const { showToast } = useToast();
   
   const [loading, setLoading] = useState(false);
@@ -59,7 +74,7 @@ const Checkout = () => {
     }
   }, []);
 
-  if (cartItems.length === 0) {
+  if (!buyNowProduct && cartItems.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -112,7 +127,7 @@ const Checkout = () => {
 
       // Prepare order data
       const orderData = {
-        items: cartItems.map((item) => ({
+        items: displayItems.map((item) => ({
           productId: item._id || item.id,
           slug: item.slug,
           name: item.name || item.title,
@@ -134,7 +149,9 @@ const Checkout = () => {
       
       if (response.success) {
         showToast('Order placed successfully!', 'success');
-        clearCart();
+        if (!buyNowProduct) {
+          clearCart();
+        }
         
         // Redirect to order confirmation
         setTimeout(() => {
@@ -149,7 +166,7 @@ const Checkout = () => {
     }
   };
 
-  const subtotal = getCartTotal();
+  const subtotal = computeSubtotal();
   const shipping = 0; // Free shipping
   const discount = 0;
   const total = subtotal + shipping - discount;
@@ -283,8 +300,8 @@ const Checkout = () => {
                     <input
                       type="radio"
                       name="paymentMethod"
-                      value="Manual Payment"
-                      checked={formData.paymentMethod === 'Manual Payment'}
+                      value="Bank Transfer"
+                      checked={formData.paymentMethod === 'Bank Transfer'}
                       onChange={handleChange}
                       className="text-logo-green focus:ring-logo-green"
                     />
@@ -292,7 +309,7 @@ const Checkout = () => {
                       <div className="font-semibold text-gray-900 font-sans flex items-center gap-2">
                         Online Payment (Manual)
                         <ChevronDown
-                          className={`h-4 w-4 text-logo-green transition-transform ${formData.paymentMethod === 'Manual Payment' ? 'rotate-180' : ''}`}
+                          className={`h-4 w-4 text-logo-green transition-transform ${formData.paymentMethod === 'Bank Transfer' ? 'rotate-180' : ''}`}
                         />
                       </div>
                       <div className="text-sm text-gray-600 font-sans">Pay via bank transfer or Easypaisa using manual confirmation</div>
@@ -300,28 +317,41 @@ const Checkout = () => {
                     <ClipboardList className="h-5 w-5 text-logo-green" />
                   </label>
 
-                  {formData.paymentMethod === 'Manual Payment' && (
-                    <div className="bg-gray-50 border border-logo-green/40 rounded-lg p-4 space-y-5 animate-fade-in">
-                      <div>
-                        <h3 className="text-sm font-semibold text-logo-green uppercase tracking-wide font-sans">Bank of Punjab Manual Payment Details</h3>
+                  {formData.paymentMethod === 'Bank Transfer' && (
+                    <div className="space-y-4 animate-fade-in">
+                      <div className="bg-white border border-logo-green/40 rounded-xl p-4 sm:p-5 shadow-sm">
+                        <h3 className="text-sm sm:text-base font-semibold text-logo-green uppercase tracking-wide font-sans">
+                          Bank of Punjab Manual Payment Details
+                        </h3>
                         <ul className="mt-3 space-y-1 text-sm text-gray-700 font-sans">
                           <li><span className="font-semibold">IBAN:</span> PK56BPUN5010028428800018</li>
                           <li><span className="font-semibold">Account Number:</span> 5010028428800018</li>
                           <li><span className="font-semibold">Account Title:</span> ZAHID IQBAL</li>
                         </ul>
-                        <p className="mt-3 text-xs text-gray-600 font-sans">
-                          After sending the payment, share the screenshot of the successful payment on <a href="tel:03390005256" className="text-logo-green font-semibold">0339-0005256</a>. Once approved, your order will be placed and you will be notified.
+                        <p className="mt-4 text-sm sm:text-base text-gray-700 font-sans leading-relaxed">
+                          After sending the payment, share the screenshot of the successful payment on
+                          <a href="tel:03390005256" className="ml-1 text-logo-green font-semibold text-base sm:text-lg underline">
+                            0339-0005256
+                          </a>.
+                          <span className="block mt-1">Once approved, your order will be placed and you will be notified.</span>
                         </p>
                       </div>
-                      <div className="border-t border-gray-200 pt-4">
-                        <h3 className="text-sm font-semibold text-logo-green uppercase tracking-wide font-sans">Easypaisa Manual Payment Details</h3>
+
+                      <div className="bg-white border border-logo-green/40 rounded-xl p-4 sm:p-5 shadow-sm">
+                        <h3 className="text-sm sm:text-base font-semibold text-logo-green uppercase tracking-wide font-sans">
+                          Easypaisa Manual Payment Details
+                        </h3>
                         <ul className="mt-3 space-y-1 text-sm text-gray-700 font-sans">
                           <li><span className="font-semibold">IBAN:</span> PK96TMFB0000000016006034</li>
                           <li><span className="font-semibold">Account Number:</span> 03483582165</li>
                           <li><span className="font-semibold">Account Title:</span> ZAHID IQBAL</li>
                         </ul>
-                        <p className="mt-3 text-xs text-gray-600 font-sans">
-                          After sending the payment, share the screenshot of the successful payment on <a href="tel:03390005256" className="text-logo-green font-semibold">0339-0005256</a>. Once approved, your order will be placed and you will be notified.
+                        <p className="mt-4 text-sm sm:text-base text-gray-700 font-sans leading-relaxed">
+                          After sending the payment, share the screenshot of the successful payment on
+                          <a href="tel:03390005256" className="ml-1 text-logo-green font-semibold text-base sm:text-lg underline">
+                            0339-0005256
+                          </a>.
+                          <span className="block mt-1">Once approved, your order will be placed and you will be notified.</span>
                         </p>
                       </div>
                     </div>
@@ -355,10 +385,9 @@ const Checkout = () => {
 
                 {/* Order Items */}
                 <div className="space-y-3 mb-6 max-h-64 overflow-y-auto">
-                  {cartItems.map((item) => {
-                    // Parse price using utility function
-                    const itemPrice = parsePrice(item.salePrice || item.price || 0);
-                    
+                  {displayItems.map((item) => {
+                    const itemPrice = parsePrice(item.price || item.salePrice || item.originalPrice || 0);
+                    const itemTotal = itemPrice * (item.quantity || 1);
                     return (
                       <div key={item._id || item.id} className="flex items-center space-x-3 pb-3 border-b">
                         <img

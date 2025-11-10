@@ -1,6 +1,8 @@
 const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
+const path = require('path');
+const fs = require('fs');
 const connectDB = require('./config/database');
 
 // Load env vars
@@ -11,6 +13,11 @@ connectDB();
 
 const app = express();
 
+const uploadsDirectory = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDirectory)) {
+  fs.mkdirSync(uploadsDirectory, { recursive: true });
+}
+
 // Middleware
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:3000',
@@ -18,6 +25,7 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use('/uploads', express.static(uploadsDirectory));
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
@@ -28,7 +36,9 @@ app.use('/api/orders', require('./routes/orders'));
 app.use('/api/reviews', require('./routes/reviews'));
 app.use('/api/newsletter', require('./routes/newsletter'));
 app.use('/api/contact', require('./routes/contact'));
+app.use('/api/admin/notifications', require('./routes/adminNotifications'));
 app.use('/api/admin', require('./routes/admin'));
+app.use('/api/uploads', require('./routes/uploads'));
 
 // Health check route
 app.get('/api/health', (req, res) => {

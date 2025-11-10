@@ -6,9 +6,8 @@ import { useToast } from '../context/ToastContext';
 import { useWishlist } from '../context/WishlistContext';
 import Breadcrumbs from '../components/Breadcrumbs';
 import { productsAPI } from '../utils/api';
+import { getDisplayRating } from '../utils/ratings';
 import SetPriceModal from '../components/SetPriceModal';
-
-const MAX_PRODUCTS = 4;
 
 const OtherProducts = () => {
   const navigate = useNavigate();
@@ -29,9 +28,9 @@ const OtherProducts = () => {
     const fetchProducts = async () => {
       try {
         setLoading(true);
-        const response = await productsAPI.getAll({ limit: MAX_PRODUCTS + 10, category: 'Other', sort: 'newest' });
+        const response = await productsAPI.getAll({ category: 'Other', sort: 'newest' });
         if (response && response.success && Array.isArray(response.data)) {
-          setProducts(response.data.slice(0, MAX_PRODUCTS));
+          setProducts(response.data);
         } else {
           setProducts([]);
         }
@@ -62,8 +61,7 @@ const OtherProducts = () => {
 
         return updated
           .filter(Boolean)
-          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-          .slice(0, MAX_PRODUCTS);
+          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       });
     };
 
@@ -113,13 +111,13 @@ const OtherProducts = () => {
               </p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {products.slice(0, MAX_PRODUCTS).map((product) => {
+              {products.map((product) => {
                 const productId = product._id || product.id;
                 const productName = product.name || product.title || '';
                 const productPrice = typeof product.price === 'number' ? product.price : null;
                 const productOriginalPrice = typeof product.originalPrice === 'number' ? product.originalPrice : null;
                 const productImage = product.images?.[0] || product.image || '/4.png';
-                const productRating = product.rating || 5;
+                const productRating = getDisplayRating(product);
                 const productReviews = product.numReviews || 0;
                 const isComingSoon = Boolean(product.comingSoon) || productPrice === null;
                 const hasSale = !isComingSoon && productOriginalPrice !== null && productPrice !== null && productOriginalPrice > productPrice;
@@ -180,7 +178,7 @@ const OtherProducts = () => {
                           {[...Array(5)].map((_, i) => (
                             <Star
                               key={i}
-                              className={`h-4 w-4 ${i < Math.floor(productRating) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
+                              className={`h-4 w-4 ${i + 1 <= productRating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
                             />
                           ))}
                         </div>
@@ -192,20 +190,19 @@ const OtherProducts = () => {
                       {/* Pricing */}
                       <div className="flex items-center space-x-2">
                         {isComingSoon ? (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-700 uppercase">
-                            <Tag className="h-3 w-3" />
+                          <span className="text-base font-semibold text-gray-500 uppercase tracking-wide">
                             Coming Soon
                           </span>
                         ) : (
                           <>
-                            <span className="text-lg font-bold text-red-600">
-                              Rs.{productPrice?.toLocaleString()}
-                            </span>
                             {productOriginalPrice && productOriginalPrice > productPrice && (
-                              <span className="text-sm text-gray-500 line-through">
+                              <span className="text-sm text-red-600 line-through">
                                 Rs.{productOriginalPrice.toLocaleString()}
                               </span>
                             )}
+                            <span className="text-lg font-bold text-gray-900">
+                              Rs.{(productPrice ?? productOriginalPrice ?? 0).toLocaleString()}
+                            </span>
                           </>
                         )}
                       </div>

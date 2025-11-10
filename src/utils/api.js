@@ -9,7 +9,10 @@ const getToken = () => {
 // Helper function for API requests
 const apiRequest = async (endpoint, options = {}) => {
   const token = getToken();
-  
+
+  const isFormData =
+    typeof FormData !== 'undefined' && options.body instanceof FormData;
+
   const config = {
     headers: {
       'Content-Type': 'application/json',
@@ -19,7 +22,17 @@ const apiRequest = async (endpoint, options = {}) => {
     ...options,
   };
 
-  if (options.body && typeof options.body === 'object') {
+  if (isFormData) {
+    config.body = options.body;
+    if (config.headers && config.headers['Content-Type']) {
+      delete config.headers['Content-Type'];
+    }
+  } else if (
+    options.body &&
+    typeof options.body === 'object' &&
+    !(options.body instanceof ArrayBuffer) &&
+    !(typeof Blob !== 'undefined' && options.body instanceof Blob)
+  ) {
     config.body = JSON.stringify(options.body);
   }
 
@@ -109,6 +122,15 @@ export const adminAPI = {
     }),
 
   getDashboardMetrics: () => apiRequest('/admin/metrics'),
+  getNotifications: () => apiRequest('/admin/notifications'),
+  markNotificationRead: (notificationId) =>
+    apiRequest(`/admin/notifications/${notificationId}/read`, {
+      method: 'POST',
+    }),
+  clearNotifications: () =>
+    apiRequest('/admin/notifications/clear', {
+      method: 'POST',
+    }),
 
   getProducts: (params = {}) => {
     const queryString = new URLSearchParams(params).toString();
@@ -236,6 +258,17 @@ export const contactAPI = {
   }),
 };
 
+export const uploadAPI = {
+  uploadImage: (file) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    return apiRequest('/uploads/image', {
+      method: 'POST',
+      body: formData,
+    });
+  },
+};
+
 export default {
   authAPI,
   productsAPI,
@@ -245,4 +278,5 @@ export default {
   reviewsAPI,
   newsletterAPI,
   contactAPI,
+  uploadAPI,
 };

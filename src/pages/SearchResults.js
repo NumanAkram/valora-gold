@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Star, Search } from 'lucide-react';
+import { getDisplayRating } from '../utils/ratings';
 import { useCart } from '../context/CartContext';
-import { useToast } from '../context/ToastContext';
 import Breadcrumbs from '../components/Breadcrumbs';
 import { productsAPI } from '../utils/api';
 
@@ -10,7 +10,6 @@ const SearchResults = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { addToCart } = useCart();
-  const { showToast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -90,9 +89,15 @@ const SearchResults = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {searchResults.map((product) => {
                 const productId = product._id || product.id;
-                const productPrice = product.price ? `Rs.${product.price.toLocaleString()}` : 'Rs.0';
+                const priceValue = typeof product.price === 'number' ? product.price : null;
+                const originalValue = typeof product.originalPrice === 'number' ? product.originalPrice : null;
+                const hasDiscount =
+                  priceValue !== null && originalValue !== null && originalValue > priceValue;
+                const formattedPrice = priceValue !== null ? `Rs.${priceValue.toLocaleString()}` : null;
+                const formattedOriginal = originalValue !== null ? `Rs.${originalValue.toLocaleString()}` : null;
                 const productImage = product.images?.[0] || product.image || '/4.png';
                 const productReviews = product.numReviews || 0;
+                const displayRating = getDisplayRating(product);
                 
                 return (
                 <div key={productId} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden">
@@ -114,17 +119,36 @@ const SearchResults = () => {
                       {product.name}
                     </h3>
                     <div className="flex items-center space-x-2">
-                      <Star className="h-4 w-4 text-yellow-400 fill-current" />
+                      <div className="flex">
+                        {[...Array(5)].map((_, i) => (
+                          <Star
+                            key={i}
+                            className={`h-4 w-4 ${i + 1 <= displayRating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
+                          />
+                        ))}
+                      </div>
                       <span className="text-sm text-gray-600 font-sans">
                         ({productReviews} reviews)
                       </span>
                     </div>
-                    <div className="text-lg font-bold text-logo-green font-sans">
-                      {productPrice}
+                    <div className="flex items-center space-x-2">
+                      {hasDiscount && formattedOriginal && (
+                        <span className="text-sm text-red-600 line-through font-sans">
+                          {formattedOriginal}
+                        </span>
+                      )}
+                      <span className="text-lg font-bold text-gray-900 font-sans">
+                        {formattedPrice || formattedOriginal || 'Rs.0'}
+                      </span>
                     </div>
                     <button
                       onClick={() => {
-                        addToCart({ ...product, id: productId, price: product.price, image: productImage });
+                        addToCart({
+                          ...product,
+                          id: productId,
+                          price: priceValue ?? originalValue ?? 0,
+                          image: productImage,
+                        });
                       }}
                       className="w-full bg-logo-green text-white py-2 px-4 rounded hover:bg-banner-green transition-colors font-sans font-medium"
                     >

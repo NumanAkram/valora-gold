@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Menu, X, ShoppingCart, User, Search, ChevronDown, Leaf, X as CloseIcon, Heart, PlusCircle } from 'lucide-react';
 import { useCart } from '../context/CartContext';
@@ -82,18 +82,21 @@ const Navbar = () => {
     }
   }, [canManageProducts, isAddModalOpen]);
 
+  const canManageProductsRef = useRef(false);
   useEffect(() => {
-    if (!canManageProducts) {
-      return;
-    }
+    canManageProductsRef.current = canManageProducts;
+  }, [canManageProducts]);
 
+  useEffect(() => {
     const handleAddProductOpen = () => {
-      setIsAddModalOpen(true);
+      if (canManageProductsRef.current) {
+        setIsAddModalOpen(true);
+      }
     };
 
     window.addEventListener('admin-add-product-open', handleAddProductOpen);
     return () => window.removeEventListener('admin-add-product-open', handleAddProductOpen);
-  }, [canManageProducts]);
+  }, []);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -521,11 +524,11 @@ const Navbar = () => {
             
             {/* Mobile Navigation Links */}
             <Link
-              to="/hair-oil"
+              to="/hair-care"
               onClick={toggleMenu}
               className="block text-text-gray font-normal text-sm py-2 border-b border-gray-200"
             >
-              Hair oil
+              Hair Care
             </Link>
             <Link
               to="/perfume"

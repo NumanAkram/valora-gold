@@ -6,6 +6,7 @@ import { useToast } from '../context/ToastContext';
 import { useWishlist } from '../context/WishlistContext';
 import Breadcrumbs from '../components/Breadcrumbs';
 import { productsAPI } from '../utils/api';
+import { getDisplayRating } from '../utils/ratings';
 import SetPriceModal from '../components/SetPriceModal';
 
 const Perfume = () => {
@@ -121,7 +122,7 @@ const Perfume = () => {
                 const productPrice = typeof product.price === 'number' ? product.price : null;
                 const productOriginalPrice = typeof product.originalPrice === 'number' ? product.originalPrice : null;
                 const productImage = product.images?.[0] || product.image || '/4.png';
-                const productRating = product.rating || 5;
+                const productRating = getDisplayRating(product);
                 const productReviews = product.numReviews || 0;
                 const isComingSoon = Boolean(product.comingSoon) || productPrice === null;
                 const hasSale = !isComingSoon && productOriginalPrice !== null && productPrice !== null && productOriginalPrice > productPrice;
@@ -223,9 +224,7 @@ const Perfume = () => {
                           {[...Array(5)].map((_, i) => (
                             <Star
                               key={i}
-                              className={`h-4 w-4 ${
-                                i < Math.floor(productRating) ? 'text-yellow-400 fill-current' : 'text-gray-300'
-                              }`}
+                              className={`h-4 w-4 ${i + 1 <= productRating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
                             />
                           ))}
                         </div>
@@ -240,14 +239,14 @@ const Perfume = () => {
                           </span>
                         ) : (
                           <>
-                            <span className="text-lg font-bold text-red-600">
-                              Rs.{productPrice?.toLocaleString()}
-                            </span>
-                            {productOriginalPrice && productOriginalPrice > productPrice && (
-                              <span className="text-sm text-gray-500 line-through">
-                                Rs.{productOriginalPrice.toLocaleString()}
+                            {hasSale && (
+                              <span className="text-sm text-red-600 line-through">
+                                Rs.{productOriginalPrice?.toLocaleString()}
                               </span>
                             )}
+                            <span className="text-lg font-bold text-gray-900">
+                              Rs.{(productPrice ?? productOriginalPrice ?? 0).toLocaleString()}
+                            </span>
                           </>
                         )}
                       </div>

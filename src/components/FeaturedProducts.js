@@ -3,6 +3,7 @@ import { Star, Heart, ShoppingBag, Eye } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import { useWishlist } from '../context/WishlistContext';
+import { getDisplayRating } from '../utils/ratings';
 import { productsAPI } from '../utils/api';
 
 const MAX_FEATURED = 4;
@@ -16,12 +17,15 @@ const FeaturedProducts = () => {
   useEffect(() => {
     const fetchFeatured = async () => {
       try {
-        const response = await productsAPI.getAll({ limit: MAX_FEATURED, sort: 'newest' });
+        const response = await productsAPI.getFeatured();
         if (response.success && Array.isArray(response.data)) {
           setProducts(response.data.slice(0, MAX_FEATURED));
+        } else {
+          setProducts([]);
         }
       } catch (error) {
         console.error('Error fetching featured products:', error);
+        setProducts([]);
       }
     };
 
@@ -80,7 +84,7 @@ const FeaturedProducts = () => {
               const productId = product._id || product.id;
               const productName = product.name || product.title;
               const productImage = product.images?.[0] || product.image || '/4.png';
-              const productRating = product.rating || 5;
+              const productRating = getDisplayRating(product);
               const productReviews = product.numReviews || 0;
               const priceValue = typeof product.price === 'number' ? product.price : null;
               const originalPriceValue =
@@ -163,7 +167,11 @@ const FeaturedProducts = () => {
                     {[...Array(5)].map((_, i) => (
                       <Star
                         key={i}
-                        className={`h-4 w-4 ${i < Math.floor(productRating) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
+                        className={`h-4 w-4 ${
+                          i + 1 <= productRating
+                            ? 'text-yellow-400 fill-current'
+                            : 'text-gray-300'
+                        }`}
                       />
                     ))}
                   </div>

@@ -77,8 +77,15 @@ const Wishlist = () => {
                 >
                   {item.name || item.title}
                 </h3>
-                <div className="text-lg font-bold text-logo-green font-sans">
-                  {item.price || item.salePrice}
+                <div className="flex items-center space-x-2">
+                  {item.originalPrice && item.price && item.originalPrice > item.price && (
+                    <span className="text-sm text-red-600 line-through font-sans">
+                      Rs.{Number(item.originalPrice).toLocaleString()}
+                    </span>
+                  )}
+                  <span className="text-lg font-bold text-gray-900 font-sans">
+                    Rs.{Number(item.price || item.salePrice || item.originalPrice || 0).toLocaleString()}
+                  </span>
                 </div>
                 <button
                   onClick={() => handleAddToCart(item)}

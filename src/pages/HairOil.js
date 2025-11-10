@@ -6,9 +6,10 @@ import { useToast } from '../context/ToastContext';
 import { useWishlist } from '../context/WishlistContext';
 import Breadcrumbs from '../components/Breadcrumbs';
 import { productsAPI } from '../utils/api';
+import { getDisplayRating } from '../utils/ratings';
 import SetPriceModal from '../components/SetPriceModal';
 
-const HairOil = () => {
+const HairCare = () => {
   const navigate = useNavigate();
   const { addToCart } = useCart();
   const { showToast } = useToast();
@@ -32,7 +33,7 @@ const HairOil = () => {
           limit: 100,
           category: 'Hair' 
         });
-        console.log('Hair Oil API Response:', response);
+        console.log('Hair Care API Response:', response);
         if (response && response.success && Array.isArray(response.data)) {
           setProducts(response.data);
         } else {
@@ -91,15 +92,15 @@ const HairOil = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <Breadcrumbs items={[
           { label: 'Home', path: '/' },
-          { label: 'Hair Oil', path: '/hair-oil' }
+          { label: 'Hair Care', path: '/hair-care' }
         ]} />
 
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-logo-green mb-2 font-sans uppercase tracking-wide">
-            Hair Oil Products
+            Hair Care Products
           </h1>
           <p className="text-gray-600 font-sans">
-            Discover our premium collection of hair oils for healthy, strong, and beautiful hair
+            Discover our premium collection for healthy, strong, and beautiful hair
           </p>
         </div>
 
@@ -121,7 +122,7 @@ const HairOil = () => {
                 const productPrice = typeof product.price === 'number' ? product.price : null;
                 const productOriginalPrice = typeof product.originalPrice === 'number' ? product.originalPrice : null;
                 const productImage = product.images?.[0] || product.image || '/4.png';
-                const productRating = product.rating || 5;
+                const productRating = getDisplayRating(product);
                 const productReviews = product.numReviews || 0;
                 const isComingSoon = Boolean(product.comingSoon) || productPrice === null;
                 const hasSale = !isComingSoon && productOriginalPrice !== null && productPrice !== null && productOriginalPrice > productPrice;
@@ -185,7 +186,7 @@ const HairOil = () => {
                           {[...Array(5)].map((_, i) => (
                             <Star
                               key={i}
-                              className={`h-4 w-4 ${i < Math.floor(productRating) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
+                              className={`h-4 w-4 ${i + 1 <= productRating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
                             />
                           ))}
                         </div>
@@ -203,14 +204,14 @@ const HairOil = () => {
                           </span>
                         ) : (
                           <>
-                            <span className="text-lg font-bold text-red-600">
-                              Rs.{productPrice?.toLocaleString()}
-                            </span>
-                            {productOriginalPrice && productOriginalPrice > productPrice && (
-                              <span className="text-sm text-gray-500 line-through">
-                                Rs.{productOriginalPrice.toLocaleString()}
+                            {hasSale && (
+                              <span className="text-sm text-red-600 line-through">
+                                Rs.{productOriginalPrice?.toLocaleString()}
                               </span>
                             )}
+                            <span className="text-lg font-bold text-gray-900">
+                              Rs.{(productPrice ?? productOriginalPrice ?? 0).toLocaleString()}
+                            </span>
                           </>
                         )}
                       </div>
@@ -251,7 +252,7 @@ const HairOil = () => {
               No products found
             </h3>
             <p className="text-gray-600 font-sans">
-              There are currently no hair oil products available.
+              There are currently no hair care products available.
             </p>
           </div>
         )}
@@ -269,5 +270,5 @@ const HairOil = () => {
   );
 };
 
-export default HairOil;
+export default HairCare;
 

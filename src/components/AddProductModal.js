@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { X, ChevronDown } from 'lucide-react';
 import CATEGORIES from '../constants/categories';
-import { productsAPI } from '../utils/api';
+import { productsAPI, uploadAPI } from '../utils/api';
 import { useToast } from '../context/ToastContext';
 import { useAdminAuth } from '../context/AdminAuthContext';
 
@@ -20,6 +20,9 @@ const AddProductModal = ({ open, onClose, onProductCreated }) => {
   const [formData, setFormData] = useState(initialFormState);
   const [loading, setLoading] = useState(false);
   const [comingSoon, setComingSoon] = useState(false);
+  const [imagePreview, setImagePreview] = useState('');
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingGallery, setUploadingGallery] = useState(false);
   const { showToast } = useToast();
   const { isAuthenticated: isAdminAuthenticated } = useAdminAuth();
 
@@ -32,10 +35,11 @@ const AddProductModal = ({ open, onClose, onProductCreated }) => {
         galleryImages: [''],
       });
       setComingSoon(false);
+      setImagePreview('');
+      setUploadingImage(false);
+      setUploadingGallery(false);
     }
   }, [open]);
-
-  if (!open || !isAdminAuthenticated) return null;
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -66,6 +70,96 @@ const AddProductModal = ({ open, onClose, onProductCreated }) => {
       return { ...prev, galleryImages: updated.length > 0 ? updated : [''] };
     });
   };
+
+  const handlePrimaryImageUpload = useCallback(
+    async (event) => {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+
+      setUploadingImage(true);
+      try {
+        const response = await uploadAPI.uploadImage(file);
+        if (response.success && response.url) {
+          setFormData((prev) => ({
+            ...prev,
+            imageUrl: response.url,
+          }));
+          setImagePreview(response.url);
+          showToast('Image uploaded successfully.', 'success');
+        } else {
+          throw new Error(response.message || 'Failed to upload image.');
+        }
+      } catch (error) {
+        console.error('Primary image upload error:', error);
+        showToast(error.message || 'Failed to upload image.', 'error');
+      } finally {
+        setUploadingImage(false);
+        event.target.value = '';
+      }
+    },
+    [showToast]
+  );
+
+  const handleGalleryFileUpload = useCallback(
+    async (event) => {
+      const files = event.target.files ? Array.from(event.target.files) : [];
+      if (files.length === 0) return;
+
+      setUploadingGallery(true);
+      try {
+        const uploadedUrls = [];
+        for (const file of files) {
+          // eslint-disable-next-line no-await-in-loop
+          const response = await uploadAPI.uploadImage(file);
+          if (response.success && response.url) {
+            uploadedUrls.push(response.url);
+          }
+        }
+
+        if (uploadedUrls.length > 0) {
+          setFormData((prev) => {
+            const existing = prev.galleryImages.filter(Boolean);
+            const combined = [...existing, ...uploadedUrls];
+            return {
+              ...prev,
+              galleryImages: combined.length > 0 ? combined : [''],
+            };
+          });
+          showToast(
+            uploadedUrls.length > 1
+              ? 'Gallery images uploaded successfully.'
+              : 'Gallery image uploaded successfully.',
+            'success'
+          );
+        }
+      } catch (error) {
+        console.error('Gallery upload error:', error);
+        showToast(error.message || 'Failed to upload gallery images.', 'error');
+      } finally {
+        setUploadingGallery(false);
+        event.target.value = '';
+      }
+    },
+    [showToast]
+  );
+
+  const handleClearPrimaryImage = () => {
+    setFormData((prev) => ({
+      ...prev,
+      imageUrl: '',
+    }));
+    setImagePreview('');
+  };
+
+  useEffect(() => {
+    if (formData.imageUrl) {
+      setImagePreview(formData.imageUrl);
+    }
+  }, [formData.imageUrl]);
+
+  if (!isAdminAuthenticated || !open) {
+    return null;
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -297,6 +391,43 @@ const AddProductModal = ({ open, onClose, onProductCreated }) => {
               <p className="text-xs text-gray-400 font-sans">
                 Leave blank to use the default store placeholder image.
               </p>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-3 gap-3">
+                <label
+                  htmlFor="product-primary-image"
+                  className="inline-flex items-center justify-center px-4 py-2.5 rounded-lg border border-dashed border-logo-green text-logo-green text-sm font-semibold hover:bg-logo-green hover:text-white transition-colors cursor-pointer"
+                >
+                  {uploadingImage ? 'Uploading...' : 'Upload Image'}
+                </label>
+                <input
+                  id="product-primary-image"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handlePrimaryImageUpload}
+                  disabled={uploadingImage || loading}
+                />
+                {(imagePreview || formData.imageUrl) && (
+                  <button
+                    type="button"
+                    onClick={handleClearPrimaryImage}
+                    className="inline-flex items-center justify-center px-4 py-2.5 rounded-lg border border-red-200 text-red-500 text-sm font-medium hover:bg-red-50 transition-colors"
+                  >
+                    Remove Image
+                  </button>
+                )}
+              </div>
+              {(imagePreview || formData.imageUrl) && (
+                <div className="mt-3">
+                  <span className="block text-xs font-semibold text-gray-600 uppercase font-sans mb-2">
+                    Preview
+                  </span>
+                  <img
+                    src={imagePreview || formData.imageUrl}
+                    alt="Product preview"
+                    className="h-32 w-32 object-cover rounded-lg border border-gray-200 shadow-sm"
+                  />
+                </div>
+              )}
               <div className="space-y-3">
                 <label className="block text-sm font-semibold text-gray-700 font-sans">
                   Gallery Images
@@ -304,6 +435,26 @@ const AddProductModal = ({ open, onClose, onProductCreated }) => {
                 <p className="text-xs text-gray-500 font-sans">
                   Add multiple image URLs to show as product gallery/filters.
                 </p>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-3 gap-3">
+                  <label
+                    htmlFor="product-gallery-upload"
+                    className="inline-flex items-center justify-center px-4 py-2.5 rounded-lg border border-dashed border-logo-green text-logo-green text-sm font-semibold hover:bg-logo-green hover:text-white transition-colors cursor-pointer"
+                  >
+                    {uploadingGallery ? 'Uploading...' : 'Upload Images'}
+                  </label>
+                  <input
+                    id="product-gallery-upload"
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={handleGalleryFileUpload}
+                    disabled={uploadingGallery || loading}
+                  />
+                  {uploadingGallery && (
+                    <span className="text-xs text-gray-500 font-sans">Uploading selected files…</span>
+                  )}
+                </div>
                 <div className="space-y-3">
                   {formData.galleryImages.map((image, index) => (
                     <div key={`gallery-image-${index}`} className="flex items-center space-x-2">
@@ -326,7 +477,7 @@ const AddProductModal = ({ open, onClose, onProductCreated }) => {
                     </div>
                   ))}
                 </div>
-                    <button
+                <button
                   type="button"
                   onClick={handleAddGalleryImage}
                   className="w-full sm:w-auto px-4 py-2 rounded-lg border border-dashed border-logo-green text-logo-green text-sm font-medium hover:bg-logo-green hover:text-white transition-colors"

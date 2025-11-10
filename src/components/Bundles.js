@@ -5,6 +5,7 @@ import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import { useWishlist } from '../context/WishlistContext';
 import { productsAPI } from '../utils/api';
+import { getDisplayRating } from '../utils/ratings';
 
 const Bundles = () => {
   const [bundles, setBundles] = useState([]);
@@ -17,9 +18,9 @@ const Bundles = () => {
   useEffect(() => {
     const fetchBundles = async () => {
       try {
-        const response = await productsAPI.getAll({ category: 'Bundles' });
+        const response = await productsAPI.getAll({ category: 'Other', sort: 'newest', limit: 20 });
         if (response.success) {
-          setBundles(response.data);
+          setBundles(response.data.slice(0, 4));
         }
       } catch (error) {
         console.error('Error fetching bundles:', error);
@@ -29,6 +30,31 @@ const Bundles = () => {
       }
     };
     fetchBundles();
+  }, []);
+
+  useEffect(() => {
+    const handleProductAdded = (event) => {
+      const newProduct = event.detail;
+      if (!newProduct || newProduct.category !== 'Other') return;
+
+      setBundles((prev) => {
+        const existingIndex = prev.findIndex(
+          (item) => (item._id || item.id)?.toString() === (newProduct._id || newProduct.id)?.toString()
+        );
+
+        const updated = existingIndex >= 0
+          ? prev.map((item, index) => (index === existingIndex ? { ...item, ...newProduct } : item))
+          : [{ ...newProduct }, ...prev];
+
+        return updated
+          .filter(Boolean)
+          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+          .slice(0, 4);
+      });
+    };
+
+    window.addEventListener('product-added', handleProductAdded);
+    return () => window.removeEventListener('product-added', handleProductAdded);
   }, []);
 
   const displayBundles = bundles;
@@ -73,7 +99,7 @@ const Bundles = () => {
               const bundlePrice = typeof bundle.price === 'number' ? bundle.price : null;
               const bundleOriginalPrice = typeof bundle.originalPrice === 'number' ? bundle.originalPrice : null;
               const bundleImage = bundle.images?.[0] || bundle.image || '/4.png';
-              const bundleRating = bundle.rating || 5;
+              const bundleRating = getDisplayRating(bundle);
               const bundleReviews = bundle.numReviews || 0;
               const isComingSoon = Boolean(bundle.comingSoon) || bundlePrice === null;
               const hasSale = !isComingSoon && bundleOriginalPrice !== null && bundlePrice !== null && bundleOriginalPrice > bundlePrice;
@@ -134,7 +160,7 @@ const Bundles = () => {
                       {[...Array(5)].map((_, i) => (
                         <Star
                           key={i}
-                          className={`h-4 w-4 ${i < Math.floor(bundleRating) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
+                          className={`h-4 w-4 ${i + 1 <= (Number(bundleRating) || 0) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
                         />
                       ))}
                     </div>

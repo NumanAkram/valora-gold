@@ -15,8 +15,8 @@ const MyAccount = () => {
     const fetchUserData = async () => {
       const token = localStorage.getItem('token');
       if (!token) {
-        showToast('Please sign in to access your account', 'error');
-        navigate('/signin');
+        setLoading(false);
+        setUser(null);
         return;
       }
 
@@ -26,12 +26,11 @@ const MyAccount = () => {
           setUser(response.data);
         } else {
           showToast('Failed to load account information', 'error');
-          navigate('/signin');
+          setUser(null);
         }
       } catch (error) {
         console.error('Error fetching user data:', error);
-        showToast('Please sign in to access your account', 'error');
-        navigate('/signin');
+        setUser(null);
       } finally {
         setLoading(false);
       }
@@ -61,7 +60,30 @@ const MyAccount = () => {
   }
 
   if (!user) {
-    return null;
+    return (
+      <div className="min-h-screen bg-gray-50 py-12">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="bg-white rounded-lg shadow-md p-10 text-center space-y-4">
+            <h2 className="text-2xl font-bold text-gray-900 font-sans">You’re not signed in</h2>
+            <p className="text-gray-600 font-sans">Sign in to view and manage your account details.</p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <button
+                onClick={() => navigate('/signin')}
+                className="px-6 py-3 bg-logo-green text-white font-bold rounded-lg hover:bg-banner-green transition-colors font-sans"
+              >
+                Go to Login
+              </button>
+              <button
+                onClick={() => navigate('/')}
+                className="px-6 py-3 border border-logo-green text-logo-green font-bold rounded-lg hover:bg-logo-green hover:text-white transition-colors font-sans"
+              >
+                Back to Home
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
