@@ -10,13 +10,24 @@ cd server
 npm install
 ```
 
-2. Create `.env` file (copy from `.env.example`):
+2. Create `server/.env` (copy from the snippet below or your deployment secrets):
 ```bash
 PORT=5000
-MONGODB_URI=mongodb://localhost:27017/valoragold
+MONGO_URI=mongodb://localhost:27017/valoragold
 JWT_SECRET=your_secret_key_here
-FRONTEND_URL=http://localhost:3000
+CLIENT_URL=http://localhost:3000
+
+# Email notifications (required for order emails)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=465
+SMTP_SECURE=true
+SMTP_USER=info@valoragold.store
+SMTP_PASS=your_app_password_here
+SMTP_FROM=info@valoragold.store
+ADMIN_NOTIFICATION_EMAILS=info@valoragold.store,valoragold.pk@gmail.com
 ```
+
+> 💡 Generate an **App Password** for `SMTP_PASS` by enabling 2-Step Verification on the Gmail/Workspace account and creating an app-specific password (Security → App passwords). Paste the 16-character code without spaces.
 
 3. Start MongoDB (if using local):
 - Make sure MongoDB is installed and running

@@ -55,7 +55,6 @@ const apiRequest = async (endpoint, options = {}) => {
 
     return data;
   } catch (error) {
-    console.error('API Error:', error);
     // Re-throw with more info
     if (error.name === 'TypeError' && error.message.includes('fetch')) {
       throw new Error('Failed to connect to server. Please check your connection.');
@@ -240,6 +239,17 @@ export const reviewsAPI = {
     method: 'POST',
     body: reviewData,
   }),
+
+  update: (reviewId, reviewData) =>
+    apiRequest(`/reviews/${reviewId}`, {
+      method: 'PUT',
+      body: reviewData,
+    }),
+
+  remove: (reviewId) =>
+    apiRequest(`/reviews/${reviewId}`, {
+      method: 'DELETE',
+    }),
 };
 
 // Newsletter API

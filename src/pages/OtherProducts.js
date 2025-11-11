@@ -35,7 +35,7 @@ const OtherProducts = () => {
           setProducts([]);
         }
       } catch (error) {
-        console.error('Error fetching other products:', error);
+        console.error('Error fetching others category products:', error);
         setProducts([]);
       } finally {
         setLoading(false);
@@ -85,15 +85,15 @@ const OtherProducts = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <Breadcrumbs items={[
-          { label: 'Home', path: '/' },
-          { label: 'Other Products', path: '/other-products' }
-        ]} />
+        <Breadcrumbs
+          items={[
+            { label: 'Home', path: '/' },
+            { label: 'Others', path: '/other-products' }
+          ]}
+        />
 
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-logo-green mb-2 font-sans uppercase tracking-wide">
-            Other Products
-          </h1>
+          <h1 className="text-3xl font-bold text-logo-green mb-2 font-sans uppercase tracking-wide">Others</h1>
           <p className="text-gray-600 font-sans">
             Explore our complete collection of products
           </p>

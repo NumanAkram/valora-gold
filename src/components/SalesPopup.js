@@ -7,18 +7,7 @@ const INITIAL_DELAY = 2000; // show 2s after load
 const TRANSITION_DURATION = 500; // ms for show/hide animation
 const REAPPEAR_DELAY = 15000; // show again 15s after dismiss
 
-const LOCATIONS = [
-  'Lahore',
-  'Karachi',
-  'Islamabad',
-  'Rawalpindi',
-  'Faisalabad',
-  'Multan',
-  'Hyderabad',
-  'Sialkot',
-  'Quetta',
-  'Bahawalpur',
-];
+const BUYER_NAMES = ['Ahamed', 'Numan', 'Owais', 'Ali', 'Ahtesham', 'Mudasir'];
 
 const TIME_AGO = [
   'just now',
@@ -59,7 +48,11 @@ const SalesPopup = () => {
           const cleaned = response.data.filter((product) => {
             const hasImage = product?.images?.length || product?.image;
             const hasName = product?.name || product?.title;
-            return Boolean(hasImage && hasName);
+            const isComingSoon = Boolean(product?.comingSoon);
+            const rawPrice = product?.price ?? product?.salePrice ?? product?.currentPrice;
+            const normalizedPrice = typeof rawPrice === 'number' ? rawPrice : Number(rawPrice);
+            const hasPrice = Number.isFinite(normalizedPrice) && normalizedPrice > 0;
+            return Boolean(hasImage && hasName && hasPrice && !isComingSoon);
           });
           if (isMounted) {
             const shuffled = shuffleArray(cleaned);
@@ -131,16 +124,36 @@ const SalesPopup = () => {
     if (currentIndexRef.current >= products.length) {
       currentIndexRef.current = 0;
     }
-    const nextProduct = products[currentIndexRef.current];
-    currentIndexRef.current = (currentIndexRef.current + 1) % products.length;
-    if (!nextProduct) return;
+    let attempts = 0;
+    let nextProduct = null;
 
-    const location = LOCATIONS[Math.floor(Math.random() * LOCATIONS.length)];
+    while (attempts < products.length) {
+      const candidate = products[currentIndexRef.current];
+      currentIndexRef.current = (currentIndexRef.current + 1) % products.length;
+      attempts += 1;
+
+      const rawPrice = candidate?.price ?? candidate?.salePrice ?? candidate?.currentPrice;
+      const normalizedPrice = typeof rawPrice === 'number' ? rawPrice : Number(rawPrice);
+      const hasPrice = Number.isFinite(normalizedPrice) && normalizedPrice > 0;
+      const isComingSoon = Boolean(candidate?.comingSoon);
+
+      if (candidate && hasPrice && !isComingSoon) {
+        nextProduct = candidate;
+        break;
+      }
+    }
+
+    if (!nextProduct) {
+      setVisible(false);
+      return;
+    }
+
+    const displayName = BUYER_NAMES[Math.floor(Math.random() * BUYER_NAMES.length)];
     const timeAgo = TIME_AGO[Math.floor(Math.random() * TIME_AGO.length)];
 
     setCurrentProduct({
       ...nextProduct,
-      displayLocation: location,
+      displayName,
       displayTime: timeAgo,
     });
   };
@@ -181,8 +194,8 @@ const SalesPopup = () => {
         <div className="flex-1 p-4 space-y-2">
           <div className="flex justify-between items-start">
             <p className="text-sm text-gray-700 font-sans leading-snug">
-              Someone from <span className="font-semibold text-logo-green">{currentProduct.displayLocation}</span>{' '}
-              added this product to their cart.
+              <span className="font-semibold text-logo-green">{currentProduct.displayName}</span> from Quetta purchased
+              this product.
             </p>
             <button
               type="button"

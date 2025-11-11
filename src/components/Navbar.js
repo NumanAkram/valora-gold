@@ -535,21 +535,21 @@ const Navbar = () => {
               onClick={toggleMenu}
               className="block text-text-gray font-normal text-sm py-2 border-b border-gray-200"
             >
-              Perfume
+              Fragrance Collection
             </Link>
             <Link
               to="/beauty-products"
               onClick={toggleMenu}
               className="block text-text-gray font-normal text-sm py-2 border-b border-gray-200"
             >
-              Beauty Products
+              Beauty & Skin Care
             </Link>
             <Link
               to="/other"
               onClick={toggleMenu}
               className="block text-text-gray font-normal text-sm py-2 border-b border-gray-200"
             >
-              other
+              Others
             </Link>
             <Link
               to="/signin"

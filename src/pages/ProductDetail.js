@@ -5,6 +5,7 @@ import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import { useWishlist } from '../context/WishlistContext';
 import { useRecentlyViewed } from '../context/RecentlyViewedContext';
+import { useAdminAuth } from '../context/AdminAuthContext';
 import Breadcrumbs from '../components/Breadcrumbs';
 import RelatedProducts from '../components/RelatedProducts';
 import { productsAPI, reviewsAPI } from '../utils/api';
@@ -38,6 +39,7 @@ const ProductDetail = () => {
   const [loading, setLoading] = useState(true);
   const [showAskModal, setShowAskModal] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewBeingEdited, setReviewBeingEdited] = useState(null);
   const [featuredProducts, setFeaturedProducts] = useState([]);
   const [questionForm, setQuestionForm] = useState({ name: '', email: '', message: '' });
   const [reviewForm, setReviewForm] = useState({ name: '', rating: 5, reviewText: '' });
@@ -45,6 +47,21 @@ const ProductDetail = () => {
   const fetchingRef = useRef(false); // Track if currently fetching
 
   const location = useLocation();
+  const { isAuthenticated: isAdmin } = useAdminAuth();
+  const [hasAdminAccess, setHasAdminAccess] = useState(false);
+  useEffect(() => {
+    const storedAdmin = localStorage.getItem('valora_admin');
+    const storedAdminToken = localStorage.getItem('admin_token');
+    setHasAdminAccess(Boolean(storedAdmin || storedAdminToken) || isAdmin);
+  }, [isAdmin]);
+
+  const defaultSeedReviews = [
+    { id: 'r1', customerName: 'Mrs Hassan', rating: 5, reviewText: 'Simple the best facewash, I am using it from a year.' },
+    { id: 'r2', customerName: 'Ayesha Sana', rating: 5, reviewText: 'Great quality, refreshing and gentle on skin.' },
+    { id: 'r3', customerName: 'Anas Khan', rating: 4, reviewText: 'Nice cleansing, smells good and controls oil.' },
+    { id: 'r4', customerName: 'Malaika Baig', rating: 5, reviewText: 'Helps with pimples and leaves skin fresh.' },
+    { id: 'r5', customerName: 'Muhammad Ilyas', rating: 5, reviewText: 'Good product at this price.' }
+  ];
 
   // Scroll to top when component mounts or product ID changes
   useEffect(() => {
@@ -227,6 +244,8 @@ const ProductDetail = () => {
   const productReviewsCount = product.numReviews || reviews.length;
   const productInStock = product.inStock !== false;
   const productStockCount = product.stockCount || 0;
+  const displayReviews = reviews.length > 0 ? reviews : defaultSeedReviews;
+  const isEditingReview = Boolean(reviewBeingEdited && (reviewBeingEdited._id || reviewBeingEdited.id));
 
   const handleWishlist = () => {
     if (isInWishlist(productId)) {
@@ -299,25 +318,16 @@ const ProductDetail = () => {
     navigate('/checkout', {
       state: {
         buyNowProduct: {
-          ...product,
-          id: productId,
-          price: productPrice,
-          images: productImages,
+      ...product,
+      id: productId,
+      price: productPrice,
+      images: productImages,
           image: productImages[0],
           quantity,
         },
       },
     });
   };
-
-  const defaultSeedReviews = [
-    { id: 'r1', customerName: 'Mrs Hassan', rating: 5, reviewText: 'Simple the best facewash, I am using it from a year.' },
-    { id: 'r2', customerName: 'Ayesha Sana', rating: 5, reviewText: 'Great quality, refreshing and gentle on skin.' },
-    { id: 'r3', customerName: 'Anas Khan', rating: 4, reviewText: 'Nice cleansing, smells good and controls oil.' },
-    { id: 'r4', customerName: 'Malaika Baig', rating: 5, reviewText: 'Helps with pimples and leaves skin fresh.' },
-    { id: 'r5', customerName: 'Muhammad Ilyas', rating: 5, reviewText: 'Good product at this price.' }
-  ];
-
 
   const submitQuestion = async () => {
     if (!questionForm.name || !questionForm.email || !questionForm.message) {
@@ -352,31 +362,134 @@ const ProductDetail = () => {
     }
   };
 
-  const submitReview = async () => {
+  const openCreateReviewModal = () => {
+    setReviewBeingEdited(null);
+    setReviewForm({ name: '', rating: 5, reviewText: '' });
+    setShowReviewModal(true);
+  };
+
+  const startEditingReview = (review) => {
+    setReviewBeingEdited(review);
+    setReviewForm({
+      name: review.customerName || '',
+      rating: Number(review.rating) || 5,
+      reviewText: review.reviewText || '',
+    });
+    setShowReviewModal(true);
+  };
+
+  const refreshProductStats = async () => {
     try {
+      const updatedProductRes = await productsAPI.getById(productId);
+      if (updatedProductRes?.success && updatedProductRes?.data) {
+        setProduct(updatedProductRes.data);
+        return true;
+      }
+    } catch (refreshError) {
+      // fall through to optimistic update
+    }
+    return false;
+  };
+
+  const submitReview = async () => {
+    if (!reviewForm.name || !reviewForm.name.trim()) {
+      showToast('Please enter your name.', 'error');
+      return;
+    }
+
+    if (!reviewForm.reviewText || !reviewForm.reviewText.trim()) {
+      showToast('Please enter your review text.', 'error');
+      return;
+    }
+
+    const payload = {
+      customerName: reviewForm.name.trim(),
+      rating: Number(reviewForm.rating),
+      reviewText: reviewForm.reviewText.trim(),
+    };
+
+    try {
+      if (reviewBeingEdited && (reviewBeingEdited._id || reviewBeingEdited.id)) {
+        const reviewId = reviewBeingEdited._id || reviewBeingEdited.id;
+        await reviewsAPI.update(reviewId, payload);
+        showToast('Review updated!', 'success');
+      } else {
       await reviewsAPI.create({
-        productId,
-        customerName: reviewForm.name,
-        rating: Number(reviewForm.rating),
-        reviewText: reviewForm.reviewText,
+          product: productId,
+          ...payload,
       });
       showToast('Review submitted!', 'success');
+      }
+
+      await refreshReviewsAndProduct();
+    } catch (error) {
+      const errorMessage = error?.message || '';
+      if (errorMessage.toLowerCase().includes('already reviewed')) {
+        showToast('You have already reviewed this product.', 'error');
+      } else if (errorMessage.toLowerCase().includes('product not found')) {
+        showToast('Product not found. Please refresh and try again.', 'error');
+      } else {
+        showToast(
+          reviewBeingEdited
+            ? 'Failed to update review. Please try again later.'
+            : 'Failed to submit review. Please try again later.',
+          'error'
+        );
+      }
+    } finally {
       setShowReviewModal(false);
       setReviewForm({ name: '', rating: 5, reviewText: '' });
-      // Optimistically add to local list
-      setReviews((prev) => [
-        ...prev,
-        { id: `local-${Date.now()}`, customerName: reviewForm.name, rating: Number(reviewForm.rating), reviewText: reviewForm.reviewText }
+      setReviewBeingEdited(null);
+    }
+  };
+
+  const refreshReviewsAndProduct = async () => {
+    try {
+      const [productRes, reviewsRes] = await Promise.all([
+        productsAPI.getById(productId),
+        reviewsAPI.getByProduct(productId),
       ]);
-    } catch (e) {
-      // Fallback: store review locally so the user sees immediate result
-      setReviews((prev) => [
+
+      if (productRes?.success && productRes?.data) {
+        setProduct(productRes.data);
+      }
+      if (reviewsRes?.success && Array.isArray(reviewsRes.data)) {
+        setReviews(reviewsRes.data);
+      }
+    } catch (error) {
+      // Ignore refresh failures; UI already informed via toast.
+    }
+  };
+
+  const handleDeleteReview = async (review) => {
+    if (!review || !(review._id || review.id)) return;
+    const reviewId = review._id || review.id;
+
+    const confirmed =
+      typeof window !== 'undefined'
+        ? window.confirm('Are you sure you want to delete this review?')
+        : true;
+    if (!confirmed) return;
+
+    try {
+      await reviewsAPI.remove(reviewId);
+      setReviews((prev) => prev.filter((item) => (item._id || item.id) !== reviewId));
+
+      const refreshed = await refreshProductStats();
+      if (!refreshed) {
+        setProduct((prev) =>
+          prev
+            ? {
         ...prev,
-        { id: `local-${Date.now()}`, customerName: reviewForm.name || 'Anonymous', rating: Number(reviewForm.rating) || 5, reviewText: reviewForm.reviewText }
-      ]);
-      setShowReviewModal(false);
-      setReviewForm({ name: '', rating: 5, reviewText: '' });
-      showToast('Review saved locally (backend not reachable).', 'success');
+                numReviews: Math.max((prev.numReviews || 1) - 1, 0),
+              }
+            : prev
+        );
+      }
+
+      showToast('Review deleted successfully.', 'success');
+    } catch (error) {
+      showToast('Failed to delete review. Please try again later.', 'error');
     }
   };
 
@@ -664,25 +777,51 @@ const ProductDetail = () => {
                     <div className="text-sm text-gray-600 mt-2 font-sans">{productReviewsCount} reviews</div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <button onClick={() => setShowReviewModal(true)} className="bg-logo-green text-white px-4 py-2 rounded-lg hover:bg-banner-green transition-colors font-sans">Write a Review</button>
+                    <button onClick={openCreateReviewModal} className="bg-logo-green text-white px-4 py-2 rounded-lg hover:bg-banner-green transition-colors font-sans">Write a Review</button>
                     <button onClick={() => setShowAskModal(true)} className="border-2 border-logo-green text-logo-green px-4 py-2 rounded-lg hover:bg-green-50 transition-colors font-sans">Ask a Question</button>
                   </div>
                 </div>
-                {(reviews.length > 0 ? reviews : defaultSeedReviews).length > 0 ? (
+                {displayReviews.length > 0 ? (
                   <div className="space-y-4">
-                    {(reviews.length > 0 ? reviews : defaultSeedReviews).map((review) => (
-                      <div key={review._id || review.id} className="border-b border-gray-200 pb-4">
-                        <div className="flex items-center space-x-2 mb-2">
+                        {displayReviews.map((review) => {
+                      const reviewId = review._id || review.id;
+                      return (
+                        <div key={reviewId} className="border-b border-gray-200 pb-4">
+                          <div className="flex items-center justify-between gap-3 mb-2">
+                            <div className="flex items-center space-x-2">
                           <span className="font-semibold text-gray-900 font-sans">{review.customerName}</span>
                           <div className="flex">
                             {[...Array(5)].map((_, i) => (
-                              <Star key={i} className={`h-4 w-4 ${i + 1 <= (Number(review.rating) || 0) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} />
+                                  <Star
+                                    key={i}
+                                    className={`h-4 w-4 ${i + 1 <= (Number(review.rating) || 0) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
+                                  />
                             ))}
                           </div>
                         </div>
-                        <p className="text-gray-700 font-sans">{review.reviewText}</p>
+                            {(hasAdminAccess || isAdmin) && review._id && (
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => startEditingReview(review)}
+                                  className="text-xs font-semibold text-logo-green hover:text-banner-green transition-colors"
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteReview(review)}
+                                  className="text-xs font-semibold text-red-600 hover:text-red-700 transition-colors"
+                                >
+                                  Delete
+                                </button>
                       </div>
-                    ))}
+                            )}
+                          </div>
+                          <p className="text-gray-700 font-sans whitespace-pre-line">{review.reviewText}</p>
+                        </div>
+                      );
+                    })}
                   </div>
                 ) : (
                   <p className="text-gray-600 font-sans">No reviews yet. Be the first to review this product!</p>
@@ -748,15 +887,26 @@ const ProductDetail = () => {
       {showReviewModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg w-full max-w-lg p-6 space-y-4">
-            <h3 className="text-lg font-bold font-sans">Write a Review</h3>
+            <h3 className="text-lg font-bold font-sans">{isEditingReview ? 'Edit Review' : 'Write a Review'}</h3>
             <input value={reviewForm.name} onChange={(e)=>setReviewForm({...reviewForm,name:e.target.value})} placeholder="Your Name" className="w-full border rounded p-2 font-sans" />
             <select value={reviewForm.rating} onChange={(e)=>setReviewForm({...reviewForm,rating:e.target.value})} className="w-full border rounded p-2 font-sans">
               {[5,4,3,2,1].map(r=> (<option key={r} value={r}>{r} Stars</option>))}
             </select>
             <textarea value={reviewForm.reviewText} onChange={(e)=>setReviewForm({...reviewForm,reviewText:e.target.value})} placeholder="Your review" className="w-full border rounded p-2 h-28 font-sans" />
             <div className="flex gap-2 justify-end">
-              <button onClick={()=>setShowReviewModal(false)} className="px-4 py-2 border rounded-lg font-sans">Cancel</button>
-              <button onClick={submitReview} className="px-4 py-2 bg-logo-green text-white rounded-lg font-sans">Submit</button>
+              <button
+                onClick={() => {
+                  setShowReviewModal(false);
+                  setReviewBeingEdited(null);
+                  setReviewForm({ name: '', rating: 5, reviewText: '' });
+                }}
+                className="px-4 py-2 border rounded-lg font-sans"
+              >
+                Cancel
+              </button>
+              <button onClick={submitReview} className="px-4 py-2 bg-logo-green text-white rounded-lg font-sans">
+                {isEditingReview ? 'Update' : 'Submit'}
+              </button>
             </div>
           </div>
         </div>

@@ -197,8 +197,8 @@ const AdminOrders = () => {
               />
             </div>
 
-            <div className="flex items-end gap-2">
-              <div className="flex-1 flex flex-col gap-1.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-semibold text-gray-500 uppercase font-sans">
                   Start Date
                 </label>
@@ -209,7 +209,7 @@ const AdminOrders = () => {
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-logo-green focus:border-transparent text-sm font-sans"
                 />
               </div>
-              <div className="flex-1 flex flex-col gap-1.5">
+              <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-semibold text-gray-500 uppercase font-sans">
                   End Date
                 </label>

@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 const Hero = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   // Using the banner images - adjust paths if your images have different names
-  const images = ['/Benner Valora Gold.png', '/VG Cover Photo-1.png'];
+  const images = ['/1.png', '/2.png', '/3.png', '/4.png', '/5.png'];
   const intervalRef = useRef(null);
 
   // Auto-slide every 5 seconds with smooth transition

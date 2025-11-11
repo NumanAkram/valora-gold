@@ -122,17 +122,17 @@ const Footer = () => {
               </li>
               <li>
                 <Link to="/perfume" className="text-white text-sm hover:text-gray-200 transition-colors font-sans">
-                  Perfume
+                  Fragrance Collection
                 </Link>
               </li>
               <li>
                 <Link to="/beauty-products" className="text-white text-sm hover:text-gray-200 transition-colors font-sans">
-                  Beauty Products
+                  Beauty & Skin Care
                 </Link>
               </li>
               <li>
                 <Link to="/other" className="text-white text-sm hover:text-gray-200 transition-colors font-sans">
-                  other
+                  Others
                 </Link>
               </li>
             </ul>

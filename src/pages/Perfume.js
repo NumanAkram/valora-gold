@@ -38,7 +38,7 @@ const Perfume = () => {
           setProducts([]);
         }
       } catch (error) {
-        console.error('Error fetching perfume products:', error);
+        console.error('Error fetching fragrance products:', error);
         setProducts([]);
       } finally {
         setLoading(false);
@@ -91,13 +91,13 @@ const Perfume = () => {
         <Breadcrumbs
           items={[
             { label: 'Home', path: '/' },
-            { label: 'Perfume', path: '/perfume' }
+            { label: 'Fragrance Collection', path: '/perfume' }
           ]}
         />
 
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-logo-green mb-2 font-sans uppercase tracking-wide">
-            Perfume Collection
+            Fragrance Collection
           </h1>
           <p className="text-gray-600 font-sans">
             Discover timeless fragrances crafted to elevate your presence and style
@@ -283,7 +283,7 @@ const Perfume = () => {
         ) : (
           <div className="bg-white rounded-lg shadow-md p-12 text-center">
             <h3 className="text-xl font-bold text-gray-900 mb-2 font-sans">No products found</h3>
-            <p className="text-gray-600 font-sans">There are currently no perfume products available.</p>
+            <p className="text-gray-600 font-sans">There are currently no fragrance products available.</p>
           </div>
         )}
       </div>

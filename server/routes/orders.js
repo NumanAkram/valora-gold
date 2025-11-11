@@ -182,36 +182,52 @@ router.post('/', [
       console.error('Notification creation failed:', notifyError);
     }
 
-    const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL || 'info@valoragold.store';
+    const adminEmailsRaw =
+      process.env.ADMIN_NOTIFICATION_EMAILS ||
+      process.env.ADMIN_NOTIFICATION_EMAIL ||
+      'info@valoragold.store,valoragold.pk@gmail.com';
+    const adminEmails = adminEmailsRaw
+      .split(',')
+      .map((email) => email.trim())
+      .filter(Boolean);
+
     const productSummary = order.items
       .map(
         (item) => `• ${item.name} × ${item.quantity} @ Rs.${Number(item.price || 0).toLocaleString()}`
       )
       .join('\n');
 
-    sendMail({
-      to: adminEmail,
-      subject: `New Order: ${order.orderNumber || order._id}`,
-      text: `A new order has been placed.\n\nOrder Number: ${order.orderNumber || order._id}\nCustomer: ${
-        req.user?.name || 'Unknown'
-      }\nTotal: Rs.${total.toLocaleString()}\n\nItems:\n${productSummary}\n\nView details in the admin dashboard.`,
-      html: `
-        <h2 style="margin-bottom:16px;">A new order has been placed</h2>
-        <p><strong>Order Number:</strong> ${order.orderNumber || order._id}</p>
-        <p><strong>Customer:</strong> ${req.user?.name || 'Unknown'}</p>
-        <p><strong>Total:</strong> Rs.${total.toLocaleString()}</p>
-        <p style="margin-top:16px;"><strong>Items:</strong></p>
-        <ul>
-          ${order.items
-            .map(
-              (item) =>
-                `<li>${item.name} × ${item.quantity} @ Rs.${Number(item.price || 0).toLocaleString()}</li>`
-            )
-            .join('')}
-        </ul>
-        <p style="margin-top:16px;">Sign in to the admin panel to view full order details.</p>
-      `,
-    });
+    const emailResults = await Promise.all(
+      adminEmails.map((recipient) =>
+        sendMail({
+          to: recipient,
+          subject: `New Order: ${order.orderNumber || order._id}`,
+          text: `A new order has been placed.\n\nOrder Number: ${order.orderNumber || order._id}\nCustomer: ${
+            req.user?.name || 'Unknown'
+          }\nTotal: Rs.${total.toLocaleString()}\n\nItems:\n${productSummary}\n\nView details in the admin dashboard.`,
+          html: `
+            <h2 style="margin-bottom:16px;">A new order has been placed</h2>
+            <p><strong>Order Number:</strong> ${order.orderNumber || order._id}</p>
+            <p><strong>Customer:</strong> ${req.user?.name || 'Unknown'}</p>
+            <p><strong>Total:</strong> Rs.${total.toLocaleString()}</p>
+            <p style="margin-top:16px;"><strong>Items:</strong></p>
+            <ul>
+              ${order.items
+                .map(
+                  (item) =>
+                    `<li>${item.name} × ${item.quantity} @ Rs.${Number(item.price || 0).toLocaleString()}</li>`
+                )
+                .join('')}
+            </ul>
+            <p style="margin-top:16px;">Sign in to the admin panel to view full order details.</p>
+          `,
+        })
+      )
+    );
+
+    if (emailResults.every((result) => !result)) {
+      console.warn('All admin order emails failed to send for order', order._id);
+    }
 
     // Clear user cart
     const user = await User.findById(req.user._id);

@@ -35,7 +35,7 @@ const BeautyProducts = () => {
           setProducts([]);
         }
       } catch (error) {
-        console.error('Error fetching beauty products:', error);
+        console.error('Error fetching beauty & skin care products:', error);
         setProducts([]);
       } finally {
         setLoading(false);
@@ -88,13 +88,13 @@ const BeautyProducts = () => {
         <Breadcrumbs
           items={[
             { label: 'Home', path: '/' },
-            { label: 'Beauty Products', path: '/beauty-products' }
+            { label: 'Beauty & Skin Care', path: '/beauty-products' }
           ]}
         />
 
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-logo-green mb-2 font-sans uppercase tracking-wide">
-            Beauty Products
+            Beauty & Skin Care
           </h1>
           <p className="text-gray-600 font-sans">
             Reveal your natural glow with luxurious skincare crafted by Valora Gold
@@ -280,7 +280,7 @@ const BeautyProducts = () => {
         ) : (
           <div className="bg-white rounded-lg shadow-md p-12 text-center">
             <h3 className="text-xl font-bold text-gray-900 mb-2 font-sans">No products found</h3>
-            <p className="text-gray-600 font-sans">There are currently no beauty products available.</p>
+            <p className="text-gray-600 font-sans">There are currently no beauty & skin care products available.</p>
           </div>
         )}
       </div>

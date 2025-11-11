@@ -66,7 +66,7 @@ const Bundles = () => {
       <section className="bg-white py-12 w-full">
         <div className="w-full px-6 lg:px-8">
           <h2 className="text-3xl font-bold text-logo-green text-center mb-12 uppercase tracking-wide font-sans">
-            Other Products
+            Others
           </h2>
           <div className="text-center py-12">
             <p className="text-gray-600 font-sans">Loading products...</p>
@@ -81,7 +81,7 @@ const Bundles = () => {
       <div className="w-full px-4 sm:px-6 lg:px-8">
         {/* Section Title - Centered */}
         <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-logo-green text-center mb-6 sm:mb-8 md:mb-12 uppercase tracking-wide font-sans">
-          Other Products
+          Others
         </h2>
 
         {/* Products Container */}

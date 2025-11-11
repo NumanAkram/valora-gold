@@ -3,7 +3,7 @@ const router = express.Router();
 const { body, validationResult } = require('express-validator');
 const Review = require('../models/Review');
 const Product = require('../models/Product');
-const { protect, optionalAuth } = require('../middleware/auth');
+const { protect, optionalAuth, authorize } = require('../middleware/auth');
 
 // @route   GET /api/reviews/product/:productId
 // @desc    Get reviews for a product
@@ -87,9 +87,20 @@ router.post('/', [
     });
 
     if (existingReview) {
-      return res.status(400).json({
-        success: false,
-        message: 'You have already reviewed this product'
+      existingReview.customerName = customerName;
+      existingReview.rating = rating;
+      existingReview.reviewText = reviewText;
+      existingReview.productTitle = productTitle || productExists.name;
+      existingReview.productImage = productImage || productExists.images[0];
+      existingReview.isVerified = true;
+      await existingReview.save();
+
+      await productExists.updateRating();
+
+      return res.json({
+        success: true,
+        data: existingReview,
+        message: 'Review updated successfully'
       });
     }
 
@@ -118,6 +129,86 @@ router.post('/', [
     res.status(500).json({
       success: false,
       message: 'Server error'
+    });
+  }
+});
+
+// @route   PUT /api/reviews/:id
+// @desc    Update a review (admin only)
+// @access  Private/Admin
+router.put('/:id', protect, authorize('admin'), async (req, res) => {
+  try {
+    const { customerName, rating, reviewText, isVerified } = req.body;
+
+    const review = await Review.findById(req.params.id);
+    if (!review) {
+      return res.status(404).json({
+        success: false,
+        message: 'Review not found',
+      });
+    }
+
+    if (typeof customerName !== 'undefined') {
+      review.customerName = customerName;
+    }
+    if (typeof rating !== 'undefined') {
+      review.rating = Number(rating);
+    }
+    if (typeof reviewText !== 'undefined') {
+      review.reviewText = reviewText;
+    }
+    if (typeof isVerified !== 'undefined') {
+      review.isVerified = Boolean(isVerified);
+    }
+
+    await review.save();
+
+    const product = await Product.findById(review.product);
+    if (product) {
+      await product.updateRating();
+    }
+
+    res.json({
+      success: true,
+      data: review,
+      message: 'Review updated successfully',
+    });
+  } catch (error) {
+    console.error('Update Review Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+    });
+  }
+});
+
+// @route   DELETE /api/reviews/:id
+// @desc    Delete a review (admin only)
+// @access  Private/Admin
+router.delete('/:id', protect, authorize('admin'), async (req, res) => {
+  try {
+    const review = await Review.findByIdAndDelete(req.params.id);
+    if (!review) {
+      return res.status(404).json({
+        success: false,
+        message: 'Review not found',
+      });
+    }
+
+    const product = await Product.findById(review.product);
+    if (product) {
+      await product.updateRating();
+    }
+
+    res.json({
+      success: true,
+      message: 'Review deleted successfully',
+    });
+  } catch (error) {
+    console.error('Delete Review Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
     });
   }
 });
