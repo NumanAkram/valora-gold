@@ -11,7 +11,7 @@ const CustomerReviews = () => {
       productTitle: "Classic Gold Necklace Set",
       reviewText: "Absolutely stunning piece! The quality is exceptional and the design is timeless. Perfect for special occasions. Highly recommended from Valora Gold!",
       rating: 5,
-      productImage: "/4.png",
+      productImage: "/4.webp",
       productLink: "Classic Gold Necklace Set",
       date: "2 days ago"
     },
@@ -21,7 +21,7 @@ const CustomerReviews = () => {
       productTitle: "Gold Bracelet Collection",
       reviewText: "I'm buying from Valora Gold for the second time. The authenticity and craftsmanship are outstanding. My wife loves it!",
       rating: 5,
-      productImage: "/4.png",
+      productImage: "/4.webp",
       productLink: "Gold Bracelet Collection",
       date: "5 days ago"
     },
@@ -31,7 +31,7 @@ const CustomerReviews = () => {
       productTitle: "Gold Earrings Set",
       reviewText: "The quality is excellent and the design is elegant. Valora Gold never disappoints. Will definitely shop again!",
       rating: 5,
-      productImage: "/4.png",
+      productImage: "/4.webp",
       productLink: "Gold Earrings Set",
       date: "1 week ago"
     },
@@ -41,7 +41,7 @@ const CustomerReviews = () => {
       productTitle: "Premium Gold Ring",
       reviewText: "Excellent quality gold ring! The finish is perfect and the design is exactly as shown. Valora Gold's authenticity is unmatched. Very happy with my purchase! 😍❤️",
       rating: 5,
-      productImage: "/4.png",
+      productImage: "/4.webp",
       productLink: "Premium Gold Ring",
       date: "2 weeks ago"
     },
@@ -51,7 +51,7 @@ const CustomerReviews = () => {
       productTitle: "Diamond Gold Collection",
       reviewText: "I was looking for authentic gold jewelry, tried Valora Gold and found it amazing. The certification and quality are top-notch. Highly recommended.",
       rating: 5,
-      productImage: "/4.png",
+      productImage: "/4.webp",
       productLink: "Diamond Gold Collection",
       date: "3 weeks ago"
     },
@@ -61,7 +61,7 @@ const CustomerReviews = () => {
       productTitle: "Gold Chain Collection",
       reviewText: "Great quality and excellent service. The gold is 100% authentic as promised. Very satisfied with my purchase!",
       rating: 4.5,
-      productImage: "/4.png",
+      productImage: "/4.webp",
       productLink: "Gold Chain Collection",
       date: "1 month ago"
     }

@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { MapPin, CreditCard, Truck, Lock, ChevronDown, ClipboardList } from 'lucide-react';
 import { useCart, parsePrice } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
-import { ordersAPI, authAPI } from '../utils/api';
+import { ordersAPI, authAPI, shippingAPI } from '../utils/api';
 import Breadcrumbs from '../components/Breadcrumbs';
 
 const Checkout = () => {
@@ -40,6 +40,38 @@ const Checkout = () => {
     // Notes
     notes: ''
   });
+  const [shippingCharge, setShippingCharge] = useState(200);
+  const [loadingShipping, setLoadingShipping] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchShipping = async () => {
+      setLoadingShipping(true);
+      try {
+        const response = await shippingAPI.get();
+        const amount = Number(response?.data?.amount);
+        if (isMounted && Number.isFinite(amount) && amount >= 0) {
+          setShippingCharge(amount);
+        }
+      } catch (error) {
+        if (isMounted) {
+          console.error('Failed to load shipping charge:', error);
+          showToast('Using default delivery charge. Please refresh if issue persists.', 'warning');
+        }
+      } finally {
+        if (isMounted) {
+          setLoadingShipping(false);
+        }
+      }
+    };
+
+    fetchShipping();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [showToast]);
 
   useEffect(() => {
     // Try to get user info if logged in
@@ -167,7 +199,7 @@ const Checkout = () => {
   };
 
   const subtotal = computeSubtotal();
-  const shipping = 0; // Free shipping
+  const shipping = displayItems.length > 0 ? shippingCharge : 0; // Flat delivery charge
   const discount = 0;
   const total = subtotal + shipping - discount;
 
@@ -357,6 +389,9 @@ const Checkout = () => {
                     </div>
                   )}
                 </div>
+                <p className="mt-4 text-sm text-gray-600 font-sans">
+                  Note: A flat delivery charge of Rs.{shippingCharge.toLocaleString()} will be added to every order regardless of the payment method selected.
+                </p>
               </div>
 
               {/* Order Notes */}
@@ -391,7 +426,7 @@ const Checkout = () => {
                     return (
                       <div key={item._id || item.id} className="flex items-center space-x-3 pb-3 border-b">
                         <img
-                          src={item.images?.[0] || item.image || '/4.png'}
+                          src={item.images?.[0] || item.image || '/4.webp'}
                           alt={item.name}
                           className="w-16 h-16 object-contain rounded"
                         />
@@ -416,8 +451,8 @@ const Checkout = () => {
                     <span>Rs.{subtotal.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between text-gray-700 font-sans">
-                    <span>Shipping:</span>
-                    <span className="text-green-600">Free</span>
+                    <span>Shipping (Delivery){loadingShipping ? ' (updating...)' : ''}:</span>
+                    <span>Rs.{shipping.toLocaleString()}</span>
                   </div>
                   {discount > 0 && (
                     <div className="flex justify-between text-green-600 font-sans">

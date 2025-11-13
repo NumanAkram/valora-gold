@@ -4,12 +4,10 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 const connectDB = require('./config/database');
+const ensureDefaultAdmin = require('./utils/ensureDefaultAdmin');
 
 // Load env vars
 dotenv.config();
-
-// Connect to database
-connectDB();
 
 const app = express();
 
@@ -36,6 +34,7 @@ app.use('/api/orders', require('./routes/orders'));
 app.use('/api/reviews', require('./routes/reviews'));
 app.use('/api/newsletter', require('./routes/newsletter'));
 app.use('/api/contact', require('./routes/contact'));
+app.use('/api/shipping', require('./routes/shipping'));
 app.use('/api/admin/notifications', require('./routes/adminNotifications'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/uploads', require('./routes/uploads'));
@@ -68,7 +67,19 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
-  console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
-});
+const startServer = async () => {
+  try {
+    await connectDB();
+    await ensureDefaultAdmin();
+
+    app.listen(PORT, () => {
+      console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
+};
+
+startServer();
 

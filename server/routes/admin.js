@@ -428,7 +428,7 @@ router.put('/users/:id', async (req, res) => {
       });
     }
 
-    const { name, email, role, phone } = req.body;
+    const { name, email, role, phone, country, countryCode, phoneDialCode } = req.body;
 
     const user = await User.findById(req.params.id).select('-password');
 
@@ -464,6 +464,15 @@ router.put('/users/:id', async (req, res) => {
     }
     if (phone !== undefined) {
       user.phone = phone.trim();
+    }
+    if (country !== undefined) {
+      user.country = country.trim();
+    }
+    if (countryCode !== undefined) {
+      user.countryCode = countryCode.trim();
+    }
+    if (phoneDialCode !== undefined) {
+      user.phoneDialCode = phoneDialCode.trim();
     }
     if (role !== undefined) {
       user.role = role;

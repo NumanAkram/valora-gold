@@ -7,7 +7,6 @@ import { RecentlyViewedProvider } from './context/RecentlyViewedContext';
 import { AdminAuthProvider } from './context/AdminAuthContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
-import BackToTop from './components/BackToTop';
 import ScrollToTop from './components/ScrollToTop';
 import CartSidebar from './components/CartSidebar';
 import WhatsAppButton from './components/WhatsAppButton';
@@ -36,11 +35,17 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import RefundCancellation from './pages/RefundCancellation';
 import TermsConditions from './pages/TermsConditions';
 import FAQs from './pages/FAQs';
+import ForgotPassword from './pages/ForgotPassword';
+import VerifyResetCode from './pages/VerifyResetCode';
+import ResetPassword from './pages/ResetPassword';
 import AdminDashboard from './admin/pages/AdminDashboard';
 import AdminProducts from './admin/pages/AdminProducts';
 import AdminOrders from './admin/pages/AdminOrders';
 import AdminUsers from './admin/pages/AdminUsers';
 import AdminLogin from './admin/pages/AdminLogin';
+import AdminShipping from './admin/pages/AdminShipping';
+import AdminRegister from './admin/pages/AdminRegister';
+import AdminResetPassword from './admin/pages/AdminResetPassword';
 
 const AppShell = () => {
   const location = useLocation();
@@ -53,11 +58,14 @@ const AppShell = () => {
       <main className="flex-grow">
         <Routes>
           <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin/register" element={<AdminRegister />} />
+          <Route path="/admin/reset-password" element={<AdminResetPassword />} />
           <Route path="/admin" element={<AdminRoute />}>
             <Route index element={<AdminDashboard />} />
             <Route path="products" element={<AdminProducts />} />
             <Route path="orders" element={<AdminOrders />} />
             <Route path="users" element={<AdminUsers />} />
+            <Route path="shipping" element={<AdminShipping />} />
           </Route>
 
           <Route path="/" element={<Home />} />
@@ -73,6 +81,9 @@ const AppShell = () => {
           <Route path="/beauty-products" element={<BeautyProducts />} />
           <Route path="/signin" element={<SignIn />} />
           <Route path="/signup" element={<SignUp />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/verify-reset-code" element={<VerifyResetCode />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/order-confirmation/:id" element={<OrderConfirmation />} />
           <Route path="/my-account" element={<MyAccount />} />
@@ -97,7 +108,6 @@ const AppShell = () => {
       {!isAdminRoute && (
         <>
           <Footer />
-          <BackToTop />
           <WhatsAppButton />
           <SocialMediaSidebar />
           <SalesPopup />

@@ -236,7 +236,7 @@ const ProductDetail = () => {
   const productName = product.name;
   const productPrice = product.price || 0;
   const productOriginalPrice = product.originalPrice || null;
-  const productImages = product.images && product.images.length > 0 ? product.images : ['/4.png'];
+  const productImages = product.images && product.images.length > 0 ? product.images : ['/4.webp'];
   const productDescription = product.description || '';
   const productIngredients = product.ingredients || '';
   const productBenefits = product.benefits || [];
@@ -844,7 +844,7 @@ const ProductDetail = () => {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {featuredProducts.map((p) => {
                 const prodId = p._id || p.id;
-                const prodImage = (p.images && p.images[0]) || '/4.png';
+                const prodImage = (p.images && p.images[0]) || '/4.webp';
                 return (
                 <div key={prodId} className="border rounded-lg p-3 hover:shadow transition cursor-pointer" onClick={() => navigate(`/product/${prodId}`, { state: { product: { ...p, id: prodId, images: p.images || [prodImage], image: prodImage } } })}>
                   <div className="h-40 bg-gray-50 rounded flex items-center justify-center overflow-hidden">
@@ -929,7 +929,7 @@ const RecentlyViewedList = ({ currentId }) => {
       <div className="grid grid-cols-2 gap-4">
         {items.map((p) => {
           const prodId = p._id || p.id;
-          const prodImage = (p.images && p.images[0]) || '/4.png';
+          const prodImage = (p.images && p.images[0]) || '/4.webp';
           return (
             <div key={prodId} onClick={() => navigate(`/product/${prodId}`, { state: { product: { ...p, id: prodId, images: p.images || [prodImage], image: prodImage } } })} className="border rounded-lg p-3 hover:shadow transition cursor-pointer">
               <div className="h-36 bg-gray-50 rounded flex items-center justify-center overflow-hidden">

@@ -61,7 +61,7 @@ const FeaturedProducts = () => {
 
   return (
     <section className="py-20 bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-serif font-bold text-gray-900 mb-4">
@@ -74,7 +74,7 @@ const FeaturedProducts = () => {
         </div>
 
         {/* Products Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {displayProducts.length === 0 ? (
             <div className="col-span-full text-center text-gray-500 font-sans">
               No products available yet. Please check back soon.
@@ -83,7 +83,7 @@ const FeaturedProducts = () => {
             displayProducts.map((product, index) => {
               const productId = product._id || product.id;
               const productName = product.name || product.title;
-              const productImage = product.images?.[0] || product.image || '/4.png';
+              const productImage = product.images?.[0] || product.image || '/4.webp';
               const productRating = getDisplayRating(product);
               const productReviews = product.numReviews || 0;
               const priceValue = typeof product.price === 'number' ? product.price : null;

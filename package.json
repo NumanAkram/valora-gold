@@ -4,14 +4,17 @@
   "description": "Mama Organic - Natural Beauty Products Website",
   "private": true,
   "dependencies": {
-    "@stripe/stripe-js": "^8.3.0",
-    "chart.js": "^4.5.1",
-    "lucide-react": "^0.263.1",
+    "@emotion/react": "^11.11.1",
+    "@emotion/styled": "^11.11.0",
+    "@headlessui/react": "^1.7.14",
+    "@heroicons/react": "^2.0.18",
+    "axios": "^1.5.0",
+    "clsx": "^2.0.0",
+    "lucide-react": "^0.284.0",
     "react": "^18.2.0",
-    "react-chartjs-2": "^5.3.1",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.8.1",
-    "react-scripts": "^5.0.0"
+    "react-router-dom": "^6.17.0",
+    "react-transition-group": "^4.4.5"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.14",
@@ -29,6 +32,7 @@
     "server": "cd server && npm start",
     "server:dev": "cd server && npm run dev",
     "server:seed": "cd server && npm run seed",
+    "server:reset-users": "cd server && npm run reset-users",
     "dev:all": "concurrently \"npm run dev\" \"npm run server:dev\"",
     "install:all": "npm install && cd server && npm install"
   },

@@ -19,8 +19,8 @@ const WeKnowYourNeeds = () => {
           <div className="w-full lg:w-1/2 flex justify-center lg:justify-start">
             <div className="relative max-w-xs lg:max-w-sm">
               <img
-                src="/6.png"
-                alt="Natural & Healthy Environment"
+                src="/Our Mission WEBP.webp"
+                alt="Our Mission"
                 className="w-full h-auto object-contain"
               />
             </div>
@@ -30,30 +30,23 @@ const WeKnowYourNeeds = () => {
           <div className="w-full lg:w-1/2 space-y-3 md:space-y-4">
             {/* Mission Title */}
             <h3 className="text-sm sm:text-base md:text-lg lg:text-xl font-bold text-logo-green uppercase tracking-wide font-sans">
-              OUR MISSION – GOODNESS OF NATURE
+              Our Mission – Purity Rooted in Nature
             </h3>
 
             {/* Mission Description */}
             <p className="text-gray-700 text-xs sm:text-sm md:text-base leading-relaxed font-sans">
-              At Valora Gold, we believe in the power of nature. Our commitment is to make our community happier and healthier by sharing the goodness of natural beauty and self-care.
+              At Valora Gold, we are driven by a passion for purity and perfection. Our mission is to craft premium, 100% organic, chemical-free products inspired by nature’s finest ingredients. We believe true beauty begins with wellness; that’s why every Valora Gold creation reflects authenticity, purity, and care. Our goal is to help you embrace a healthier, more radiant lifestyle, naturally.
             </p>
 
             {/* Certification Logos - Close to text */}
             <div className="flex justify-center lg:justify-start py-1">
               <div className="flex items-center justify-center">
                 <img
-                  src="/7.png"
+                  src="/7.webp"
                   alt="Certification Logos"
                   className="w-48 md:w-64 lg:w-72 h-16 md:h-24 lg:h-28 object-contain"
                 />
               </div>
-            </div>
-
-            {/* Learn More Button - Close to image */}
-            <div className="flex justify-center lg:justify-start pt-1">
-              <button className="bg-gray-800 text-white font-bold py-2 md:py-3 px-4 md:px-6 rounded text-xs md:text-sm uppercase hover:bg-gray-900 transition-all duration-300 font-sans shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
-                LEARN MORE
-              </button>
             </div>
           </div>
         </div>

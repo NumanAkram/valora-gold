@@ -102,7 +102,7 @@ const Contact = () => {
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900 font-sans">Address</h3>
-                    <p className="text-gray-600 font-sans">15-B Gulberg II, Lahore, Pakistan</p>
+                    <p className="text-gray-600 font-sans">115-B Gulberg Phase II, Lahore, Pakistan</p>
                   </div>
                 </div>
 
@@ -134,7 +134,7 @@ const Contact = () => {
                   title="Valora Gold Location"
                 ></iframe>
               </div>
-              <p className="text-sm text-gray-600 mt-2 font-sans">15-B Gulberg II, Lahore</p>
+              <p className="text-sm text-gray-600 mt-2 font-sans">115-B Gulberg Phase II, Lahore</p>
             </div>
           </div>
 

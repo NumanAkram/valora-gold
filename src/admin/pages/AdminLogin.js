@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Lock, ShieldCheck } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Lock, ShieldCheck, UserPlus, RefreshCw } from 'lucide-react';
 import { useAdminAuth } from '../../context/AdminAuthContext';
 import Spinner from '../../components/Spinner';
 
 const AdminLogin = () => {
   const { login, error: authError } = useAdminAuth();
-  const [formData, setFormData] = useState({ email: '', password: '' });
+  const [formData, setFormData] = useState({ email: 'testing@gmail.com', password: 'asdfqwer' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -62,7 +63,7 @@ const AdminLogin = () => {
               name="email"
               value={formData.email}
               onChange={handleChange}
-              placeholder="admin@valoragold.com"
+              placeholder="testing@gmail.com"
               className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-logo-green focus:border-transparent text-sm font-sans"
             />
           </div>
@@ -105,6 +106,16 @@ const AdminLogin = () => {
             )}
           </button>
         </form>
+
+        <div className="space-y-3">
+          <Link
+            to="/admin/reset-password"
+            className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-100 transition-colors"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Reset Admin Password
+          </Link>
+        </div>
       </div>
     </div>
   );

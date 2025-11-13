@@ -91,14 +91,14 @@ const Bundles = () => {
               No products available right now. Please check back soon.
             </div>
           ) : (
-            <div className="flex justify-start md:justify-center space-x-2 sm:space-x-3 md:space-x-4 px-2 sm:px-4 md:px-8 lg:px-20 overflow-x-auto scrollbar-hide">
+          <div className="flex justify-start md:justify-center space-x-2 sm:space-x-3 md:space-x-4 px-2 sm:px-4 md:px-8 lg:px-20 overflow-x-auto scrollbar-hide">
             {displayBundles.slice(0, 4).map((bundle) => {
               // Format bundle data from API
               const bundleId = bundle._id || bundle.id;
               const bundleTitle = bundle.name || bundle.title;
               const bundlePrice = typeof bundle.price === 'number' ? bundle.price : null;
               const bundleOriginalPrice = typeof bundle.originalPrice === 'number' ? bundle.originalPrice : null;
-              const bundleImage = bundle.images?.[0] || bundle.image || '/4.png';
+              const bundleImage = bundle.images?.[0] || bundle.image || '/4.webp';
               const bundleRating = getDisplayRating(bundle);
               const bundleReviews = bundle.numReviews || 0;
               const isComingSoon = Boolean(bundle.comingSoon) || bundlePrice === null;

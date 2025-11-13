@@ -19,6 +19,29 @@ const userSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  gender: {
+    type: String,
+    enum: ['male', 'female'],
+    default: null,
+  },
+  profileImage: {
+    type: String,
+    default: ''
+  },
+  country: {
+    type: String,
+    trim: true,
+  },
+  countryCode: {
+    type: String,
+    trim: true,
+  },
+  phoneDialCode: {
+    type: String,
+    trim: true,
+  },
+  resetCode: String,
+  resetCodeExpiresAt: Date,
   password: {
     type: String,
     required: [true, 'Please provide a password'],

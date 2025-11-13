@@ -161,7 +161,7 @@ const BestSellers = () => {
 
   return (
     <section className="bg-white py-6 sm:py-8 md:py-12 w-full">
-      <div className="w-full px-4 sm:px-6 lg:px-8">
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Title */}
         <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-logo-green text-center mb-6 sm:mb-8 md:mb-12 uppercase tracking-wide font-sans">
           OUR BEST SELLERS
@@ -181,7 +181,7 @@ const BestSellers = () => {
         )}
 
         {/* Carousel Container */}
-        <div className="relative w-full">
+        <div className="relative w-full max-w-6xl mx-auto">
           {/* Products Grid */}
           {hasProducts ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
@@ -208,7 +208,7 @@ const BestSellers = () => {
               const formattedOriginal = formatCurrency(product.originalPrice);
               const hasDiscount =
                 formattedPrice && formattedOriginal && formattedPrice !== formattedOriginal;
-              const productImage = product.images?.[0] || product.image || '/4.png';
+              const productImage = product.images?.[0] || product.image || '/4.webp';
               const ratingValue = getDisplayRating(product);
               const productReviews = typeof product.numReviews === 'number'
                 ? product.numReviews

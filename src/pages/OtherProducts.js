@@ -116,7 +116,7 @@ const OtherProducts = () => {
                 const productName = product.name || product.title || '';
                 const productPrice = typeof product.price === 'number' ? product.price : null;
                 const productOriginalPrice = typeof product.originalPrice === 'number' ? product.originalPrice : null;
-                const productImage = product.images?.[0] || product.image || '/4.png';
+                const productImage = product.images?.[0] || product.image || '/4.webp';
                 const productRating = getDisplayRating(product);
                 const productReviews = product.numReviews || 0;
                 const isComingSoon = Boolean(product.comingSoon) || productPrice === null;

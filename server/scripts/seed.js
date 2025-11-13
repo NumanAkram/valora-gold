@@ -32,7 +32,7 @@ const products = [
     name: "Intense Repair Hair Oil 200ml",
     price: 1895,
     originalPrice: 2195,
-    images: ["/2perfume1.png"],
+    images: ["/2perfume1.webp"],
     category: "Hair",
     description: "Strengthening oil with amla, almond, and coconut extracts to repair chemically treated hair.",
     benefits: [
@@ -71,7 +71,7 @@ const products = [
     name: "Tea Tree Anti-Acne Face Wash 100ml",
     price: 855,
     originalPrice: 999,
-    images: ["/face-wash1.png", "/face-wash2.png", "/face-wash3.jpg", "/face-wash4.jpg"],
+    images: ["/face-wash1.webp", "/face-wash2.webp", "/face-wash3.jpg", "/face-wash4.jpg"],
     category: "Beauty",
     description: "Gentle foaming cleanser powered by tea tree and salicylic acid to keep breakouts under control.",
     benefits: [
@@ -90,7 +90,7 @@ const products = [
     name: "Glow Boost Body Lotion 250ml",
     price: 1195,
     originalPrice: 1495,
-    images: ["/loshion1.png", "/loshion2.png", "/loshion3.jpg", "/loshion4.jpg"],
+    images: ["/loshion1.webp", "/loshion2.webp", "/loshion3.jpg", "/loshion4.jpg"],
     category: "Beauty",
     description: "Silky body lotion enriched with shea butter and hyaluronic acid to lock in moisture for 48 hours.",
     benefits: [
@@ -109,7 +109,7 @@ const products = [
     name: "Signature Oud Perfume 50ml",
     price: 3250,
     originalPrice: 3650,
-    images: ["/perfume1.png", "/perfume2.png", "/perfume3.png", "/perfume4.jpg"],
+    images: ["/perfume1.webp", "/perfume2.webp", "/perfume3.webp", "/perfume4.jpg"],
     category: "Perfume",
     description: "Long-lasting oriental fragrance with notes of oud, amber, and saffron crafted for special evenings.",
     benefits: [
@@ -129,7 +129,7 @@ const products = [
     name: "Gentle Baby Massage Oil 120ml",
     price: 699,
     originalPrice: 799,
-    images: ["/cream1.png"],
+    images: ["/cream1.webp"],
     category: "Other",
     description: "Dermatologist-tested baby oil with almond, olive, and chamomile for soft and healthy skin.",
     benefits: [
@@ -148,7 +148,7 @@ const products = [
     name: "Soothing Baby Body Wash 200ml",
     price: 845,
     originalPrice: 995,
-    images: ["/soap1.png", "/soap2.png", "/soap3.jpg", "/soap4.jpg"],
+    images: ["/soap1.webp", "/soap2.webp", "/soap3.jpg", "/soap4.jpg"],
     category: "Other",
     description: "Tear-free formula with oat milk and aloe vera to cleanse delicate baby skin.",
     benefits: [
@@ -167,7 +167,7 @@ const products = [
     name: "Ultimate Glow Bundle",
     price: 4499,
     originalPrice: 5295,
-    images: ["/2perfume2.png"],
+    images: ["/2perfume2.webp"],
     category: "Other",
     description: "Complete skin renewal set including vitamin C serum, tea tree face wash, and hydrating lotion.",
     benefits: [
@@ -187,7 +187,7 @@ const products = [
     name: "Luxury Hair Care Bundle",
     price: 3799,
     originalPrice: 4495,
-    images: ["/hair-oil-1.jpg", "/face-wash1.png"],
+    images: ["/hair-oil-1.jpg", "/face-wash1.webp"],
     category: "Other",
     description: "Bundle of herbal hair oil, damage repair mask, and strengthening serum for complete care.",
     benefits: [
@@ -206,7 +206,7 @@ const products = [
     name: "Radiant Glow Face Cream 50g",
     price: 1499,
     originalPrice: 1799,
-    images: ["/cream2.png", "/cream3.jpg"],
+    images: ["/cream2.webp", "/cream3.jpg"],
     category: "Beauty",
     description: "Daily brightening cream with SPF 30 to protect, brighten, and hydrate in one step.",
     benefits: [

@@ -15,20 +15,31 @@ const ShopByCategory = () => {
   }));
 
   const nextSlide = () => {
-    // Since we have exactly 4 categories, disable next if showing all
-    if (currentIndex < categories.length - 4) {
-      setCurrentIndex((prev) => prev + 1);
-    }
+    setCurrentIndex((prev) => {
+      const next = prev + 1;
+      return next >= categories.length ? 0 : next;
+    });
   };
 
   const prevSlide = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex((prev) => prev - 1);
-    }
+    setCurrentIndex((prev) => {
+      const next = prev - 1;
+      return next < 0 ? categories.length - 1 : next;
+    });
   };
 
+  const visibleCategories = (() => {
+    const totalToShow = 3;
+    if (categories.length <= totalToShow) {
+      return categories;
+    }
+
+    const looped = [...categories, ...categories];
+    return looped.slice(currentIndex, currentIndex + totalToShow);
+  })();
+
   return (
-    <section className="bg-white py-8 md:py-12 w-full">
+    <section id="shop-by-category" className="bg-white py-8 md:py-12 w-full">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header - Responsive layout */}
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-8 md:mb-12">
@@ -37,9 +48,6 @@ const ShopByCategory = () => {
             <h2 className="text-2xl md:text-3xl font-bold text-logo-green uppercase tracking-wide font-sans leading-tight">
               SHOP BY CATEGORY
             </h2>
-            <a href="#" className="text-gray-600 text-sm underline hover:text-logo-green transition-colors mt-2">
-              VIEW ALL
-            </a>
           </div>
 
           {/* Right Side - Carousel */}
@@ -60,8 +68,8 @@ const ShopByCategory = () => {
             </button>
 
             {/* Categories Carousel - Responsive */}
-            <div className="flex space-x-2 md:space-x-3 px-4 lg:px-20 overflow-x-auto scrollbar-hide">
-              {categories.map((category) => (
+            <div className="flex justify-center space-x-4 md:space-x-6 px-4 lg:px-20">
+              {visibleCategories.map((category) => (
                 <div 
                   key={category.id} 
                   className="bg-gray-50 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden flex-shrink-0 w-64 md:w-72 cursor-pointer"

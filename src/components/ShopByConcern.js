@@ -8,32 +8,32 @@ const ShopByConcern = () => {
     {
       id: 1,
       name: "Wrinkles & Fine Lines",
-      image: "/5.png"
+      image: "/5.webp"
     },
     {
       id: 2,
       name: "Anti Aging",
-      image: "/5.png"
+      image: "/5.webp"
     },
     {
       id: 3,
       name: "Pigmentation",
-      image: "/5.png"
+      image: "/5.webp"
     },
     {
       id: 4,
       name: "Open Pores",
-      image: "/5.png"
+      image: "/5.webp"
     },
     {
       id: 5,
       name: "Dark Circles & Puffiness",
-      image: "/5.png"
+      image: "/5.webp"
     },
     {
       id: 6,
       name: "Acne & Pimples",
-      image: "/5.png"
+      image: "/5.webp"
     }
   ];
 

@@ -76,11 +76,31 @@ export const authAPI = {
   }),
   
   getMe: () => apiRequest('/auth/me'),
-  
-  forgotPassword: (email, newPassword) => apiRequest('/auth/forgot-password', {
-    method: 'POST',
-    body: { email, newPassword },
-  }),
+ 
+  requestPasswordReset: (email) =>
+    apiRequest('/auth/forgot-password', {
+      method: 'POST',
+      body: { email },
+    }),
+
+  verifyResetCode: (email, code) =>
+    apiRequest('/auth/verify-reset-code', {
+      method: 'POST',
+      body: {
+        email: typeof email === 'string' ? email.trim() : email,
+        code: typeof code === 'string' ? code.trim() : code,
+      },
+    }),
+
+  resetPassword: (email, code, newPassword) =>
+    apiRequest('/auth/reset-password', {
+      method: 'POST',
+      body: {
+        email: typeof email === 'string' ? email.trim() : email,
+        code: typeof code === 'string' ? code.trim() : code,
+        newPassword,
+      },
+    }),
 };
 
 // Products API
@@ -178,6 +198,14 @@ export const adminAPI = {
     }),
 };
 
+export const profileAPI = {
+  update: (payload) =>
+    apiRequest('/auth/profile', {
+      method: 'PUT',
+      body: payload,
+    }),
+};
+
 // Cart API
 export const cartAPI = {
   get: () => apiRequest('/cart'),
@@ -227,6 +255,16 @@ export const ordersAPI = {
   getById: (id) => apiRequest(`/orders/${id}`),
   
   track: (orderNumber) => apiRequest(`/orders/track/${orderNumber}`),
+};
+
+export const shippingAPI = {
+  get: () => apiRequest('/shipping'),
+
+  update: (amount) =>
+    apiRequest('/shipping', {
+      method: 'PUT',
+      body: { amount },
+    }),
 };
 
 // Reviews API
@@ -285,6 +323,7 @@ export default {
   cartAPI,
   wishlistAPI,
   ordersAPI,
+  shippingAPI,
   reviewsAPI,
   newsletterAPI,
   contactAPI,

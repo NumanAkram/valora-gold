@@ -86,7 +86,7 @@ const CartSidebar = () => {
               const itemSubtotal = itemPrice * item.quantity;
               const isNewlyAdded = lastAddedItemId && lastAddedItemId === item.id;
 
-              const imageSrc = item.images?.[0] || item.image || '/4.png';
+              const imageSrc = item.images?.[0] || item.image || '/4.webp';
 
               return (
                 <div

@@ -16,7 +16,7 @@ const initialFormState = {
   galleryImages: [''],
 };
 
-const AddProductModal = ({ open, onClose, onProductCreated }) => {
+const AddProductModal = ({ open, onClose, onProductCreated, allowAccess = false }) => {
   const [formData, setFormData] = useState(initialFormState);
   const [loading, setLoading] = useState(false);
   const [comingSoon, setComingSoon] = useState(false);
@@ -157,7 +157,7 @@ const AddProductModal = ({ open, onClose, onProductCreated }) => {
     }
   }, [formData.imageUrl]);
 
-  if (!isAdminAuthenticated || !open) {
+  if (!(isAdminAuthenticated || allowAccess) || !open) {
     return null;
   }
 

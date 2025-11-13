@@ -32,7 +32,7 @@ const SocialMediaSidebar = () => {
     {
       name: 'WhatsApp',
       icon: WhatsAppIcon,
-      url: 'https://api.whatsapp.com/send?phone=923390005256&text=Hello%20Valora%20Gold%20Team%20%F0%9F%91%8B',
+      url: 'https://www.whatsapp.com/channel/0029Vb6rKlPIXnlz8X1gBR1r',
       color: 'text-green-500'
     },
     {
@@ -66,11 +66,11 @@ const SocialMediaSidebar = () => {
   };
 
   return (
-    <div className="fixed right-0 top-1/2 -translate-y-1/2 z-40 flex items-center">
+    <div className="fixed right-0 top-[38%] -translate-y-1/2 z-[100] flex items-center">
       {/* Main Share Button - Green Background */}
       <button
         onClick={toggleExpanded}
-        className="bg-green-500 hover:bg-green-600 text-white p-4 rounded-l-lg shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center w-14 h-14 group"
+        className="bg-red-500 hover:bg-red-600 text-white p-4 rounded-l-lg shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center w-14 h-14 group"
         aria-label="Share on social media"
         title="Share on social media"
       >

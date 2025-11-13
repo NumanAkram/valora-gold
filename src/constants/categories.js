@@ -3,25 +3,25 @@ const CATEGORIES = [
     label: 'Hair Care',
     value: 'Hair',
     path: '/hair-care',
-    image: '/hair-oil-2.jpg',
+    image: '/hair-care.webp',
   },
   {
     label: 'Fragrance Collection',
     value: 'Perfume',
     path: '/perfume',
-    image: '/perfume1.png',
+    image: '/Fregrences-Collection.webp',
   },
   {
     label: 'Beauty & Skin Care',
     value: 'Beauty',
     path: '/beauty-products',
-    image: '/cream3.jpg',
+    image: '/cream3.webp',
   },
   {
     label: 'Others',
     value: 'Other',
     path: '/other',
-    image: '/lipbam4.jpg',
+    image: '/others.webp',
   },
 ];
 

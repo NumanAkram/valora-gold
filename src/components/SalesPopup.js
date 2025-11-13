@@ -7,7 +7,88 @@ const INITIAL_DELAY = 2000; // show 2s after load
 const TRANSITION_DURATION = 500; // ms for show/hide animation
 const REAPPEAR_DELAY = 15000; // show again 15s after dismiss
 
-const BUYER_NAMES = ['Ahamed', 'Numan', 'Owais', 'Ali', 'Ahtesham', 'Mudasir'];
+const BUYERS = [
+  { name: 'Fatima Ahmed', city: 'Multan' },
+  { name: 'Zainab Farooqi', city: 'Islamabad' },
+  { name: 'Fatima Farooq', city: 'Karachi' },
+  { name: 'Hira Ahmed', city: 'Gujranwala' },
+  { name: 'Alina Qureshi', city: 'Faisalabad' },
+  { name: 'Amna Ahmed', city: 'Lahore' },
+  { name: 'Noor Shah', city: 'Gujrat' },
+  { name: 'Zainab Chaudhry', city: 'Karachi' },
+  { name: 'Hassan Alam', city: 'Multan' },
+  { name: 'Fahad Malik', city: 'Islamabad' },
+  { name: 'Ayesha Javed', city: 'Quetta' },
+  { name: 'Maryam Ahmed', city: 'Multan' },
+  { name: 'Noor Fatima', city: 'Lahore' },
+  { name: 'Sadia Farooq', city: 'Islamabad' },
+  { name: 'Imran Raza', city: 'Peshawar' },
+  { name: 'Saira Qureshi', city: 'Gujranwala' },
+  { name: 'Hassan Aslam', city: 'Faisalabad' },
+  { name: 'Gomer Shah', city: 'Multan' },
+  { name: 'Fizza Raza', city: 'Lahore' },
+  { name: 'Zainab Ahmed', city: 'Multan' },
+  { name: 'Bilal Ahmed', city: 'Sialkot' },
+  { name: 'Hina Khan', city: 'Rawalpindi' },
+  { name: 'Usman Malik', city: 'Sialkot' },
+  { name: 'Umar Qureshi', city: 'Faisalabad' },
+  { name: 'Omar Ahmed', city: 'Karachi' },
+  { name: 'Hassan Javed', city: 'Sialkot' },
+  { name: 'Bilal Burhan', city: 'Sialkot' },
+  { name: 'Rizal Farooqi', city: 'Lahore' },
+  { name: 'Zainab Tirmizi', city: 'Islamabad' },
+  { name: 'Ahmed Malik', city: 'Peshawar' },
+  { name: 'Omer Ashraf', city: 'Rawalpindi' },
+  { name: 'Usama Khan', city: 'Multan' },
+  { name: 'Sana Malik', city: 'Multan' },
+  { name: 'Fahad Aslam', city: 'Islamabad' },
+  { name: 'Noor Khan', city: 'Lahore' },
+  { name: 'Aiza Ahmed', city: 'Karachi' },
+  { name: 'Aiman Qureshi', city: 'Gujranwala' },
+  { name: 'Ayesha Ahmed', city: 'Islamabad' },
+  { name: 'Areeba Khan', city: 'Peshawar' },
+  { name: 'Sadia Ahmed', city: 'Lahore' },
+  { name: 'Hassan Chaudhry', city: 'Peshawar' },
+  { name: 'Noman Qureshi', city: 'Rawalpindi' },
+  { name: 'Omar Farooqi', city: 'Multan' },
+  { name: 'Ayesha Khan', city: 'Sialkot' },
+  { name: 'Bilal Shah', city: 'Lahore' },
+  { name: 'Raza Farooq', city: 'Gujrat' },
+  { name: 'Hassan Shah', city: 'Karachi' },
+  { name: 'Mahira Ahmed', city: 'Islamabad' },
+  { name: 'Sami Raza', city: 'Sialkot' },
+  { name: 'Hafsa Malik', city: 'Faisalabad' },
+  { name: 'Hira Farooq', city: 'Peshawar' },
+  { name: 'Fizza Ahmed', city: 'Gujranwala' },
+  { name: 'Ahmed Raza', city: 'Bahawalpur' },
+  { name: 'Sara Ahmed', city: 'Lahore' },
+  { name: 'Imran Khan', city: 'Quetta' },
+  { name: 'Saba Malik', city: 'Rawalpindi' },
+  { name: 'Nida Ahmed', city: 'Faisalabad' },
+  { name: 'Hassan Raza', city: 'Karachi' },
+  { name: 'Ayesha Rauf', city: 'Peshawar' },
+  { name: 'Maryam Khan', city: 'Sialkot' },
+  { name: 'Humza Ali', city: 'Multan' },
+  { name: 'Rehan Ahmed', city: 'Lahore' },
+  { name: 'Iqra Shah', city: 'Islamabad' },
+  { name: 'Areeba Malik', city: 'Gujranwala' },
+  { name: 'Sana Qureshi', city: 'Sialkot' },
+  { name: 'Adeel Ahmed', city: 'Karachi' },
+  { name: 'Tariq Farooq', city: 'Faisalabad' },
+  { name: 'Mariam Ahmed', city: 'Islamabad' },
+  { name: 'Hassan Farooq', city: 'Peshawar' },
+  { name: 'Ahsan Raza', city: 'Lahore' },
+  { name: 'Ali Shah', city: 'Quetta' },
+  { name: 'Hiba Khan', city: 'Sialkot' },
+  { name: 'Rimsha Ahmed', city: 'Rawalpindi' },
+  { name: 'Usman Ali', city: 'Karachi' },
+  { name: 'Hassan Ali', city: 'Multan' },
+  { name: 'Fariha Shah', city: 'Islamabad' },
+  { name: 'Ayesha Siddiq', city: 'Lahore' },
+  { name: 'Rizwan Qureshi', city: 'Gujranwala' },
+  { name: 'Nosheen Ahmed', city: 'Faisalabad' },
+  { name: 'Mahnoor Khan', city: 'Peshawar' },
+];
 
 const TIME_AGO = [
   'just now',
@@ -21,6 +102,19 @@ const TIME_AGO = [
   'yesterday',
 ];
 
+const EVENT_PATTERN = [
+  'purchase',
+  'purchase',
+  'purchase',
+  'purchase',
+  'purchase',
+  'purchase',
+  'purchase',
+  'wishlist',
+  'wishlist',
+  'wishlist',
+];
+
 const shuffleArray = (array) => {
   const copy = [...array];
   for (let i = copy.length - 1; i > 0; i -= 1) {
@@ -31,11 +125,14 @@ const shuffleArray = (array) => {
 };
 
 const SalesPopup = () => {
-  const [products, setProducts] = useState([]);
-  const [currentProduct, setCurrentProduct] = useState(null);
+  const [saleProducts, setSaleProducts] = useState([]);
+  const [comingSoonProducts, setComingSoonProducts] = useState([]);
+  const [hairOilProduct, setHairOilProduct] = useState(null);
+  const [currentEvent, setCurrentEvent] = useState(null);
   const [visible, setVisible] = useState(false);
   const [animateIn, setAnimateIn] = useState(false);
   const currentIndexRef = useRef(0);
+  const eventOrderRef = useRef([]);
   const reopenTimeoutRef = useRef(null);
 
   useEffect(() => {
@@ -45,19 +142,41 @@ const SalesPopup = () => {
       try {
         const response = await productsAPI.getAll({ limit: 20, sort: 'newest' });
         if (response.success && Array.isArray(response.data)) {
-          const cleaned = response.data.filter((product) => {
+          const sale = [];
+          const comingSoonList = [];
+
+          response.data.forEach((product) => {
             const hasImage = product?.images?.length || product?.image;
             const hasName = product?.name || product?.title;
-            const isComingSoon = Boolean(product?.comingSoon);
+            if (!hasImage || !hasName) {
+              return;
+            }
+
             const rawPrice = product?.price ?? product?.salePrice ?? product?.currentPrice;
             const normalizedPrice = typeof rawPrice === 'number' ? rawPrice : Number(rawPrice);
             const hasPrice = Number.isFinite(normalizedPrice) && normalizedPrice > 0;
-            return Boolean(hasImage && hasName && hasPrice && !isComingSoon);
+            const isComingSoon = Boolean(product?.comingSoon);
+
+            if (isComingSoon) {
+              comingSoonList.push(product);
+            } else if (hasPrice) {
+              sale.push(product);
+            }
           });
+
           if (isMounted) {
-            const shuffled = shuffleArray(cleaned);
+            const shuffledSale = shuffleArray(sale);
+            const shuffledComingSoon = shuffleArray(comingSoonList);
+            const hairOilCandidate = sale.find((item) => {
+              const label = String(item?.name || item?.title || '').toLowerCase();
+              return label.includes('aura') && label.includes('hair') && label.includes('oil');
+            }) || shuffledSale[0] || shuffledComingSoon[0] || null;
+
+            setSaleProducts(shuffledSale);
+            setComingSoonProducts(shuffledComingSoon);
+            setHairOilProduct(hairOilCandidate);
+            eventOrderRef.current = shuffleArray(EVENT_PATTERN);
             currentIndexRef.current = 0;
-            setProducts(shuffled);
           }
         }
       } catch (error) {
@@ -73,21 +192,21 @@ const SalesPopup = () => {
   }, []);
 
   useEffect(() => {
-    if (products.length === 0) {
-      return;
+    if (!hairOilProduct && comingSoonProducts.length === 0) {
+      return undefined;
     }
 
     const timer = setTimeout(() => {
-      showNextProduct();
+      showNextEvent();
       setVisible(true);
       requestAnimationFrame(() => setAnimateIn(true));
     }, INITIAL_DELAY);
 
     return () => clearTimeout(timer);
-  }, [products]);
+  }, [hairOilProduct, comingSoonProducts]);
 
   useEffect(() => {
-    if (!visible || products.length === 0) {
+    if (!visible || (!hairOilProduct && comingSoonProducts.length === 0)) {
       return undefined;
     }
 
@@ -98,7 +217,7 @@ const SalesPopup = () => {
       hideTimer = setTimeout(() => {
         setAnimateIn(false);
         changeTimer = setTimeout(() => {
-          showNextProduct();
+          showNextEvent();
           setAnimateIn(true);
           scheduleNext();
         }, TRANSITION_DURATION);
@@ -111,7 +230,7 @@ const SalesPopup = () => {
       clearTimeout(changeTimer);
       clearTimeout(hideTimer);
     };
-  }, [visible, products]);
+  }, [visible, hairOilProduct, comingSoonProducts]);
 
   useEffect(() => () => {
     if (reopenTimeoutRef.current) {
@@ -119,41 +238,60 @@ const SalesPopup = () => {
     }
   }, []);
 
-  const showNextProduct = () => {
-    if (products.length === 0) return;
-    if (currentIndexRef.current >= products.length) {
-      currentIndexRef.current = 0;
-    }
-    let attempts = 0;
-    let nextProduct = null;
+  const showNextEvent = () => {
+    const hasPurchaseOption = Boolean(hairOilProduct || saleProducts.length);
+    const hasWishlistOption = comingSoonProducts.length > 0;
 
-    while (attempts < products.length) {
-      const candidate = products[currentIndexRef.current];
-      currentIndexRef.current = (currentIndexRef.current + 1) % products.length;
-      attempts += 1;
-
-      const rawPrice = candidate?.price ?? candidate?.salePrice ?? candidate?.currentPrice;
-      const normalizedPrice = typeof rawPrice === 'number' ? rawPrice : Number(rawPrice);
-      const hasPrice = Number.isFinite(normalizedPrice) && normalizedPrice > 0;
-      const isComingSoon = Boolean(candidate?.comingSoon);
-
-      if (candidate && hasPrice && !isComingSoon) {
-        nextProduct = candidate;
-        break;
-      }
-    }
-
-    if (!nextProduct) {
+    if (!hasPurchaseOption && !hasWishlistOption) {
       setVisible(false);
       return;
     }
 
-    const displayName = BUYER_NAMES[Math.floor(Math.random() * BUYER_NAMES.length)];
+    if (eventOrderRef.current.length === 0) {
+      eventOrderRef.current = shuffleArray(EVENT_PATTERN);
+      currentIndexRef.current = 0;
+    }
+
+    let eventType = eventOrderRef.current[currentIndexRef.current];
+    currentIndexRef.current = (currentIndexRef.current + 1) % eventOrderRef.current.length;
+    if (currentIndexRef.current === 0) {
+      eventOrderRef.current = shuffleArray(eventOrderRef.current);
+    }
+
+    if (eventType === 'wishlist' && !hasWishlistOption) {
+      eventType = 'purchase';
+    }
+    if (eventType === 'purchase' && !hasPurchaseOption) {
+      eventType = 'wishlist';
+    }
+
+    const buyer = BUYERS[Math.floor(Math.random() * BUYERS.length)] || { name: 'Valora Customer', city: 'Pakistan' };
+    const displayName = buyer.name;
+    const buyerCity = buyer.city;
     const timeAgo = TIME_AGO[Math.floor(Math.random() * TIME_AGO.length)];
 
-    setCurrentProduct({
-      ...nextProduct,
-      displayName,
+    let selectedProduct = hairOilProduct || saleProducts[0] || comingSoonProducts[0] || null;
+    let actionText = '';
+
+    if (eventType === 'wishlist' && hasWishlistOption) {
+      selectedProduct = comingSoonProducts[Math.floor(Math.random() * comingSoonProducts.length)] || selectedProduct;
+      const productName = selectedProduct?.name || selectedProduct?.title || 'this coming soon item';
+      actionText = ` from ${buyerCity} added ${productName} (coming soon) to the wishlist.`;
+    } else {
+      selectedProduct = hairOilProduct || saleProducts.find((item) => item) || selectedProduct;
+      const productName = selectedProduct?.name || selectedProduct?.title || 'Aura Hair Oil';
+      actionText = ` from ${buyerCity} just bought ${productName}!`;
+    }
+
+    if (!selectedProduct) {
+      setVisible(false);
+      return;
+    }
+
+    setCurrentEvent({
+      product: selectedProduct,
+      displayName: displayName,
+      actionText,
       displayTime: timeAgo,
     });
   };
@@ -167,19 +305,19 @@ const SalesPopup = () => {
     setTimeout(() => {
       setVisible(false);
       reopenTimeoutRef.current = setTimeout(() => {
-        showNextProduct();
+        showNextEvent();
         setVisible(true);
         requestAnimationFrame(() => setAnimateIn(true));
       }, REAPPEAR_DELAY);
     }, TRANSITION_DURATION);
   };
 
-  if (!visible || !currentProduct) {
+  if (!visible || !currentEvent?.product) {
     return null;
   }
 
-  const productName = currentProduct.name || currentProduct.title || 'This product';
-  const productImage = currentProduct.images?.[0] || currentProduct.image || '/4.png';
+  const productName = currentEvent.product.name || currentEvent.product.title || 'This product';
+  const productImage = currentEvent.product.images?.[0] || currentEvent.product.image || '/4.webp';
 
   return (
     <div
@@ -194,8 +332,8 @@ const SalesPopup = () => {
         <div className="flex-1 p-4 space-y-2">
           <div className="flex justify-between items-start">
             <p className="text-sm text-gray-700 font-sans leading-snug">
-              <span className="font-semibold text-logo-green">{currentProduct.displayName}</span> from Quetta purchased
-              this product.
+              <span className="font-semibold text-logo-green">{currentEvent.displayName}</span>
+              {currentEvent.actionText}
             </p>
             <button
               type="button"
@@ -207,12 +345,12 @@ const SalesPopup = () => {
           </div>
           <button
             type="button"
-            onClick={() => window.open(`/product/${currentProduct._id || currentProduct.id}`, '_self')}
+            onClick={() => window.open(`/product/${currentEvent.product._id || currentEvent.product.id}`, '_self')}
             className="block text-sm font-semibold text-logo-green hover:underline text-left truncate"
           >
             {productName}
           </button>
-          <p className="text-xs text-gray-500 font-sans">{currentProduct.displayTime}</p>
+          <p className="text-xs text-gray-500 font-sans">{currentEvent.displayTime}</p>
         </div>
       </div>
     </div>

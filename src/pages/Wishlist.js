@@ -61,10 +61,10 @@ const Wishlist = () => {
               
               <div
                 className="h-64 bg-gray-50 cursor-pointer"
-                onClick={() => navigate(`/product/${item.id}`, { state: { product: { ...item, id: item.id, images: item.images || [item.image || '/4.png'], image: item.image || '/4.png' } } })}
+                onClick={() => navigate(`/product/${item.id}`, { state: { product: { ...item, id: item.id, images: item.images || [item.image || '/4.webp'], image: item.image || '/4.webp' } } })}
               >
                 <img
-                  src={item.image || '/4.png'}
+                  src={item.image || '/4.webp'}
                   alt={item.name || item.title}
                   className="w-full h-full object-contain p-4"
                 />
@@ -73,7 +73,7 @@ const Wishlist = () => {
               <div className="p-4 space-y-3">
                 <h3
                   className="font-semibold text-gray-900 cursor-pointer hover:text-logo-green transition-colors font-sans"
-                  onClick={() => navigate(`/product/${item.id}`, { state: { product: { ...item, id: item.id, images: item.images || [item.image || '/4.png'], image: item.image || '/4.png' } } })}
+                  onClick={() => navigate(`/product/${item.id}`, { state: { product: { ...item, id: item.id, images: item.images || [item.image || '/4.webp'], image: item.image || '/4.webp' } } })}
                 >
                   {item.name || item.title}
                 </h3>

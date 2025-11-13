@@ -45,7 +45,7 @@ const RelatedProducts = ({ currentProductId }) => {
             ? product.price
             : (typeof product.originalPrice === 'number' ? product.originalPrice : null);
           const productPrice = priceValue !== null ? `Rs.${priceValue.toLocaleString()}` : 'Price not available';
-          const productImage = product.images?.[0] || product.image || '/4.png';
+          const productImage = product.images?.[0] || product.image || '/4.webp';
           const productReviews = product.numReviews || 0;
           const displayRating = getDisplayRating(product);
           

@@ -176,7 +176,7 @@ router.post('/', protect, authorize('admin'), async (req, res) => {
       : (imageUrl ? [imageUrl] : []);
 
     if (!imageList.length) {
-      imageList.push('/4.png');
+      imageList.push('/4.webp');
     }
 
     const product = await Product.create({
@@ -294,7 +294,7 @@ router.put('/:id', protect, authorize('admin'), async (req, res) => {
       if (imageList.length > 0) {
         product.images = imageList;
       } else if (imageUrl !== undefined && !imageUrl) {
-        product.images = ['/4.png'];
+        product.images = ['/4.webp'];
       }
     }
 
@@ -340,7 +340,7 @@ router.put('/:id', protect, authorize('admin'), async (req, res) => {
     }
 
     if (!product.images || product.images.length === 0) {
-      product.images = ['/4.png'];
+      product.images = ['/4.webp'];
     }
 
     await product.save();

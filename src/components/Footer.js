@@ -18,6 +18,12 @@ const WhatsAppIcon = ({ className }) => (
 const Footer = () => {
   const [result, setResult] = useState('');
   const { showToast } = useToast();
+  const handleScrollToTop = (e) => {
+    e.preventDefault();
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -52,25 +58,26 @@ const Footer = () => {
           <div className="lg:col-span-2 space-y-4">
             {/* Logo */}
             <div className="flex items-center space-x-2 sm:space-x-3 mb-4">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full overflow-hidden bg-white shadow-md border-2 border-white flex items-center justify-center p-1 sm:p-1.5">
+              <a
+                href="#top"
+                onClick={handleScrollToTop}
+                className="w-16 h-16 rounded-full overflow-hidden flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white/60"
+              >
                 <img
-                  src="/VG Logo.png"
+                  src="/VG Logo.webp"
                   alt="Valora Gold"
-                  className="w-full h-full object-contain rounded-full"
+                  className="w-full h-full object-cover rounded-full"
                 />
-              </div>
+              </a>
               <div className="flex flex-col justify-center">
-                <span className="text-white font-extrabold text-lg sm:text-xl md:text-2xl leading-tight" style={{ letterSpacing: '1px', fontFamily: 'Inter, sans-serif', textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>VALORA</span>
-                <span className="text-yellow-300 font-bold text-sm sm:text-base md:text-lg leading-tight mt-0.5 sm:mt-1" style={{ letterSpacing: '3px', fontFamily: 'Inter, sans-serif', textShadow: '0 2px 4px rgba(255,215,0,0.3)' }}>GOLD</span>
-                <span className="text-gray-200 font-light text-[10px] sm:text-xs leading-tight mt-1 sm:mt-2 tracking-wider hidden sm:block" style={{ letterSpacing: '1px', fontFamily: 'Inter, sans-serif' }}>Premium Gold & Jewelry</span>
+                <span className="text-white font-extrabold text-lg sm:text-xl md:text-2xl leading-tight" style={{ letterSpacing: '2px', fontFamily: 'Poppins, sans-serif', textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>VALORA</span>
+                <span className="text-yellow-300 font-bold text-sm sm:text-base md:text-lg leading-tight mt-0.5 sm:mt-1" style={{ letterSpacing: '4px', fontFamily: 'Poppins, sans-serif', textShadow: '0 2px 4px rgba(255,215,0,0.3)' }}>GOLD</span>
               </div>
             </div>
 
             {/* About Text */}
             <p className="text-white text-sm leading-relaxed font-sans">
-              Welcome to Valora Gold, your trusted destination for premium gold jewelry and accessories. 
-              We offer authentic, certified gold products with exceptional craftsmanship and quality assurance. 
-              Experience luxury with Valora Gold!
+              Welcome to Valora Gold, your trusted destination for premium gold solutions. Our signature Valora Hair Oil is enriched with powerful botanicals that strengthen roots, reduce breakage, and revive shine with every use. Experience authentic, certified care crafted with exceptional quality and conscious luxury.
             </p>
 
             {/* Contact Details */}
@@ -92,7 +99,7 @@ const Footer = () => {
               </div>
               <div className="flex items-center space-x-2">
                 <MapPin className="h-4 w-4 text-white flex-shrink-0" />
-                <span className="text-white text-sm font-sans">15-B Gulberg II, Lahore, Pakistan</span>
+                <span className="text-white text-sm font-sans">115-B Gulberg Phase II, Lahore, Pakistan</span>
               </div>
               <div className="flex items-center space-x-2">
                 <LinkIcon className="h-4 w-4 text-white flex-shrink-0" />
@@ -107,6 +114,8 @@ const Footer = () => {
                 </a>
               </div>
             </div>
+
+            <div className="pt-4" />
           </div>
 
           {/* Categories Section */}
@@ -267,7 +276,7 @@ const Footer = () => {
                     <Instagram className="h-5 w-5 text-white" />
                   </a>
                   <a 
-                    href="https://wa.me/923390005256"
+                    href="https://www.whatsapp.com/channel/0029Vb6rKlPIXnlz8X1gBR1r"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center hover:bg-green-600 transition-colors"
@@ -295,7 +304,7 @@ const Footer = () => {
         {/* Copyright Section */}
         <div className="border-t border-gray-600 mt-12 pt-6">
           <p className="text-center text-white text-sm font-sans">
-            Copyright © 2025 Valora Gold. All Rights Reserved. | 15-B Gulberg II, Lahore, Pakistan
+            Copyright © 2025 Valora Gold. All Rights Reserved. | 115-B Gulberg Phase II, Lahore, Pakistan
           </p>
         </div>
       </div>

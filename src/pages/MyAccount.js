@@ -1,15 +1,50 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { User, Mail, Phone, MapPin, LogOut, Edit, Home } from 'lucide-react';
+import {
+  User,
+  Mail,
+  Phone,
+  MapPin,
+  LogOut,
+  Edit,
+  Home,
+  Image as ImageIcon,
+  X as CloseIcon,
+  Globe,
+  Search,
+  ChevronDown,
+} from 'lucide-react';
 import { useToast } from '../context/ToastContext';
-import { authAPI } from '../utils/api';
+import { authAPI, profileAPI } from '../utils/api';
 import Breadcrumbs from '../components/Breadcrumbs';
+import countries from '../data/countries';
 
 const MyAccount = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [selectedCountry, setSelectedCountry] = useState(countries[0]);
+  const [countryQuery, setCountryQuery] = useState('');
+  const [isCountryDropdownOpen, setIsCountryDropdownOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    country: '',
+    countryCode: '',
+    phoneDialCode: '',
+    profileImage: '',
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+    gender: '',
+  });
+  const [profilePreview, setProfilePreview] = useState('');
+  const [phoneError, setPhoneError] = useState('');
+  const countryDropdownRef = useRef(null);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -38,6 +73,166 @@ const MyAccount = () => {
 
     fetchUserData();
   }, [navigate, showToast]);
+
+  useEffect(() => {
+    if (user) {
+      const matchedCountry =
+        countries.find((country) =>
+          user.countryCode ? country.code === user.countryCode : country.dial_code === user.phoneDialCode
+        ) || countries[0];
+
+      setSelectedCountry(matchedCountry);
+
+      let phoneWithoutDial = user.phone || '';
+      if (phoneWithoutDial.startsWith(matchedCountry.dial_code)) {
+        phoneWithoutDial = phoneWithoutDial.replace(matchedCountry.dial_code, '');
+      }
+      phoneWithoutDial = phoneWithoutDial.replace(/^\+?/, '');
+
+      setFormData({
+        name: user.name || '',
+        email: user.email || '',
+        phone: phoneWithoutDial,
+        country: matchedCountry.name,
+        countryCode: matchedCountry.code,
+        phoneDialCode: matchedCountry.dial_code,
+        profileImage: user.profileImage || '',
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+        gender: user.gender || '',
+      });
+      setProfilePreview(user.profileImage || '');
+      setPhoneError('');
+    }
+  }, [user]);
+
+  useEffect(() => {
+    const handler = (event) => {
+      if (countryDropdownRef.current && !countryDropdownRef.current.contains(event.target)) {
+        setIsCountryDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const filteredCountries = useMemo(() => {
+    if (!countryQuery) return countries;
+    return countries.filter((country) =>
+      country.name.toLowerCase().includes(countryQuery.trim().toLowerCase())
+    );
+  }, [countryQuery]);
+
+  const handleSelectCountry = (country) => {
+    setSelectedCountry(country);
+    setFormData((prev) => ({
+      ...prev,
+      country: country.name,
+      countryCode: country.code,
+      phoneDialCode: country.dial_code,
+    }));
+    setIsCountryDropdownOpen(false);
+    setCountryQuery('');
+  };
+
+  const handleInputChange = (event) => {
+    const { name, value } = event.target;
+    if (name === 'phone') {
+      const cleaned = value.replace(/[^0-9+\s()-]/g, '');
+      setFormData((prev) => ({ ...prev, phone: cleaned }));
+      setPhoneError('');
+      return;
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleProfileImageChange = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      setProfilePreview('');
+      setFormData((prev) => ({ ...prev, profileImage: '' }));
+      return;
+    }
+    if (!file.type.startsWith('image/')) {
+      showToast('Please select a valid image file.', 'error');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = reader.result;
+      if (typeof result === 'string') {
+        setProfilePreview(result);
+        setFormData((prev) => ({ ...prev, profileImage: result }));
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const clearProfileImage = () => {
+    setProfilePreview('');
+    setFormData((prev) => ({ ...prev, profileImage: '' }));
+  };
+
+  const handleUpdateProfile = async (event) => {
+    event.preventDefault();
+    setPhoneError('');
+    setIsSaving(true);
+
+    if (formData.newPassword && formData.newPassword !== formData.confirmPassword) {
+      showToast('New passwords do not match', 'error');
+      setIsSaving(false);
+      return;
+    }
+
+    const numericPhone = formData.phone.replace(/\D/g, '');
+    if (numericPhone && (numericPhone.length < 6 || numericPhone.length > 14)) {
+      setPhoneError('Please enter a valid phone number for the selected country.');
+      setIsSaving(false);
+      return;
+    }
+
+    const payload = {
+      name: formData.name,
+      email: formData.email,
+      phone: numericPhone ? `${selectedCountry.dial_code}${numericPhone}` : '',
+      country: selectedCountry.name,
+      countryCode: selectedCountry.code,
+      phoneDialCode: selectedCountry.dial_code,
+      profileImage: formData.profileImage,
+      gender: formData.gender || undefined,
+      currentPassword: formData.currentPassword || undefined,
+      newPassword: formData.newPassword || undefined,
+    };
+
+    try {
+      const response = await profileAPI.update(payload);
+      if (response.success) {
+        setUser(response.data);
+        setIsEditing(false);
+        setFormData((prev) => ({
+          ...prev,
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: '',
+        }));
+        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('user', JSON.stringify(response.data));
+        window.dispatchEvent(new Event('valora-user-updated'));
+        showToast('Account updated successfully', 'success');
+      } else {
+        showToast(response.message || 'Failed to update account', 'error');
+      }
+    } catch (error) {
+      showToast(error.message || 'Failed to update account', 'error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const handleSignOut = () => {
     localStorage.removeItem('token');
@@ -113,45 +308,344 @@ const MyAccount = () => {
                   <User className="h-5 w-5 text-logo-green" />
                   <span>Personal Information</span>
                 </h2>
+                <div className="flex items-center gap-3">
+                  {!isEditing && (
+                    <button
+                      onClick={() => setIsEditing(true)}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-logo-green text-white text-sm font-semibold rounded-lg hover:bg-banner-green transition-colors"
+                    >
+                      <Edit className="h-4 w-4" />
+                      Edit Profile
+                    </button>
+                  )}
+                </div>
               </div>
 
-              <div className="space-y-4">
-                <div className="flex items-center space-x-3">
-                  <User className="h-5 w-5 text-gray-400" />
-                  <div>
-                    <p className="text-sm text-gray-600 font-sans">Full Name</p>
-                    <p className="text-lg font-semibold text-gray-900 font-sans">{user.name || 'N/A'}</p>
-                  </div>
-                </div>
+              {!isEditing ? (
+                <div className="space-y-4">
+                  {user.profileImage && (
+                    <div className="flex items-center space-x-3">
+                      <div className="h-16 w-16 rounded-full overflow-hidden bg-logo-green/10 flex items-center justify-center">
+                        <img src={user.profileImage} alt="Profile" className="w-full h-full object-cover" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600 font-sans">Profile Photo</p>
+                        <p className="text-lg font-semibold text-gray-900 font-sans">Uploaded</p>
+                      </div>
+                    </div>
+                  )}
 
-                <div className="flex items-center space-x-3">
-                  <Mail className="h-5 w-5 text-gray-400" />
-                  <div>
-                    <p className="text-sm text-gray-600 font-sans">Email Address</p>
-                    <p className="text-lg font-semibold text-gray-900 font-sans">{user.email || 'N/A'}</p>
-                  </div>
-                </div>
-
-                {user.phone && (
                   <div className="flex items-center space-x-3">
-                    <Phone className="h-5 w-5 text-gray-400" />
+                    <User className="h-5 w-5 text-gray-400" />
                     <div>
-                      <p className="text-sm text-gray-600 font-sans">Phone Number</p>
-                      <p className="text-lg font-semibold text-gray-900 font-sans">{user.phone}</p>
+                      <p className="text-sm text-gray-600 font-sans">Full Name</p>
+                      <p className="text-lg font-semibold text-gray-900 font-sans">{user.name || 'N/A'}</p>
                     </div>
                   </div>
-                )}
 
-                <div className="flex items-center space-x-3">
-                  <div className="h-5 w-5 flex items-center justify-center">
-                    <span className="text-gray-400 font-sans text-sm">Role</span>
+                  <div className="flex items-center space-x-3">
+                    <Mail className="h-5 w-5 text-gray-400" />
+                    <div>
+                      <p className="text-sm text-gray-600 font-sans">Email Address</p>
+                      <p className="text-lg font-semibold text-gray-900 font-sans">{user.email || 'N/A'}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-600 font-sans">Account Type</p>
-                    <p className="text-lg font-semibold text-gray-900 font-sans capitalize">{user.role || 'User'}</p>
+
+                  <div className="flex items-center space-x-3">
+                    <div className="h-5 w-5 flex items-center justify-center">
+                      <span className="text-gray-400 font-sans text-sm">Gender</span>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600 font-sans">Gender</p>
+                      <p className="text-lg font-semibold text-gray-900 font-sans capitalize">
+                        {user.gender ? user.gender : 'Not specified'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {user.phone && (
+                    <div className="flex items-center space-x-3">
+                      <Phone className="h-5 w-5 text-gray-400" />
+                      <div>
+                        <p className="text-sm text-gray-600 font-sans">Phone Number</p>
+                        <p className="text-lg font-semibold text-gray-900 font-sans">{user.phone}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {(user.country || user.countryCode || user.phoneDialCode) && (
+                    <div className="flex items-center space-x-3">
+                      <MapPin className="h-5 w-5 text-gray-400" />
+                      <div>
+                        <p className="text-sm text-gray-600 font-sans">Country</p>
+                        <p className="text-lg font-semibold text-gray-900 font-sans">
+                          {user.country || 'N/A'}
+                          {user.phoneDialCode && (
+                            <span className="text-sm text-gray-500 font-sans ml-2">({user.phoneDialCode})</span>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex items-center space-x-3">
+                    <div className="h-5 w-5 flex items-center justify-center">
+                      <span className="text-gray-400 font-sans text-sm">Role</span>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600 font-sans">Account Type</p>
+                      <p className="text-lg font-semibold text-gray-900 font-sans capitalize">{user.role || 'User'}</p>
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <form onSubmit={handleUpdateProfile} className="space-y-5">
+                  <div className="flex items-center gap-4">
+                    <div className="relative w-20 h-20 rounded-full bg-logo-green/10 flex items-center justify-center text-logo-green font-semibold text-xl uppercase overflow-hidden">
+                      {profilePreview ? (
+                        <img src={profilePreview} alt="Profile preview" className="w-full h-full object-cover" />
+                      ) : formData.name ? (
+                        <span>{formData.name.trim().charAt(0).toUpperCase()}</span>
+                      ) : (
+                        <ImageIcon className="h-8 w-8 text-logo-green/70" />
+                      )}
+                      {profilePreview && (
+                        <button
+                          type="button"
+                          onClick={clearProfileImage}
+                          className="absolute -top-1 -right-1 bg-white text-gray-500 rounded-full p-0.5 shadow hover:text-gray-700"
+                          aria-label="Remove profile photo"
+                        >
+                          <CloseIcon className="h-3 w-3" />
+                        </button>
+                      )}
+                    </div>
+                    <label className="flex items-center justify-center px-4 py-2 border border-logo-green text-logo-green rounded-lg cursor-pointer hover:bg-logo-green hover:text-white transition-colors text-sm font-semibold">
+                      <input type="file" accept="image/*" className="hidden" onChange={handleProfileImageChange} />
+                      Upload Photo
+                    </label>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1 font-sans">Full Name</label>
+                      <input
+                        type="text"
+                        name="name"
+                        value={formData.name}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-logo-green text-sm"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1 font-sans">Email Address</label>
+                      <input
+                        type="email"
+                        name="email"
+                        value={formData.email}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-logo-green text-sm"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <span className="block text-sm font-medium text-gray-700 mb-2 font-sans">Gender</span>
+                    <div className="grid grid-cols-2 gap-3">
+                      <label
+                        className={`flex items-center justify-center gap-2 px-4 py-3 border rounded-lg cursor-pointer transition-colors font-sans text-sm font-semibold ${
+                          formData.gender === 'male'
+                            ? 'border-logo-green bg-logo-green/10 text-logo-green'
+                            : 'border-gray-300 text-gray-700 hover:border-logo-green/60'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="gender"
+                          value="male"
+                          checked={formData.gender === 'male'}
+                          onChange={handleInputChange}
+                          className="hidden"
+                        />
+                        <span>Male</span>
+                      </label>
+                      <label
+                        className={`flex items-center justify-center gap-2 px-4 py-3 border rounded-lg cursor-pointer transition-colors font-sans text-sm font-semibold ${
+                          formData.gender === 'female'
+                            ? 'border-logo-green bg-logo-green/10 text-logo-green'
+                            : 'border-gray-300 text-gray-700 hover:border-logo-green/60'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="gender"
+                          value="female"
+                          checked={formData.gender === 'female'}
+                          onChange={handleInputChange}
+                          className="hidden"
+                        />
+                        <span>Female</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div ref={countryDropdownRef} className="relative">
+                    <label className="block text-sm font-medium text-gray-700 mb-1 font-sans">
+                      Country
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setIsCountryDropdownOpen((prev) => !prev)}
+                      className="w-full flex items-center justify-between gap-3 px-3 py-2 border border-gray-300 rounded-lg text-left hover:border-logo-green focus:outline-none focus:ring-2 focus:ring-logo-green"
+                    >
+                      <span className="flex items-center gap-2 text-sm text-gray-700">
+                        <Globe className="h-4 w-4 text-gray-500" />
+                        {selectedCountry.name}
+                      </span>
+                      <ChevronDown className="h-4 w-4 text-gray-500" />
+                    </button>
+                    {isCountryDropdownOpen && (
+                      <div className="absolute mt-2 inset-x-0 bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-y-auto z-20">
+                        <div className="p-2 border-b border-gray-100 flex items-center gap-2">
+                          <Search className="h-4 w-4 text-gray-400" />
+                          <input
+                            type="text"
+                            value={countryQuery}
+                            onChange={(event) => setCountryQuery(event.target.value)}
+                            placeholder="Search country"
+                            className="w-full text-sm outline-none"
+                          />
+                        </div>
+                        <ul className="max-h-56 overflow-y-auto">
+                          {filteredCountries.map((country) => (
+                            <li
+                              key={country.code}
+                              onClick={() => handleSelectCountry(country)}
+                              className="px-3 py-2 text-sm hover:bg-logo-green/10 cursor-pointer flex items-center justify-between"
+                            >
+                              <span>{country.name}</span>
+                              <span className="text-gray-500">{country.dial_code}</span>
+                            </li>
+                          ))}
+                          {filteredCountries.length === 0 && (
+                            <li className="px-3 py-2 text-sm text-gray-500">No countries found.</li>
+                          )}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1 font-sans">
+                      Phone Number
+                    </label>
+                    <div className="flex">
+                      <div className="flex items-center gap-1 px-3 py-2 border border-gray-300 rounded-l-lg bg-gray-50 text-sm text-gray-700">
+                        <Phone className="h-4 w-4 text-gray-500" />
+                        {selectedCountry.dial_code}
+                      </div>
+                      <input
+                        type="tel"
+                        name="phone"
+                        value={formData.phone}
+                        onChange={handleInputChange}
+                        className="appearance-none block w-full pl-3 pr-3 py-2 border border-gray-300 rounded-r-lg placeholder-gray-400 focus:outline-none focus:ring-logo-green focus:border-logo-green text-sm"
+                        placeholder={`e.g., ${selectedCountry.dial_code}123456789`}
+                      />
+                    </div>
+                    {phoneError && (
+                      <p className="mt-1 text-xs text-red-600 font-sans">{phoneError}</p>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1 font-sans">Current Password</label>
+                      <input
+                        type="password"
+                        name="currentPassword"
+                        value={formData.currentPassword}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-logo-green text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1 font-sans">New Password</label>
+                      <input
+                        type="password"
+                        name="newPassword"
+                        value={formData.newPassword}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-logo-green text-sm"
+                        minLength={6}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1 font-sans">Confirm Password</label>
+                      <input
+                        type="password"
+                        name="confirmPassword"
+                        value={formData.confirmPassword}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-logo-green text-sm"
+                        minLength={6}
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-500 font-sans">
+                    Leave the password fields blank if you don’t want to change your password.
+                    Changing your password requires entering the current password for verification.
+                  </p>
+
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="submit"
+                      disabled={isSaving}
+                      className="px-6 py-3 bg-logo-green text-white font-bold rounded-lg hover:bg-banner-green transition-colors disabled:opacity-60"
+                    >
+                      {isSaving ? 'Saving...' : 'Save Changes'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsEditing(false);
+                        if (user) {
+                          const matchedCountry =
+                            countries.find((country) =>
+                              user.countryCode ? country.code === user.countryCode : country.dial_code === user.phoneDialCode
+                            ) || countries[0];
+                          setSelectedCountry(matchedCountry);
+                          let phoneWithoutDial = user.phone || '';
+                          if (phoneWithoutDial.startsWith(matchedCountry.dial_code)) {
+                            phoneWithoutDial = phoneWithoutDial.replace(matchedCountry.dial_code, '');
+                          }
+                          phoneWithoutDial = phoneWithoutDial.replace(/^\+?/, '');
+                          setFormData({
+                            name: user.name || '',
+                            email: user.email || '',
+                            phone: phoneWithoutDial,
+                            country: matchedCountry.name,
+                            countryCode: matchedCountry.code,
+                            phoneDialCode: matchedCountry.dial_code,
+                            profileImage: user.profileImage || '',
+                            currentPassword: '',
+                            newPassword: '',
+                            confirmPassword: '',
+                            gender: user.gender || '',
+                          });
+                          setProfilePreview(user.profileImage || '');
+                          setPhoneError('');
+                        }
+                      }}
+                      className="px-6 py-3 border border-gray-300 text-gray-700 font-bold rounded-lg hover:bg-gray-100 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              )}
             </div>
 
             {/* Shipping Addresses */}

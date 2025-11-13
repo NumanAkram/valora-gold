@@ -68,7 +68,7 @@ const Cart = () => {
                   {/* Product Image */}
                   <div className="flex-shrink-0">
                     <img
-                      src={item.image || "/4.png"}
+                      src={item.image || "/4.webp"}
                       alt={item.name}
                       className="w-24 h-24 sm:w-32 sm:h-32 object-contain bg-gray-50 rounded-lg p-2"
                     />

@@ -95,7 +95,7 @@ const SearchResults = () => {
                   priceValue !== null && originalValue !== null && originalValue > priceValue;
                 const formattedPrice = priceValue !== null ? `Rs.${priceValue.toLocaleString()}` : null;
                 const formattedOriginal = originalValue !== null ? `Rs.${originalValue.toLocaleString()}` : null;
-                const productImage = product.images?.[0] || product.image || '/4.png';
+                const productImage = product.images?.[0] || product.image || '/4.webp';
                 const productReviews = product.numReviews || 0;
                 const displayRating = getDisplayRating(product);
                 

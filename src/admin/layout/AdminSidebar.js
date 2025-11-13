@@ -5,6 +5,7 @@ import {
   Package,
   ClipboardList,
   Users,
+  Truck,
   LogOut,
 } from 'lucide-react';
 import { useAdminAuth } from '../../context/AdminAuthContext';
@@ -14,6 +15,7 @@ const links = [
   { to: '/admin/products', label: 'Products', icon: Package },
   { to: '/admin/orders', label: 'Orders', icon: ClipboardList },
   { to: '/admin/users', label: 'Users', icon: Users },
+  { to: '/admin/shipping', label: 'Manage Shipping', icon: Truck },
 ];
 
 const AdminSidebar = ({ isCollapsed }) => {

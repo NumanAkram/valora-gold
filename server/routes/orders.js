@@ -8,6 +8,7 @@ const Product = require('../models/Product');
 const { protect } = require('../middleware/auth');
 const Notification = require('../models/Notification');
 const { sendMail } = require('../utils/mailer');
+const { getShippingCharge } = require('../services/shippingService');
 
 // @route   POST /api/orders
 // @desc    Create new order
@@ -150,7 +151,7 @@ router.post('/', [
       });
     }
 
-    const shippingCost = 0; // Free shipping as per website
+    const shippingCost = await getShippingCharge();
     const discount = 0;
     const total = subtotal + shippingCost - discount;
 
