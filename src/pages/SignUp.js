@@ -391,9 +391,45 @@ const SignUp = () => {
                 Phone Number
               </label>
               <div className="flex">
-                <div className="flex items-center gap-1 px-3 py-2 border border-gray-300 rounded-l-lg bg-gray-50 text-sm text-gray-700">
-                  <Phone className="h-4 w-4 text-gray-500" />
-                  {selectedCountry.dial_code}
+                <div ref={countryDropdownRef} className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setIsCountryDropdownOpen(!isCountryDropdownOpen)}
+                    className="flex items-center gap-1 px-3 py-2 border border-gray-300 rounded-l-lg bg-gray-50 text-sm text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-logo-green focus:border-logo-green font-sans"
+                  >
+                    <Phone className="h-4 w-4 text-gray-500" />
+                    <span>{selectedCountry.dial_code}</span>
+                    <ChevronDown className="h-3 w-3 text-gray-500" />
+                  </button>
+                  {isCountryDropdownOpen && (
+                    <div className="absolute mt-2 left-0 bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-y-auto z-20 w-72">
+                      <div className="p-2 border-b border-gray-100 flex items-center gap-2">
+                        <Search className="h-4 w-4 text-gray-400" />
+                        <input
+                          type="text"
+                          value={countryQuery}
+                          onChange={(event) => setCountryQuery(event.target.value)}
+                          placeholder="Search country"
+                          className="w-full text-sm outline-none font-sans"
+                        />
+                      </div>
+                      <ul className="max-h-56 overflow-y-auto">
+                        {filteredCountries.map((country) => (
+                          <li
+                            key={country.code}
+                            onClick={() => handleSelectCountry(country)}
+                            className="px-3 py-2 text-sm hover:bg-logo-green/10 cursor-pointer flex items-center justify-between font-sans"
+                          >
+                            <span>{country.name}</span>
+                            <span className="text-gray-500">{country.dial_code}</span>
+                          </li>
+                        ))}
+                        {filteredCountries.length === 0 && (
+                          <li className="px-3 py-2 text-sm text-gray-500 font-sans">No countries found.</li>
+                        )}
+                      </ul>
+                    </div>
+                  )}
                 </div>
                 <input
                   id="phone"
@@ -402,12 +438,12 @@ const SignUp = () => {
                   required
                   value={formData.phone}
                   onChange={handleChange}
-                  className="appearance-none block w-full pl-3 pr-3 py-2 border border-gray-300 rounded-r-lg placeholder-gray-400 focus:outline-none focus:ring-logo-green focus:border-logo-green sm:text-sm font-sans"
+                  className="appearance-none block w-full pl-3 pr-3 py-2 border border-gray-300 border-l-0 rounded-r-lg placeholder-gray-400 focus:outline-none focus:ring-logo-green focus:border-logo-green sm:text-sm font-sans"
                   placeholder={`e.g., ${selectedCountry.dial_code}123456789`}
                 />
               </div>
               <p className="mt-1 text-xs text-gray-500 font-sans">
-                Enter your number without the leading zero; we’ll prepend the {selectedCountry.dial_code} dial code automatically.
+                Enter your number without the leading zero; we'll prepend the {selectedCountry.dial_code} dial code automatically.
               </p>
               {phoneError && (
                 <p className="mt-1 text-xs text-red-600 font-sans">{phoneError}</p>

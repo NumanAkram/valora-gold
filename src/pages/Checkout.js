@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { MapPin, CreditCard, Truck, Lock, ChevronDown, ClipboardList } from 'lucide-react';
+import { MapPin, CreditCard, Truck, Lock, ChevronDown, ClipboardList, Phone, Globe, Search } from 'lucide-react';
 import { useCart, parsePrice } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import { ordersAPI, authAPI, shippingAPI } from '../utils/api';
 import Breadcrumbs from '../components/Breadcrumbs';
+import countries from '../data/countries';
 
 const Checkout = () => {
   const navigate = useNavigate();
@@ -42,6 +43,37 @@ const Checkout = () => {
   });
   const [shippingCharge, setShippingCharge] = useState(200);
   const [loadingShipping, setLoadingShipping] = useState(false);
+  const defaultCountry = countries.find((country) => country.code === 'PK') || countries[0];
+  const [selectedCountry, setSelectedCountry] = useState(defaultCountry);
+  const [countryQuery, setCountryQuery] = useState('');
+  const [isCountryDropdownOpen, setIsCountryDropdownOpen] = useState(false);
+  const countryDropdownRef = useRef(null);
+
+  const filteredCountries = useMemo(() => {
+    if (!countryQuery) return countries;
+    return countries.filter((country) =>
+      country.name.toLowerCase().includes(countryQuery.trim().toLowerCase())
+    );
+  }, [countryQuery]);
+
+  const handleSelectCountry = (country) => {
+    setSelectedCountry(country);
+    setIsCountryDropdownOpen(false);
+    setCountryQuery('');
+  };
+
+  useEffect(() => {
+    const handler = (event) => {
+      if (
+        countryDropdownRef.current &&
+        !countryDropdownRef.current.contains(event.target)
+      ) {
+        setIsCountryDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -290,15 +322,60 @@ const Checkout = () => {
                       <label className="block text-sm font-medium text-gray-700 mb-1 font-sans">
                         Phone Number <span className="text-red-500">*</span>
                       </label>
-                      <input
-                        type="tel"
-                        name="phone"
-                        value={formData.phone}
-                        onChange={handleChange}
-                        required
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-logo-green font-sans"
-                        placeholder="0339-0005256"
-                      />
+                      <div className="flex">
+                        <div ref={countryDropdownRef} className="relative">
+                          <button
+                            type="button"
+                            onClick={() => setIsCountryDropdownOpen(!isCountryDropdownOpen)}
+                            className="flex items-center gap-1 px-3 py-2 border border-gray-300 rounded-l-lg bg-gray-50 text-sm text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-logo-green focus:border-logo-green font-sans"
+                          >
+                            <Phone className="h-4 w-4 text-gray-500" />
+                            <span>{selectedCountry.dial_code}</span>
+                            <ChevronDown className="h-3 w-3 text-gray-500" />
+                          </button>
+                          {isCountryDropdownOpen && (
+                            <div className="absolute mt-2 left-0 bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-y-auto z-20 w-72">
+                              <div className="p-2 border-b border-gray-100 flex items-center gap-2">
+                                <Search className="h-4 w-4 text-gray-400" />
+                                <input
+                                  type="text"
+                                  value={countryQuery}
+                                  onChange={(event) => setCountryQuery(event.target.value)}
+                                  placeholder="Search country"
+                                  className="w-full text-sm outline-none font-sans"
+                                />
+                              </div>
+                              <ul className="max-h-56 overflow-y-auto">
+                                {filteredCountries.map((country) => (
+                                  <li
+                                    key={country.code}
+                                    onClick={() => handleSelectCountry(country)}
+                                    className="px-3 py-2 text-sm hover:bg-logo-green/10 cursor-pointer flex items-center justify-between font-sans"
+                                  >
+                                    <span>{country.name}</span>
+                                    <span className="text-gray-500">{country.dial_code}</span>
+                                  </li>
+                                ))}
+                                {filteredCountries.length === 0 && (
+                                  <li className="px-3 py-2 text-sm text-gray-500 font-sans">No countries found.</li>
+                                )}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                        <input
+                          type="tel"
+                          name="phone"
+                          value={formData.phone}
+                          onChange={handleChange}
+                          required
+                          className="flex-1 px-4 py-2 border border-gray-300 border-l-0 rounded-r-lg focus:outline-none focus:ring-2 focus:ring-logo-green focus:border-logo-green font-sans"
+                          placeholder={`e.g., ${selectedCountry.dial_code}123456789`}
+                        />
+                      </div>
+                      <p className="mt-1 text-xs text-gray-500 font-sans">
+                        Enter your number without the leading zero; we'll prepend the {selectedCountry.dial_code} dial code automatically.
+                      </p>
                     </div>
                   </div>
                 </div>

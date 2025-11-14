@@ -39,10 +39,12 @@ const Hero = () => {
   };
 
   return (
-    <section className="relative w-full bg-white">
-      <div className="mx-auto w-full max-w-[1500px] px-0">
+    <section className="relative w-full bg-transparent lg:bg-white hero-section">
+      {/* Responsive container: Full width, NO padding/margin on tablets/mobile - attached like reference website */}
+      <div className="w-full max-w-full lg:max-w-none">
         <div className="relative w-full overflow-hidden">
-          <div className="relative w-full overflow-hidden rounded-none sm:rounded-3xl shadow-none aspect-[16/7] sm:aspect-[16/6] md:aspect-[16/5.75] lg:aspect-[16/5.25] xl:aspect-[16/4.8] 2xl:aspect-[16/4.5] min-h-[260px] sm:min-h-[300px] md:min-h-[340px] lg:min-h-[380px] xl:min-h-[410px]">
+          {/* Banner container: Full images on mobile/tablet, responsive on desktop */}
+          <div className="relative w-full overflow-hidden rounded-none lg:rounded-none shadow-none bg-transparent hero-banner-container lg:aspect-[16/5.25] xl:aspect-[16/4.8] 2xl:aspect-[16/4.5] lg:min-h-[380px] xl:min-h-[410px]">
           {images.map((image, index) => {
             const isActive = index === currentSlide;
             const positionClass = (() => {
@@ -54,45 +56,70 @@ const Hero = () => {
             return (
           <div
             key={index}
-                className={`absolute inset-0 w-full h-full transition-all duration-[1500ms] ease-in-out transform ${positionClass}`}
+                className={`absolute inset-0 w-full h-full lg:h-full transition-all duration-[1500ms] ease-in-out transform ${positionClass}`}
           >
-            <img
-              src={image}
-              alt={`Hero slide ${index + 1}`}
-              className="w-full h-full object-cover object-center"
-              loading={index === 0 ? 'eager' : 'lazy'}
-            />
+            {/* Same image used for all devices - responsive like Mama Organic */}
+            <picture>
+              {/* Same image source for all breakpoints */}
+              <source
+                media="(min-width: 1024px)"
+                srcSet={image}
+              />
+              <source
+                media="(min-width: 768px)"
+                srcSet={image}
+              />
+              <source
+                media="(min-width: 640px)"
+                srcSet={image}
+              />
+              <source
+                media="(min-width: 480px)"
+                srcSet={image}
+              />
+              <img
+                src={image}
+                alt={`Hero slide ${index + 1}`}
+                className="w-full h-full hero-banner-image"
+                loading={index === 0 ? 'eager' : 'lazy'}
+                decoding="async"
+              />
+            </picture>
           </div>
             );
           })}
 
+        {/* Navigation Arrows - Responsive positioning */}
         <button
           onClick={goToPrevious}
-            className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 z-30 bg-white/80 hover:bg-white text-gray-800 rounded-full p-2 sm:p-2.5 transition-all duration-300 hover:scale-110 shadow-lg"
+          className="absolute left-2 sm:left-3 md:left-4 lg:left-6 xl:left-8 top-1/2 -translate-y-1/2 z-30 bg-white/80 hover:bg-white text-gray-800 rounded-full p-2 sm:p-2.5 md:p-3 transition-all duration-300 hover:scale-110 shadow-lg backdrop-blur-sm"
           aria-label="Previous slide"
         >
-            <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          <svg className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
           </svg>
         </button>
 
         <button
           onClick={goToNext}
-            className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 z-30 bg-white/80 hover:bg-white text-gray-800 rounded-full p-2 sm:p-2.5 transition-all duration-300 hover:scale-110 shadow-lg"
+          className="absolute right-2 sm:right-3 md:right-4 lg:right-6 xl:right-8 top-1/2 -translate-y-1/2 z-30 bg-white/80 hover:bg-white text-gray-800 rounded-full p-2 sm:p-2.5 md:p-3 transition-all duration-300 hover:scale-110 shadow-lg backdrop-blur-sm"
           aria-label="Next slide"
         >
-            <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          <svg className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
           </svg>
         </button>
 
-          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-30 flex space-x-2">
+        {/* Dots Indicator - Responsive positioning and sizing */}
+        <div className="absolute bottom-3 sm:bottom-4 md:bottom-5 lg:bottom-6 left-1/2 transform -translate-x-1/2 z-30 flex space-x-1.5 sm:space-x-2">
           {images.map((_, index) => (
             <button
               key={index}
               onClick={() => goToSlide(index)}
               className={`transition-all duration-300 rounded-full ${
-                  index === currentSlide ? 'bg-white w-8 h-2' : 'bg-white/60 w-2 h-2 hover:bg-white'
+                index === currentSlide 
+                  ? 'bg-white w-6 h-1.5 sm:w-8 sm:h-2 md:w-10 md:h-2.5' 
+                  : 'bg-white/60 w-1.5 h-1.5 sm:w-2 sm:h-2 md:w-2.5 md:h-2.5 hover:bg-white/80'
               }`}
               aria-label={`Go to slide ${index + 1}`}
             />

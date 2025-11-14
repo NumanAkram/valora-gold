@@ -151,23 +151,285 @@
   scrollbar-color: #888 #f1f1f1;
 }
 
-/* Promo marquee animation */
+/* Promo marquee animation - Continuous loop without gaps */
 @keyframes marquee {
   0% {
-    transform: translateX(100%);
+    transform: translateX(0);
   }
   100% {
-    transform: translateX(-100%);
+    transform: translateX(-50%);
   }
 }
 
-.marquee {
-  display: inline-block;
+.marquee-container {
+  overflow: hidden;
+  white-space: nowrap;
+  position: relative;
+  width: 100%;
+}
+
+.marquee-content {
+  display: inline-flex;
+  white-space: nowrap;
   animation: marquee 25s linear infinite;
   will-change: transform;
 }
 
-.marquee:hover {
+.marquee-content:hover {
   animation-play-state: paused;
 }
+
+/* Hero Banner Images - Responsive like Mama Organic (same images, different object-fit per device) */
+.hero-banner-image {
+  width: 100%;
+  height: 100%;
+  object-position: center;
+  background-position: center;
+  will-change: transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transition: transform 0.3s ease;
+  /* Default: contain for mobile/tablet to contain image in container */
+  object-fit: contain;
+  display: block;
+  margin: 0 auto;
+}
+
+/* Mobile and Tablet views (< 1024px) - Full images without cropping */
+@media (max-width: 1023px) {
+  /* Prevent body overflow */
+  body {
+    overflow-x: hidden !important;
+    max-width: 100vw !important;
+  }
+  
+  /* Hero section - No padding/margin, full width (100vw), 0 white spaces */
+  section.hero-section {
+    padding: 0 !important;
+    margin: 0 !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    background: transparent !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+    position: relative !important;
+  }
+  
+  /* Remove any spacing before Hero section */
+  section.hero-section:first-child {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+  }
+  
+  /* Remove spacing from parent elements */
+  body > * > section.hero-section,
+  #root > * > section.hero-section,
+  main > section.hero-section:first-child {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+  }
+  
+  /* Parent containers - prevent overflow */
+  section.hero-section > div {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  
+  section.hero-section > div > div {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  
+  /* Banner container - Full width (100vw) with proper aspect ratios like Mama Organic */
+  .hero-banner-container {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    position: relative !important;
+    overflow: hidden !important;
+    display: block !important;
+  }
+  
+  /* Small Mobile: Height 150px (at 540px) */
+  @media (max-width: 540px) {
+    .hero-banner-container {
+      aspect-ratio: unset !important;
+      height: 150px !important;
+      min-height: 150px !important;
+      max-height: 150px !important;
+      width: 100vw !important;
+      max-width: 100vw !important;
+      overflow: hidden !important;
+    }
+  }
+  
+  /* Mobile: Height 250px (540px to 599px) */
+  @media (min-width: 541px) and (max-width: 599px) {
+    .hero-banner-container {
+      aspect-ratio: unset !important;
+      height: 250px !important;
+      min-height: 250px !important;
+      max-height: 250px !important;
+      width: 100vw !important;
+      max-width: 100vw !important;
+      overflow: hidden !important;
+    }
+  }
+  
+  /* Tablet: Height 250px (600px to 1023px) */
+  @media (min-width: 600px) and (max-width: 1023px) {
+    .hero-banner-container {
+      aspect-ratio: unset !important;
+      height: 250px !important;
+      min-height: 250px !important;
+      max-height: 250px !important;
+      width: 100vw !important;
+      max-width: 100vw !important;
+      overflow: hidden !important;
+    }
+  }
+  
+  /* Image containers - Full width and height of container (150px at 540px, 250px above) */
+  section.hero-section > div > div > div > div {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: 100% !important;
+    max-height: 150px !important;
+    overflow: hidden !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  
+  /* Small Mobile: Image containers 150px (at 540px) */
+  @media (max-width: 540px) {
+    section.hero-section > div > div > div > div {
+      max-height: 150px !important;
+      height: 150px !important;
+    }
+  }
+  
+  /* Mobile/Tablet: Image containers 250px (540px to 1023px) */
+  @media (min-width: 541px) and (max-width: 1023px) {
+    section.hero-section > div > div > div > div {
+      max-height: 250px !important;
+      height: 250px !important;
+    }
+  }
+  
+  /* Images - Contain to show FULL image without cropping (150px at 540px, 250px above) */
+  .hero-banner-image {
+    width: 100% !important;
+    max-width: 100vw !important;
+    height: 100% !important;
+    max-height: 150px !important;
+    object-fit: contain !important;
+    object-position: center !important;
+    background-position: center !important;
+    display: block !important;
+    margin: 0 auto !important;
+  }
+  
+  /* Small Mobile: Images 150px (at 540px) */
+  @media (max-width: 540px) {
+    .hero-banner-image {
+      height: 150px !important;
+      min-height: 150px !important;
+      max-height: 150px !important;
+    }
+  }
+  
+  /* Mobile/Tablet: Images 250px (540px to 1023px) */
+  @media (min-width: 541px) and (max-width: 1023px) {
+    .hero-banner-image {
+      height: 250px !important;
+      min-height: 250px !important;
+      max-height: 250px !important;
+    }
+  }
+  
+  /* Picture element - Full width and height (150px at 540px, 250px above) */
+  section.hero-section > div > div > div > div > picture {
+    width: 100% !important;
+    max-width: 100vw !important;
+    height: 100% !important;
+    max-height: 150px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    overflow: hidden !important;
+  }
+  
+  section.hero-section > div > div > div > div > picture > img {
+    width: 100% !important;
+    max-width: 100vw !important;
+    height: 100% !important;
+    max-height: 150px !important;
+    object-fit: contain !important;
+    object-position: center !important;
+    background-position: center !important;
+    display: block !important;
+    margin: 0 auto !important;
+  }
+  
+  /* Small Mobile: Picture elements 150px (at 540px) */
+  @media (max-width: 540px) {
+    section.hero-section > div > div > div > div > picture {
+      height: 150px !important;
+      min-height: 150px !important;
+      max-height: 150px !important;
+    }
+    
+    section.hero-section > div > div > div > div > picture > img {
+      height: 150px !important;
+      min-height: 150px !important;
+      max-height: 150px !important;
+    }
+  }
+  
+  /* Mobile/Tablet: Picture elements 250px (540px to 1023px) */
+  @media (min-width: 541px) and (max-width: 1023px) {
+    section.hero-section > div > div > div > div > picture {
+      height: 250px !important;
+      min-height: 250px !important;
+      max-height: 250px !important;
+    }
+    
+    section.hero-section > div > div > div > div > picture > img {
+      height: 250px !important;
+      min-height: 250px !important;
+      max-height: 250px !important;
+    }
+  }
+}
+
+/* Desktop and larger screens (1024px+) - Same images, cover for better visual effect (like Mama Organic) */
+@media (min-width: 1024px) {
+  .hero-banner-image {
+    object-position: center;
+    background-position: center;
+    object-fit: cover;
+  }
+}
+
 

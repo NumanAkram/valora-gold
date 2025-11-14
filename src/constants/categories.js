@@ -1,5 +1,11 @@
 const CATEGORIES = [
   {
+    label: 'Home',
+    value: 'Home',
+    path: '/',
+    image: '/hair-care.webp', // Placeholder image - can be updated later
+  },
+  {
     label: 'Hair Care',
     value: 'Hair',
     path: '/hair-care',

@@ -157,8 +157,15 @@ const Navbar = () => {
           <div className="max-w-7xl mx-auto flex items-center justify-center relative px-3 sm:px-4">
             <div className="w-full flex items-center gap-3 sm:gap-4 pr-6">
               <div className="flex-1 overflow-hidden">
-                <div className="marquee text-[11px] sm:text-sm font-medium whitespace-nowrap">
-                  Cash on Delivery Available in all over the Pakistan 🚚 | Delivery in just 3–4 working days ⏱ | Enjoy free shipping on all orders above PKR 8,000 🎁 | Get an additional 5% discount on advance payment 💳
+                <div className="marquee-container">
+                  <div className="marquee-content text-[11px] sm:text-sm font-medium whitespace-nowrap">
+                    <span className="px-4">
+                      Cash on Delivery Available in all over the Pakistan 🚚 | Delivery in just 3–4 working days ⏱ | Enjoy free shipping on all orders above PKR 8,000 🎁 | Get an additional 5% discount on advance payment 💳
+                    </span>
+                    <span className="px-4">
+                      Cash on Delivery Available in all over the Pakistan 🚚 | Delivery in just 3–4 working days ⏱ | Enjoy free shipping on all orders above PKR 8,000 🎁 | Get an additional 5% discount on advance payment 💳
+                    </span>
+                  </div>
                 </div>
               </div>
               <button
@@ -472,34 +479,16 @@ const Navbar = () => {
             </form>
             
             {/* Mobile Navigation Links */}
-            <Link
-              to="/hair-care"
-              onClick={toggleMenu}
-              className="block text-text-gray font-normal text-sm py-2 border-b border-gray-200"
-            >
-              Hair Care
-            </Link>
-            <Link
-              to="/perfume"
-              onClick={toggleMenu}
-              className="block text-text-gray font-normal text-sm py-2 border-b border-gray-200"
-            >
-              Fragrance Collection
-            </Link>
-            <Link
-              to="/beauty-products"
-              onClick={toggleMenu}
-              className="block text-text-gray font-normal text-sm py-2 border-b border-gray-200"
-            >
-              Beauty & Skin Care
-            </Link>
-            <Link
-              to="/other"
-              onClick={toggleMenu}
-              className="block text-text-gray font-normal text-sm py-2 border-b border-gray-200"
-            >
-              Others
-            </Link>
+            {CATEGORIES.map((category) => (
+              <Link
+                key={category.value}
+                to={category.path}
+                onClick={toggleMenu}
+                className="block text-text-gray font-normal text-sm py-2 border-b border-gray-200"
+              >
+                {category.label}
+              </Link>
+            ))}
             <Link
               to={accountLink}
               onClick={toggleMenu}

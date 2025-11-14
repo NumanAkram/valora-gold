@@ -34,8 +34,8 @@ const WeKnowYourNeeds = () => {
             </h3>
 
             {/* Mission Description */}
-            <p className="text-gray-700 text-xs sm:text-sm md:text-base leading-relaxed font-sans">
-              At Valora Gold, we are driven by a passion for purity and perfection. Our mission is to craft premium, 100% organic, chemical-free products inspired by nature’s finest ingredients. We believe true beauty begins with wellness; that’s why every Valora Gold creation reflects authenticity, purity, and care. Our goal is to help you embrace a healthier, more radiant lifestyle, naturally.
+            <p className="text-gray-700 text-xs sm:text-sm md:text-base leading-relaxed font-sans text-justify">
+              At Valora Gold, we are driven by a passion for purity and perfection. Our mission is to craft premium, 100% organic, chemical-free products inspired by nature's finest ingredients. We believe true beauty begins with wellness; that's why every Valora Gold creation reflects authenticity, purity, and care. Our goal is to help you embrace a healthier, more radiant lifestyle, naturally.
             </p>
 
             {/* Certification Logos - Close to text */}
