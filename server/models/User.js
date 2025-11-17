@@ -21,8 +21,12 @@ const userSchema = new mongoose.Schema({
   },
   gender: {
     type: String,
-    enum: ['male', 'female'],
-    default: null,
+    enum: {
+      values: ['male', 'female'],
+      message: 'Gender must be either male or female'
+    },
+    default: undefined,
+    required: false
   },
   profileImage: {
     type: String,
