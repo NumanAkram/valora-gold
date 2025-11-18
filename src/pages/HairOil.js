@@ -4,6 +4,7 @@ import { Star, Heart, Tag } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import { useWishlist } from '../context/WishlistContext';
+import { useAdminAuth } from '../context/AdminAuthContext';
 import Breadcrumbs from '../components/Breadcrumbs';
 import { productsAPI } from '../utils/api';
 import { getDisplayRating } from '../utils/ratings';
@@ -14,6 +15,7 @@ const HairCare = () => {
   const { addToCart } = useCart();
   const { showToast } = useToast();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
+  const { isAuthenticated: isAdminAuthenticated } = useAdminAuth();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [priceProduct, setPriceProduct] = useState(null);
@@ -121,10 +123,12 @@ const HairCare = () => {
                 const productName = product.name || product.title || '';
                 const productPrice = typeof product.price === 'number' ? product.price : null;
                 const productOriginalPrice = typeof product.originalPrice === 'number' ? product.originalPrice : null;
-                const productImage = product.images?.[0] || product.image || '/4.webp';
+                // Priority: imageUrl (primary) > images[0] (first gallery) > image (fallback) > default
+                const productImage = product.imageUrl || product.images?.[0] || product.image || '/4.webp';
                 const productRating = getDisplayRating(product);
                 const productReviews = product.numReviews || 0;
                 const isComingSoon = Boolean(product.comingSoon) || productPrice === null;
+                const isOutOfStock = Boolean(product.outOfStock) || (!product.inStock && product.stockCount === 0);
                 const hasSale = !isComingSoon && productOriginalPrice !== null && productPrice !== null && productOriginalPrice > productPrice;
                 // For this specific product, show 60% off tag when applicable
                 const salePercent = !isComingSoon && hasSale
@@ -134,39 +138,63 @@ const HairCare = () => {
                 return (
                   <div key={productId} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden relative">
                     {/* Sale Badge */}
-                    {hasSale && salePercent > 0 && (
+                    {!isComingSoon && hasSale && salePercent > 0 && (
                       <div className="absolute top-2 left-2 z-10">
-                        <div className="bg-logo-green text-white text-xs font-bold px-2 py-1 rounded-full">
+                        <div className="bg-logo-green text-white text-sm font-bold px-3 py-1.5 rounded-full shadow-lg">
                           Sale {salePercent}%
                         </div>
                       </div>
                     )}
 
-                    {/* Wishlist Button */}
-                    <button
-                      onClick={() => {
-                        if (isInWishlist(productId)) {
-                          removeFromWishlist(productId);
-                          showToast('Removed from wishlist', 'success');
-                        } else {
-                          addToWishlist({ ...product, id: productId, name: productName, price: productPrice ?? 0, image: productImage });
-                          showToast('Added to wishlist!', 'success');
-                        }
-                      }}
-                      className="absolute top-2 right-2 z-10 bg-white rounded-full p-2 shadow-md hover:bg-red-50 transition-colors"
-                    >
-                      <Heart className={`h-5 w-5 ${isInWishlist(productId) ? 'text-red-500 fill-current' : 'text-gray-600'}`} />
-                    </button>
+                    {/* Wishlist Button - Only for users, not admin */}
+                    {!isAdminAuthenticated && (
+                      <button
+                        onClick={() => {
+                          if (isInWishlist(productId)) {
+                            removeFromWishlist(productId);
+                            showToast('Removed from wishlist', 'success');
+                          } else {
+                            addToWishlist({ ...product, id: productId, name: productName, price: productPrice ?? 0, image: productImage });
+                            showToast('Added to wishlist!', 'success');
+                          }
+                        }}
+                        className="absolute top-2 right-2 z-10 bg-white rounded-full p-2 shadow-md hover:bg-red-50 transition-colors"
+                      >
+                        <Heart className={`h-5 w-5 ${isInWishlist(productId) ? 'text-red-500 fill-current' : 'text-gray-600'}`} />
+                      </button>
+                    )}
 
                     {/* Product Image */}
                     <div
                       className="h-64 bg-gray-50 cursor-pointer"
-                      onClick={() => navigate(`/product/${productId}`, { state: { product: { ...product, id: productId, _id: productId, name: productName, title: productName, price: productPrice, originalPrice: productOriginalPrice, images: product.images || [productImage], image: productImage, rating: productRating, numReviews: productReviews } } })}
+                      onClick={() => {
+                        const allImages = product.imageUrl 
+                          ? [product.imageUrl, ...(product.images || []).filter(img => img && img !== product.imageUrl)]
+                          : (product.images && product.images.length > 0 ? product.images : [productImage]);
+                        navigate(`/product/${productId}`, { 
+                          state: { 
+                            product: { 
+                              ...product, 
+                              id: productId, 
+                              _id: productId, 
+                              name: productName, 
+                              title: productName, 
+                              price: productPrice, 
+                              originalPrice: productOriginalPrice,
+                              imageUrl: product.imageUrl || productImage,
+                              images: allImages,
+                              image: productImage, 
+                              rating: productRating, 
+                              numReviews: productReviews 
+                            } 
+                          } 
+                        });
+                      }}
                     >
                       <img
                         src={productImage}
                         alt={productName}
-                        className="w-full h-full object-contain p-4"
+                        className="w-full h-full object-contain lg:object-cover p-4"
                       />
                     </div>
 
@@ -175,7 +203,29 @@ const HairCare = () => {
                       {/* Product Title */}
                       <h3
                         className="font-semibold text-gray-900 cursor-pointer hover:text-logo-green transition-colors line-clamp-2"
-                        onClick={() => navigate(`/product/${productId}`, { state: { product: { ...product, id: productId, _id: productId, name: productName, title: productName, price: productPrice, originalPrice: productOriginalPrice, images: product.images || [productImage], image: productImage, rating: productRating, numReviews: productReviews } } })}
+                        onClick={() => {
+                        const allImages = product.imageUrl 
+                          ? [product.imageUrl, ...(product.images || []).filter(img => img && img !== product.imageUrl)]
+                          : (product.images && product.images.length > 0 ? product.images : [productImage]);
+                        navigate(`/product/${productId}`, { 
+                          state: { 
+                            product: { 
+                              ...product, 
+                              id: productId, 
+                              _id: productId, 
+                              name: productName, 
+                              title: productName, 
+                              price: productPrice, 
+                              originalPrice: productOriginalPrice,
+                              imageUrl: product.imageUrl || productImage,
+                              images: allImages,
+                              image: productImage, 
+                              rating: productRating, 
+                              numReviews: productReviews 
+                            } 
+                          } 
+                        });
+                      }}
                       >
                         {productName}
                       </h3>
@@ -217,13 +267,33 @@ const HairCare = () => {
                       </div>
 
                       {/* Action Button */}
-                      {isComingSoon ? (
-                        <button
-                          onClick={() => openPriceModal(product)}
-                          className="w-full border border-logo-green text-logo-green font-bold py-2 px-4 rounded text-sm uppercase transition-colors duration-300 hover:bg-logo-green hover:text-white"
-                        >
-                          Set Price
-                        </button>
+                      {isComingSoon || isOutOfStock ? (
+                        // Admin: Show "Set Price" only for Coming Soon, nothing for Out of Stock
+                        // Users: Show "Add to Wishlist" for both Coming Soon and Out of Stock
+                        isAdminAuthenticated && isComingSoon ? (
+                          <button
+                            onClick={() => openPriceModal(product)}
+                            className="w-full border border-logo-green text-logo-green font-bold py-2 px-4 rounded text-sm uppercase transition-colors duration-300 hover:bg-logo-green hover:text-white"
+                          >
+                            Set Price
+                          </button>
+                        ) : !isAdminAuthenticated ? (
+                          <button
+                            onClick={() => {
+                              if (isInWishlist(productId)) {
+                                removeFromWishlist(productId);
+                                showToast('Removed from wishlist', 'success');
+                              } else {
+                                addToWishlist({ ...product, id: productId, name: productName, price: productPrice ?? 0, image: productImage });
+                                showToast('Added to wishlist!', 'success');
+                              }
+                            }}
+                            className="w-full border border-logo-green text-logo-green font-bold py-2 px-4 rounded text-sm uppercase transition-colors duration-300 hover:bg-logo-green hover:text-white flex items-center justify-center gap-2"
+                          >
+                            <Heart className={`h-4 w-4 ${isInWishlist(productId) ? 'text-red-500 fill-current' : ''}`} />
+                            {isInWishlist(productId) ? 'Remove from Wishlist' : 'Add to Wishlist'}
+                          </button>
+                        ) : null // Admin + Out of Stock = no button
                       ) : (
                         <button
                           onClick={() => {

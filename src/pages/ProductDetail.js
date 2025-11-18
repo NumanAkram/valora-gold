@@ -55,13 +55,6 @@ const ProductDetail = () => {
     setHasAdminAccess(Boolean(storedAdmin || storedAdminToken) || isAdmin);
   }, [isAdmin]);
 
-  const defaultSeedReviews = [
-    { id: 'r1', customerName: 'Mrs Hassan', rating: 5, reviewText: 'Simple the best facewash, I am using it from a year.' },
-    { id: 'r2', customerName: 'Ayesha Sana', rating: 5, reviewText: 'Great quality, refreshing and gentle on skin.' },
-    { id: 'r3', customerName: 'Anas Khan', rating: 4, reviewText: 'Nice cleansing, smells good and controls oil.' },
-    { id: 'r4', customerName: 'Malaika Baig', rating: 5, reviewText: 'Helps with pimples and leaves skin fresh.' },
-    { id: 'r5', customerName: 'Muhammad Ilyas', rating: 5, reviewText: 'Good product at this price.' }
-  ];
 
   // Scroll to top when component mounts or product ID changes
   useEffect(() => {
@@ -236,15 +229,23 @@ const ProductDetail = () => {
   const productName = product.name;
   const productPrice = product.price || 0;
   const productOriginalPrice = product.originalPrice || null;
-  const productImages = product.images && product.images.length > 0 ? product.images : ['/4.webp'];
+  // Priority: imageUrl (primary) first, then gallery images
+  const productImages = product.imageUrl 
+    ? [product.imageUrl, ...(product.images || []).filter(img => img !== product.imageUrl && img)]
+    : (product.images && product.images.length > 0 ? product.images : ['/4.webp']);
   const productDescription = product.description || '';
   const productIngredients = product.ingredients || '';
   const productBenefits = product.benefits || [];
-  const productRating = getDisplayRating(product);
-  const productReviewsCount = product.numReviews || reviews.length;
-  const productInStock = product.inStock !== false;
+  // Calculate rating: Use real reviews if available, otherwise use fallback rating (same as product cards)
+  const productRating = reviews.length > 0
+    ? reviews.reduce((sum, review) => sum + (Number(review.rating) || 0), 0) / reviews.length
+    : getDisplayRating(product); // Fallback rating (4 or 5 stars) like product cards
+  const productReviewsCount = reviews.length; // Only count real reviews from database
+  const isComingSoon = Boolean(product.comingSoon) || productPrice === null;
+  const isOutOfStock = Boolean(product.outOfStock) || (!product.inStock && product.stockCount === 0);
+  const productInStock = !isComingSoon && !isOutOfStock && product.inStock !== false;
   const productStockCount = product.stockCount || 0;
-  const displayReviews = reviews.length > 0 ? reviews : defaultSeedReviews;
+  const displayReviews = reviews; // Only show real reviews, no fake/seed reviews
   const isEditingReview = Boolean(reviewBeingEdited && (reviewBeingEdited._id || reviewBeingEdited.id));
 
   const handleWishlist = () => {
@@ -424,10 +425,19 @@ const ProductDetail = () => {
       await refreshReviewsAndProduct();
     } catch (error) {
       const errorMessage = error?.message || '';
-      if (errorMessage.toLowerCase().includes('already reviewed')) {
+      const errorData = error?.response?.data || error?.data || {};
+      
+      // Handle backend validation errors
+      if (errorData.errors && Array.isArray(errorData.errors) && errorData.errors.length > 0) {
+        const firstError = errorData.errors[0];
+        const errorMsg = firstError.msg || firstError.message || firstError;
+        showToast(errorMsg, 'error');
+      } else if (errorMessage.toLowerCase().includes('already reviewed')) {
         showToast('You have already reviewed this product.', 'error');
       } else if (errorMessage.toLowerCase().includes('product not found')) {
         showToast('Product not found. Please refresh and try again.', 'error');
+      } else if (errorData.message) {
+        showToast(errorData.message, 'error');
       } else {
         showToast(
           reviewBeingEdited
@@ -436,6 +446,7 @@ const ProductDetail = () => {
           'error'
         );
       }
+      console.error('Review submission error:', error);
     } finally {
       setShowReviewModal(false);
       setReviewForm({ name: '', rating: 5, reviewText: '' });
@@ -569,7 +580,11 @@ const ProductDetail = () => {
 
               {/* Stock Status */}
               <div className="mb-6">
-                {productInStock ? (
+                {isComingSoon ? (
+                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800 font-sans">
+                    Coming Soon
+                  </span>
+                ) : productInStock ? (
                   <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 font-sans">
                     ✓ In Stock {productStockCount > 0 ? `(${productStockCount} available)` : ''}
                   </span>
@@ -768,13 +783,17 @@ const ProductDetail = () => {
               <div>
                 <div className="flex items-center justify-between flex-wrap gap-4 mb-6">
                   <div className="text-center">
-                    <div className="text-4xl font-bold text-logo-green font-sans">{productRating.toFixed(1)}</div>
+                    <div className="text-4xl font-bold text-logo-green font-sans">
+                      {productRating.toFixed(1)}
+                    </div>
                     <div className="flex items-center justify-center mt-2">
                       {[...Array(5)].map((_, i) => (
                         <Star key={i} className={`h-5 w-5 ${i + 1 <= productRating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} />
                       ))}
                     </div>
-                    <div className="text-sm text-gray-600 mt-2 font-sans">{productReviewsCount} reviews</div>
+                    <div className="text-sm text-gray-600 mt-2 font-sans">
+                      {productReviewsCount} {productReviewsCount === 1 ? 'review' : 'reviews'}
+                    </div>
                   </div>
                   <div className="flex items-center gap-3">
                     <button onClick={openCreateReviewModal} className="bg-logo-green text-white px-4 py-2 rounded-lg hover:bg-banner-green transition-colors font-sans">Write a Review</button>
@@ -848,7 +867,7 @@ const ProductDetail = () => {
                 return (
                 <div key={prodId} className="border rounded-lg p-3 hover:shadow transition cursor-pointer" onClick={() => navigate(`/product/${prodId}`, { state: { product: { ...p, id: prodId, images: p.images || [prodImage], image: prodImage } } })}>
                   <div className="h-40 bg-gray-50 rounded flex items-center justify-center overflow-hidden">
-                    <img src={prodImage} alt={p.name} className="object-contain w-full h-full p-3" />
+                    <img src={prodImage} alt={p.name} className="object-contain lg:object-cover w-full h-full p-3" />
                   </div>
                   <div className="mt-3">
                     <div className="text-sm font-semibold text-gray-900 line-clamp-2 font-sans">{p.name}</div>
@@ -933,7 +952,7 @@ const RecentlyViewedList = ({ currentId }) => {
           return (
             <div key={prodId} onClick={() => navigate(`/product/${prodId}`, { state: { product: { ...p, id: prodId, images: p.images || [prodImage], image: prodImage } } })} className="border rounded-lg p-3 hover:shadow transition cursor-pointer">
               <div className="h-36 bg-gray-50 rounded flex items-center justify-center overflow-hidden">
-                <img src={prodImage} alt={p.name} className="object-contain w-full h-full p-3" />
+                <img src={prodImage} alt={p.name} className="object-contain lg:object-cover w-full h-full p-3" />
               </div>
               <div className="mt-3">
                 <div className="text-sm font-semibold text-gray-900 line-clamp-2 font-sans">{p.name}</div>

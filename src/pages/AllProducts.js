@@ -10,7 +10,7 @@ import { productsAPI } from '../utils/api';
 import { getDisplayRating } from '../utils/ratings';
 import SetPriceModal from '../components/SetPriceModal';
 
-const Perfume = () => {
+const AllProducts = () => {
   const navigate = useNavigate();
   const { addToCart } = useCart();
   const { showToast } = useToast();
@@ -21,6 +21,7 @@ const Perfume = () => {
   const [priceProduct, setPriceProduct] = useState(null);
   const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
 
+  // Scroll to top when component mounts
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
   }, []);
@@ -29,18 +30,19 @@ const Perfume = () => {
     const fetchProducts = async () => {
       try {
         setLoading(true);
-        const response = await productsAPI.getAll({
-          limit: 100,
-          category: 'Perfume'
+        // Fetch all products without category filter
+        const response = await productsAPI.getAll({ 
+          limit: 1000, // Fetch all products
+          sort: 'newest' 
         });
-
+        console.log('All Products API Response:', response);
         if (response && response.success && Array.isArray(response.data)) {
           setProducts(response.data);
         } else {
           setProducts([]);
         }
       } catch (error) {
-        console.error('Error fetching fragrance products:', error);
+        console.error('Error fetching products:', error);
         setProducts([]);
       } finally {
         setLoading(false);
@@ -53,7 +55,7 @@ const Perfume = () => {
   useEffect(() => {
     const handleProductAdded = (event) => {
       const newProduct = event.detail;
-      if (!newProduct || newProduct.category !== 'Perfume') return;
+      if (!newProduct) return;
 
       setProducts((prev) => {
         const exists = prev.some(
@@ -90,19 +92,17 @@ const Perfume = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <Breadcrumbs
-          items={[
-            { label: 'Home', path: '/' },
-            { label: 'Fragrance Collection', path: '/perfume' }
-          ]}
-        />
+        <Breadcrumbs items={[
+          { label: 'Home', path: '/' },
+          { label: 'All Products', path: '/all-products' }
+        ]} />
 
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-logo-green mb-2 font-sans uppercase tracking-wide">
-            Fragrance Collection
+            All Products
           </h1>
           <p className="text-gray-600 font-sans">
-            Discover timeless fragrances crafted to elevate your presence and style
+            Browse our complete collection of premium products
           </p>
         </div>
 
@@ -125,20 +125,23 @@ const Perfume = () => {
                 const productOriginalPrice = typeof product.originalPrice === 'number' ? product.originalPrice : null;
                 // Priority: imageUrl (primary) > images[0] (first gallery) > image (fallback) > default
                 const productImage = product.imageUrl || product.images?.[0] || product.image || '/4.webp';
+                // Gallery images: all images except the primary imageUrl
+                const galleryImages = product.imageUrl 
+                  ? (product.images || []).filter(img => img !== product.imageUrl)
+                  : (product.images || []).slice(1);
                 const productRating = getDisplayRating(product);
                 const productReviews = product.numReviews || 0;
                 const isComingSoon = Boolean(product.comingSoon) || productPrice === null;
                 const isOutOfStock = Boolean(product.outOfStock) || (!product.inStock && product.stockCount === 0);
                 const hasSale = !isComingSoon && productOriginalPrice !== null && productPrice !== null && productOriginalPrice > productPrice;
-                const salePercent = !isComingSoon
-                  ? (hasSale ? Math.round(((productOriginalPrice - productPrice) / productOriginalPrice) * 100) : 0)
+                // For this specific product, show 60% off tag when applicable
+                const salePercent = !isComingSoon && hasSale
+                  ? Math.round(((productOriginalPrice - productPrice) / productOriginalPrice) * 100)
                   : 0;
 
                 return (
-                  <div
-                    key={productId}
-                    className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden relative"
-                  >
+                  <div key={productId} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden relative">
+                    {/* Sale Badge */}
                     {!isComingSoon && hasSale && salePercent > 0 && (
                       <div className="absolute top-2 left-2 z-10">
                         <div className="bg-logo-green text-white text-sm font-bold px-3 py-1.5 rounded-full shadow-lg">
@@ -155,83 +158,85 @@ const Perfume = () => {
                             removeFromWishlist(productId);
                             showToast('Removed from wishlist', 'success');
                           } else {
-                            addToWishlist({
-                              ...product,
-                              id: productId,
-                              name: productName,
-                              price: productPrice ?? 0,
-                              image: productImage
-                            });
+                            addToWishlist({ ...product, id: productId, name: productName, price: productPrice ?? 0, image: productImage });
                             showToast('Added to wishlist!', 'success');
                           }
                         }}
                         className="absolute top-2 right-2 z-10 bg-white rounded-full p-2 shadow-md hover:bg-red-50 transition-colors"
                       >
-                        <Heart
-                          className={`h-5 w-5 ${
-                            isInWishlist(productId) ? 'text-red-500 fill-current' : 'text-gray-600'
-                          }`}
-                        />
+                        <Heart className={`h-5 w-5 ${isInWishlist(productId) ? 'text-red-500 fill-current' : 'text-gray-600'}`} />
                       </button>
                     )}
 
+                    {/* Product Image */}
                     <div
                       className="h-64 bg-gray-50 cursor-pointer"
-                      onClick={() =>
-                        navigate(`/product/${productId}`, {
-                          state: {
-                            product: {
-                              ...product,
-                              id: productId,
-                              _id: productId,
-                              name: productName,
-                              title: productName,
-                              price: productPrice,
+                      onClick={() => {
+                        // Ensure proper image structure: imageUrl as primary, images as array with imageUrl first
+                        const allImages = product.imageUrl 
+                          ? [product.imageUrl, ...(product.images || []).filter(img => img !== product.imageUrl)]
+                          : (product.images || product.image ? [productImage, ...(product.images || []).slice(1)] : [productImage]);
+                        navigate(`/product/${productId}`, { 
+                          state: { 
+                            product: { 
+                              ...product, 
+                              id: productId, 
+                              _id: productId, 
+                              name: productName, 
+                              title: productName, 
+                              price: productPrice, 
                               originalPrice: productOriginalPrice,
                               imageUrl: product.imageUrl || productImage,
-                              images: product.imageUrl 
-                                ? [product.imageUrl, ...(product.images || []).filter(img => img && img !== product.imageUrl)]
-                                : (product.images && product.images.length > 0 ? product.images : [productImage]),
-                              image: productImage,
-                              rating: productRating,
-                              numReviews: productReviews
-                            }
-                          }
-                        })
-                      }
+                              images: allImages,
+                              image: productImage, 
+                              rating: productRating, 
+                              numReviews: productReviews 
+                            } 
+                          } 
+                        });
+                      }}
                     >
-                      <img src={productImage} alt={productName} className="w-full h-full object-contain lg:object-cover p-4" />
+                      <img
+                        src={productImage}
+                        alt={productName}
+                        className="w-full h-full object-contain lg:object-cover p-4"
+                      />
                     </div>
 
+                    {/* Product Details */}
                     <div className="p-4 space-y-3 font-sans">
+                      {/* Product Title */}
                       <h3
                         className="font-semibold text-gray-900 cursor-pointer hover:text-logo-green transition-colors line-clamp-2"
-                        onClick={() =>
-                          navigate(`/product/${productId}`, {
-                            state: {
-                              product: {
-                                ...product,
-                                id: productId,
-                                _id: productId,
-                                name: productName,
-                                title: productName,
-                                price: productPrice,
-                                originalPrice: productOriginalPrice,
-                                imageUrl: product.imageUrl || productImage,
-                              images: product.imageUrl 
-                                ? [product.imageUrl, ...(product.images || []).filter(img => img && img !== product.imageUrl)]
-                                : (product.images && product.images.length > 0 ? product.images : [productImage]),
-                                image: productImage,
-                                rating: productRating,
-                                numReviews: productReviews
-                              }
-                            }
-                          })
-                        }
+                        onClick={() => {
+                        // Ensure proper image structure: imageUrl as primary, images as array with imageUrl first
+                        const allImages = product.imageUrl 
+                          ? [product.imageUrl, ...(product.images || []).filter(img => img !== product.imageUrl)]
+                          : (product.images || product.image ? [productImage, ...(product.images || []).slice(1)] : [productImage]);
+                        navigate(`/product/${productId}`, { 
+                          state: { 
+                            product: { 
+                              ...product, 
+                              id: productId, 
+                              _id: productId, 
+                              name: productName, 
+                              title: productName, 
+                              price: productPrice, 
+                              originalPrice: productOriginalPrice,
+                              imageUrl: product.imageUrl || productImage,
+                              images: allImages,
+                              image: productImage, 
+                              rating: productRating, 
+                              numReviews: productReviews 
+                            } 
+                          } 
+                        });
+                      }}
                       >
                         {productName}
                       </h3>
 
+                      {/* Rating */}
                       <div className="flex items-center space-x-2">
                         <div className="flex">
                           {[...Array(5)].map((_, i) => (
@@ -241,9 +246,12 @@ const Perfume = () => {
                             />
                           ))}
                         </div>
-                        <span className="text-xs text-gray-600">({productReviews} reviews)</span>
+                        <span className="text-xs text-gray-600">
+                          ({productReviews} reviews)
+                        </span>
                       </div>
 
+                      {/* Pricing */}
                       <div className="flex items-center space-x-2">
                         {isComingSoon ? (
                           <span className="inline-flex items-center gap-1 rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-700 uppercase">
@@ -264,6 +272,7 @@ const Perfume = () => {
                         )}
                       </div>
 
+                      {/* Action Button */}
                       {isComingSoon || isOutOfStock ? (
                         // Admin: Show "Set Price" only for Coming Soon, nothing for Out of Stock
                         // Users: Show "Add to Wishlist" for both Coming Soon and Out of Stock
@@ -315,8 +324,12 @@ const Perfume = () => {
           </>
         ) : (
           <div className="bg-white rounded-lg shadow-md p-12 text-center">
-            <h3 className="text-xl font-bold text-gray-900 mb-2 font-sans">No products found</h3>
-            <p className="text-gray-600 font-sans">There are currently no fragrance products available.</p>
+            <h3 className="text-xl font-bold text-gray-900 mb-2 font-sans">
+              No products found
+            </h3>
+            <p className="text-gray-600 font-sans">
+              There are currently no products available.
+            </p>
           </div>
         )}
       </div>
@@ -333,4 +346,5 @@ const Perfume = () => {
   );
 };
 
-export default Perfume;
+export default AllProducts;
+

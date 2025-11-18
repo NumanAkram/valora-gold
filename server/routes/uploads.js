@@ -39,7 +39,7 @@ const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB
+    fileSize: 10 * 1024 * 1024, // 10MB
   },
 });
 
@@ -50,9 +50,15 @@ router.post(
   (req, res, next) => {
     upload.single('image')(req, res, (err) => {
       if (err instanceof multer.MulterError) {
+        let errorMessage = err.message;
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          errorMessage = 'Image file is too large. Please use an image smaller than 10MB.';
+        } else if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+          errorMessage = 'Unexpected file field. Please check your upload form.';
+        }
         return res.status(400).json({
           success: false,
-          message: err.message,
+          message: errorMessage,
         });
       }
       if (err) {
@@ -80,6 +86,53 @@ router.post(
       url: absoluteUrl,
       path: filePath,
       message: 'Image uploaded successfully',
+    });
+  }
+);
+
+// User profile image upload endpoint (authenticated users only, no admin required)
+router.post(
+  '/profile-image',
+  protect,
+  (req, res, next) => {
+    upload.single('image')(req, res, (err) => {
+      if (err instanceof multer.MulterError) {
+        let errorMessage = err.message;
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          errorMessage = 'Image file is too large. Please use an image smaller than 10MB.';
+        } else if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+          errorMessage = 'Unexpected file field. Please check your upload form.';
+        }
+        return res.status(400).json({
+          success: false,
+          message: errorMessage,
+        });
+      }
+      if (err) {
+        return res.status(400).json({
+          success: false,
+          message: err.message || 'Upload failed',
+        });
+      }
+      return next();
+    });
+  },
+  (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No file uploaded',
+      });
+    }
+
+    const filePath = `/uploads/${req.file.filename}`;
+    const absoluteUrl = `${req.protocol}://${req.get('host')}${filePath}`;
+
+    return res.status(201).json({
+      success: true,
+      url: absoluteUrl,
+      path: filePath,
+      message: 'Profile image uploaded successfully',
     });
   }
 );

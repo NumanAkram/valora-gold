@@ -7,6 +7,9 @@ import ProductFormModal from '../components/ProductFormModal';
 import CATEGORIES from '../../constants/categories';
 import { useToast } from '../../context/ToastContext';
 
+// Filter out "All" category from product categories (only for product upload)
+const PRODUCT_CATEGORIES = CATEGORIES.filter((cat) => cat.value !== 'All');
+
 const AdminProducts = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -240,7 +243,7 @@ const AdminProducts = () => {
         onClose={() => setIsFormOpen(false)}
         product={selectedProduct}
         onSubmit={handleCreateOrUpdate}
-        categories={CATEGORIES}
+        categories={PRODUCT_CATEGORIES}
       />
     </AdminLayout>
   );

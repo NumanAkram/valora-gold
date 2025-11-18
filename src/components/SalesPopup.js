@@ -2,10 +2,10 @@ import React, { useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import { productsAPI } from '../utils/api';
 
-const ROTATION_INTERVAL = 5000; // switch every 5 seconds
-const INITIAL_DELAY = 2000; // show 2s after load
+const ROTATION_INTERVAL = 10000; // switch every 10 seconds
+const INITIAL_DELAY = 8500; // show 8.5s after load (7-10 second range)
 const TRANSITION_DURATION = 500; // ms for show/hide animation
-const REAPPEAR_DELAY = 15000; // show again 15s after dismiss
+const DISMISSED_STORAGE_KEY = 'valora_sales_popup_dismissed';
 
 const BUYERS = [
   { name: 'Fatima Ahmed', city: 'Multan' },
@@ -131,9 +131,18 @@ const SalesPopup = () => {
   const [currentEvent, setCurrentEvent] = useState(null);
   const [visible, setVisible] = useState(false);
   const [animateIn, setAnimateIn] = useState(false);
+  const [isDismissed, setIsDismissed] = useState(false);
   const currentIndexRef = useRef(0);
   const eventOrderRef = useRef([]);
-  const reopenTimeoutRef = useRef(null);
+
+  useEffect(() => {
+    // Check if popup was dismissed in this session (resets on new page load)
+    const dismissed = sessionStorage.getItem(DISMISSED_STORAGE_KEY) === 'true';
+    if (dismissed) {
+      setIsDismissed(true);
+      return;
+    }
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -192,6 +201,10 @@ const SalesPopup = () => {
   }, []);
 
   useEffect(() => {
+    if (isDismissed) {
+      return undefined;
+    }
+
     if (!hairOilProduct && comingSoonProducts.length === 0) {
       return undefined;
     }
@@ -203,7 +216,7 @@ const SalesPopup = () => {
     }, INITIAL_DELAY);
 
     return () => clearTimeout(timer);
-  }, [hairOilProduct, comingSoonProducts]);
+  }, [hairOilProduct, comingSoonProducts, isDismissed]);
 
   useEffect(() => {
     if (!visible || (!hairOilProduct && comingSoonProducts.length === 0)) {
@@ -232,11 +245,6 @@ const SalesPopup = () => {
     };
   }, [visible, hairOilProduct, comingSoonProducts]);
 
-  useEffect(() => () => {
-    if (reopenTimeoutRef.current) {
-      clearTimeout(reopenTimeoutRef.current);
-    }
-  }, []);
 
   const showNextEvent = () => {
     const hasPurchaseOption = Boolean(hairOilProduct || saleProducts.length);
@@ -297,27 +305,22 @@ const SalesPopup = () => {
   };
 
   const handleDismiss = () => {
-    if (reopenTimeoutRef.current) {
-      clearTimeout(reopenTimeoutRef.current);
-      reopenTimeoutRef.current = null;
-    }
     setAnimateIn(false);
     setTimeout(() => {
       setVisible(false);
-      reopenTimeoutRef.current = setTimeout(() => {
-        showNextEvent();
-        setVisible(true);
-        requestAnimationFrame(() => setAnimateIn(true));
-      }, REAPPEAR_DELAY);
+      setIsDismissed(true);
+      // Save dismissal state to sessionStorage (resets on new page load)
+      sessionStorage.setItem(DISMISSED_STORAGE_KEY, 'true');
     }, TRANSITION_DURATION);
   };
 
-  if (!visible || !currentEvent?.product) {
+  if (isDismissed || !visible || !currentEvent?.product) {
     return null;
   }
 
   const productName = currentEvent.product.name || currentEvent.product.title || 'This product';
-  const productImage = currentEvent.product.images?.[0] || currentEvent.product.image || '/4.webp';
+  // Priority: imageUrl (primary) > images[0] (first gallery) > image (fallback) > default
+  const productImage = currentEvent.product.imageUrl || currentEvent.product.images?.[0] || currentEvent.product.image || '/4.webp';
 
   return (
     <div

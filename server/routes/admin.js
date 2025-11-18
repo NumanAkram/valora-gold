@@ -428,7 +428,7 @@ router.put('/users/:id', async (req, res) => {
       });
     }
 
-    const { name, email, role, phone, country, countryCode, phoneDialCode } = req.body;
+    const { name, email, role, phone, country, countryCode, phoneDialCode, profileImage } = req.body;
 
     const user = await User.findById(req.params.id).select('-password');
 
@@ -476,6 +476,10 @@ router.put('/users/:id', async (req, res) => {
     }
     if (role !== undefined) {
       user.role = role;
+    }
+    if (profileImage !== undefined && profileImage !== null) {
+      // Allow empty string to clear profile image, or set new URL
+      user.profileImage = typeof profileImage === 'string' ? profileImage.trim() : profileImage;
     }
 
     await user.save();

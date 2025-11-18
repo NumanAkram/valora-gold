@@ -6,11 +6,6 @@ import Spinner from '../../components/Spinner';
 import { useToast } from '../../context/ToastContext';
 import UserFormModal from '../components/UserFormModal';
 
-const ROLE_BADGE = {
-  admin: 'bg-purple-100 text-purple-700',
-  user: 'bg-green-100 text-green-700',
-};
-
 const AdminUsers = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -142,21 +137,19 @@ const AdminUsers = () => {
                 <HeaderCell>User</HeaderCell>
                 <HeaderCell>Email</HeaderCell>
                 <HeaderCell>Phone</HeaderCell>
-                <HeaderCell>Role</HeaderCell>
-                <HeaderCell>Joined</HeaderCell>
                 <HeaderCell>Actions</HeaderCell>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="py-10">
+                  <td colSpan={4} className="py-10">
                     <Spinner label="Loading users..." />
                   </td>
                 </tr>
               ) : error ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-6 text-center text-red-600 text-sm font-sans">
+                  <td colSpan={4} className="px-4 py-6 text-center text-red-600 text-sm font-sans">
                     {error}
                   </td>
                 </tr>
@@ -165,8 +158,30 @@ const AdminUsers = () => {
                   <tr key={user._id}>
                     <BodyCell>
                       <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-logo-green/10 text-logo-green flex items-center justify-center font-semibold uppercase">
-                          {(user.name || 'U').slice(0, 2)}
+                        <div className="relative">
+                          {user.profileImage ? (
+                            <img
+                              src={user.profileImage}
+                              alt={user.name}
+                              className="h-10 w-10 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div className="h-10 w-10 rounded-full bg-logo-green/10 text-logo-green flex items-center justify-center font-semibold uppercase">
+                              {(user.name || 'U').slice(0, 2)}
+                            </div>
+                          )}
+                          {/* Role Icon Badge */}
+                          <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 shadow-sm">
+                            {user.role === 'admin' ? (
+                              <div className="h-4 w-4 rounded-full bg-purple-600 flex items-center justify-center">
+                                <Shield className="h-2.5 w-2.5 text-white" />
+                              </div>
+                            ) : (
+                              <div className="h-4 w-4 rounded-full bg-green-600 flex items-center justify-center">
+                                <UsersIcon className="h-2.5 w-2.5 text-white" />
+                              </div>
+                            )}
+                          </div>
                         </div>
                         <div className="flex flex-col">
                           <span className="font-semibold text-gray-900">{user.name}</span>
@@ -179,25 +194,6 @@ const AdminUsers = () => {
                     <BodyCell>{user.email}</BodyCell>
                     <BodyCell>{user.phone || 'N/A'}</BodyCell>
                     <BodyCell>
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                          ROLE_BADGE[user.role] || 'bg-gray-100 text-gray-700'
-                        } flex items-center gap-1`}
-                      >
-                        {user.role === 'admin' ? (
-                          <Shield className="h-3.5 w-3.5" />
-                        ) : (
-                          <UsersIcon className="h-3.5 w-3.5" />
-                        )}
-                        {user.role === 'admin' ? 'Admin' : 'Customer'}
-                      </span>
-                    </BodyCell>
-                    <BodyCell>
-                      {user.createdAt
-                        ? new Date(user.createdAt).toLocaleDateString()
-                        : 'N/A'}
-                    </BodyCell>
-                    <BodyCell>
                       <button
                         onClick={() => openEditUser(user)}
                         className="inline-flex items-center gap-1 px-3 py-1 rounded-md border border-gray-200 text-xs font-semibold text-gray-600 hover:bg-gray-100"
@@ -209,7 +205,7 @@ const AdminUsers = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={6} className="px-4 py-6 text-center text-sm text-gray-500 font-sans">
+                  <td colSpan={4} className="px-4 py-6 text-center text-sm text-gray-500 font-sans">
                     No users found.
                   </td>
                 </tr>

@@ -3,6 +3,7 @@ import { Star, Heart, ShoppingBag, Eye } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import { useWishlist } from '../context/WishlistContext';
+import { useAdminAuth } from '../context/AdminAuthContext';
 import { getDisplayRating } from '../utils/ratings';
 import { productsAPI } from '../utils/api';
 
@@ -13,6 +14,7 @@ const FeaturedProducts = () => {
   const { addToCart } = useCart();
   const { showToast } = useToast();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
+  const { isAuthenticated: isAdminAuthenticated } = useAdminAuth();
 
   useEffect(() => {
     const fetchFeatured = async () => {
@@ -83,14 +85,18 @@ const FeaturedProducts = () => {
             displayProducts.map((product, index) => {
               const productId = product._id || product.id;
               const productName = product.name || product.title;
-              const productImage = product.images?.[0] || product.image || '/4.webp';
+              // Priority: imageUrl (primary) > images[0] (first gallery) > image (fallback) > default
+              const productImage = product.imageUrl || product.images?.[0] || product.image || '/4.webp';
               const productRating = getDisplayRating(product);
               const productReviews = product.numReviews || 0;
               const priceValue = typeof product.price === 'number' ? product.price : null;
               const originalPriceValue =
                 typeof product.originalPrice === 'number' ? product.originalPrice : priceValue;
+              const isComingSoon = Boolean(product.comingSoon) || priceValue === null;
+              const isOutOfStock = Boolean(product.outOfStock) || (!product.inStock && product.stockCount === 0);
+              const hasSale = !isComingSoon && priceValue !== null && originalPriceValue && originalPriceValue > priceValue;
               const discount =
-                priceValue !== null && originalPriceValue && originalPriceValue > priceValue
+                hasSale
                   ? Math.round(((originalPriceValue - priceValue) / originalPriceValue) * 100)
                   : 0;
 
@@ -101,57 +107,91 @@ const FeaturedProducts = () => {
                 <img
                   src={productImage}
                   alt={productName}
-                  className="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500"
+                  className="w-full h-64 object-contain lg:object-cover p-4 group-hover:scale-110 transition-transform duration-500"
                 />
                 
-                {/* Badge */}
-                <div className="absolute top-4 left-4">
-                  <span className="px-3 py-1 text-xs font-semibold rounded-full bg-gold-500 text-white">
-                    New Arrival
-                  </span>
-                </div>
+                {/* Sale Badge */}
+                {!isComingSoon && hasSale && discount > 0 && (
+                  <div className="absolute top-4 left-4 z-10">
+                    <div className="bg-logo-green text-white text-sm font-bold px-3 py-1.5 rounded-full shadow-lg">
+                      Sale {discount}%
+                    </div>
+                  </div>
+                )}
 
-                {/* Action Buttons */}
-                <div className="absolute top-4 right-4 flex flex-col space-y-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <button
-                    className="p-2 bg-white rounded-full shadow-lg hover:bg-gold-50 transition-colors"
-                    onClick={() => {
-                      if (isInWishlist(productId)) {
-                        removeFromWishlist(productId);
-                        showToast('Removed from wishlist', 'success');
-                      } else {
-                        addToWishlist({ ...product, id: productId, image: productImage });
-                        showToast('Added to wishlist!', 'success');
+                {/* Badge - Only show if no sale badge */}
+                {(!hasSale || discount === 0 || isComingSoon) && (
+                  <div className="absolute top-4 left-4">
+                    <span className="px-3 py-1 text-xs font-semibold rounded-full bg-gold-500 text-white">
+                      New Arrival
+                    </span>
+                  </div>
+                )}
+
+                {/* Action Buttons - Only for users, not admin */}
+                {!isAdminAuthenticated && (
+                  <div className="absolute top-4 right-4 flex flex-col space-y-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <button
+                      className="p-2 bg-white rounded-full shadow-lg hover:bg-gold-50 transition-colors"
+                      onClick={() => {
+                        if (isInWishlist(productId)) {
+                          removeFromWishlist(productId);
+                          showToast('Removed from wishlist', 'success');
+                        } else {
+                          addToWishlist({ ...product, id: productId, image: productImage });
+                          showToast('Added to wishlist!', 'success');
+                        }
+                      }}
+                    >
+                      <Heart className={`h-4 w-4 ${isInWishlist(productId) ? 'text-red-500 fill-current' : 'text-gray-600'}`} />
+                    </button>
+                    <button
+                      className="p-2 bg-white rounded-full shadow-lg hover:bg-gold-50 transition-colors"
+                      onClick={() =>
+                        showToast('Open product details to view more information.', 'info')
                       }
-                    }}
-                  >
-                    <Heart className={`h-4 w-4 ${isInWishlist(productId) ? 'text-red-500 fill-current' : 'text-gray-600'}`} />
-                  </button>
-                  <button
-                    className="p-2 bg-white rounded-full shadow-lg hover:bg-gold-50 transition-colors"
-                    onClick={() =>
-                      showToast('Open product details to view more information.', 'info')
-                    }
-                  >
-                    <Eye className="h-4 w-4 text-gray-600" />
-                  </button>
-                </div>
+                    >
+                      <Eye className="h-4 w-4 text-gray-600" />
+                    </button>
+                  </div>
+                )}
 
-                {/* Quick Add Button */}
+                {/* Quick Add / Wishlist Button */}
                 <div className="absolute bottom-4 left-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <button
-                    className="w-full bg-gold-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-gold-700 transition-colors flex items-center justify-center space-x-2"
-                    onClick={() => {
-                      if (priceValue === null) {
-                        showToast('Price not available yet for this product.', 'info');
-                        return;
-                      }
-                      addToCart({ ...product, id: productId, price: priceValue, image: productImage });
-                    }}
-                  >
-                    <ShoppingBag className="h-4 w-4" />
-                    <span>Quick Add</span>
-                  </button>
+                  {isComingSoon || isOutOfStock ? (
+                    // Show "Add to Wishlist" only for users, not for admin
+                    !isAdminAuthenticated ? (
+                      <button
+                        className="w-full bg-gold-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-gold-700 transition-colors flex items-center justify-center space-x-2"
+                        onClick={() => {
+                          if (isInWishlist(productId)) {
+                            removeFromWishlist(productId);
+                            showToast('Removed from wishlist', 'success');
+                          } else {
+                            addToWishlist({ ...product, id: productId, price: priceValue ?? 0, image: productImage });
+                            showToast('Added to wishlist!', 'success');
+                          }
+                        }}
+                      >
+                        <Heart className={`h-4 w-4 ${isInWishlist(productId) ? 'fill-current' : ''}`} />
+                        <span>{isInWishlist(productId) ? 'Remove from Wishlist' : 'Add to Wishlist'}</span>
+                      </button>
+                    ) : null // Admin users don't see "Add to Wishlist" - they manage via admin panel
+                  ) : (
+                    <button
+                      className="w-full bg-gold-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-gold-700 transition-colors flex items-center justify-center space-x-2"
+                      onClick={() => {
+                        if (priceValue === null) {
+                          showToast('Price not available yet for this product.', 'info');
+                          return;
+                        }
+                        addToCart({ ...product, id: productId, price: priceValue, image: productImage });
+                      }}
+                    >
+                      <ShoppingBag className="h-4 w-4" />
+                      <span>Quick Add</span>
+                    </button>
+                  )}
                 </div>
               </div>
 

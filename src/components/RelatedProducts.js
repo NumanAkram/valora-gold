@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Star } from 'lucide-react';
+import { Star, Heart } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
+import { useWishlist } from '../context/WishlistContext';
+import { useAdminAuth } from '../context/AdminAuthContext';
 import { productsAPI } from '../utils/api';
 import { getDisplayRating } from '../utils/ratings';
 
@@ -10,6 +12,8 @@ const RelatedProducts = ({ currentProductId }) => {
   const navigate = useNavigate();
   const { addToCart } = useCart();
   const { showToast } = useToast();
+  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
+  const { isAuthenticated: isAdminAuthenticated } = useAdminAuth();
   const [relatedProducts, setRelatedProducts] = useState([]);
 
   useEffect(() => {
@@ -45,7 +49,10 @@ const RelatedProducts = ({ currentProductId }) => {
             ? product.price
             : (typeof product.originalPrice === 'number' ? product.originalPrice : null);
           const productPrice = priceValue !== null ? `Rs.${priceValue.toLocaleString()}` : 'Price not available';
-          const productImage = product.images?.[0] || product.image || '/4.webp';
+          // Priority: imageUrl (primary) > images[0] (first gallery) > image (fallback) > default
+          const productImage = product.imageUrl || product.images?.[0] || product.image || '/4.webp';
+          const isComingSoon = Boolean(product.comingSoon) || priceValue === null;
+          const isOutOfStock = Boolean(product.outOfStock) || (!product.inStock && product.stockCount === 0);
           const productReviews = product.numReviews || 0;
           const displayRating = getDisplayRating(product);
           
@@ -58,7 +65,7 @@ const RelatedProducts = ({ currentProductId }) => {
               <img
                 src={productImage}
                 alt={product.name}
-                className="w-full h-full object-contain p-4"
+                className="w-full h-full object-contain lg:object-cover p-4"
               />
             </div>
             <div className="p-4 space-y-2">
@@ -80,18 +87,39 @@ const RelatedProducts = ({ currentProductId }) => {
                 <span className="text-xs text-gray-600 font-sans">({productReviews} reviews)</span>
               </div>
               <div className="text-lg font-bold text-logo-green font-sans">{productPrice}</div>
-              <button
-                onClick={() => {
-                  if (priceValue === null) {
-                    showToast('Price not available yet for this product.', 'info');
-                    return;
-                  }
-                  addToCart({ ...product, id: productId, price: priceValue, image: productImage });
-                }}
-                className="w-full bg-logo-green text-white py-2 px-4 rounded hover:bg-banner-green transition-colors font-sans font-medium text-sm"
-              >
-                Add to Cart
-              </button>
+              {isComingSoon || isOutOfStock ? (
+                // Show "Add to Wishlist" only for users, not for admin
+                !isAdminAuthenticated ? (
+                  <button
+                    onClick={() => {
+                      if (isInWishlist(productId)) {
+                        removeFromWishlist(productId);
+                        showToast('Removed from wishlist', 'success');
+                      } else {
+                        addToWishlist({ ...product, id: productId, price: priceValue ?? 0, image: productImage });
+                        showToast('Added to wishlist!', 'success');
+                      }
+                    }}
+                    className="w-full border border-logo-green text-logo-green font-bold py-2 px-4 rounded text-sm uppercase transition-colors duration-300 hover:bg-logo-green hover:text-white flex items-center justify-center gap-2 font-sans"
+                  >
+                    <Heart className={`h-4 w-4 ${isInWishlist(productId) ? 'text-red-500 fill-current' : ''}`} />
+                    {isInWishlist(productId) ? 'Remove from Wishlist' : 'Add to Wishlist'}
+                  </button>
+                ) : null // Admin users don't see "Add to Wishlist" - they manage via admin panel
+              ) : (
+                <button
+                  onClick={() => {
+                    if (priceValue === null) {
+                      showToast('Price not available yet for this product.', 'info');
+                      return;
+                    }
+                    addToCart({ ...product, id: productId, price: priceValue, image: productImage });
+                  }}
+                  className="w-full bg-logo-green text-white py-2 px-4 rounded hover:bg-banner-green transition-colors font-sans font-medium text-sm"
+                >
+                  Add to Cart
+                </button>
+              )}
             </div>
           </div>
           );

@@ -208,7 +208,8 @@ const BestSellers = () => {
               const formattedOriginal = formatCurrency(product.originalPrice);
               const hasDiscount =
                 formattedPrice && formattedOriginal && formattedPrice !== formattedOriginal;
-              const productImage = product.images?.[0] || product.image || '/4.webp';
+              // Priority: imageUrl (primary) > images[0] (first gallery) > image (fallback) > default
+              const productImage = product.imageUrl || product.images?.[0] || product.image || '/4.webp';
               const ratingValue = getDisplayRating(product);
               const productReviews = typeof product.numReviews === 'number'
                 ? product.numReviews
@@ -231,34 +232,51 @@ const BestSellers = () => {
               };
 
               const priceForCart = getNumericPrice(product.price) ?? getNumericPrice(product.originalPrice) ?? 0;
+              const productPrice = getNumericPrice(product.price);
+              const productOriginalPrice = getNumericPrice(product.originalPrice);
+              const isComingSoon = Boolean(product.comingSoon) || productPrice === null;
+              const isOutOfStock = Boolean(product.outOfStock) || (!product.inStock && product.stockCount === 0);
+              const hasSale = !isComingSoon && productPrice !== null && productOriginalPrice !== null && productOriginalPrice > productPrice;
+              const salePercent = hasSale ? Math.round(((productOriginalPrice - productPrice) / productOriginalPrice) * 100) : 0;
               
               return (
               <div key={productId} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden relative">
-                 {/* Wishlist Button */}
-                 <button
-                   onClick={() => {
-                     if (isInWishlist(productId)) {
-                       removeFromWishlist(productId);
-                       showToast('Removed from wishlist', 'success');
-                     } else {
-                       addToWishlist({ ...product, id: productId, image: productImage });
-                       showToast('Added to wishlist!', 'success');
-                     }
-                   }}
-                   className="absolute top-2 right-2 z-10 bg-white rounded-full p-2 shadow-md hover:bg-red-50 transition-colors"
-                 >
-                   <Heart className={`h-5 w-5 ${isInWishlist(productId) ? 'text-red-500 fill-current' : 'text-gray-600'}`} />
-                 </button>
+                 {/* Sale Badge */}
+                 {!isComingSoon && hasSale && salePercent > 0 && (
+                   <div className="absolute top-2 left-2 z-10">
+                     <div className="bg-logo-green text-white text-sm font-bold px-3 py-1.5 rounded-full shadow-lg">
+                       Sale {salePercent}%
+                     </div>
+                   </div>
+                 )}
+
+                 {/* Wishlist Button - Only for users, not admin */}
+                 {!isAdminAuthenticated && (
+                   <button
+                     onClick={() => {
+                       if (isInWishlist(productId)) {
+                         removeFromWishlist(productId);
+                         showToast('Removed from wishlist', 'success');
+                       } else {
+                         addToWishlist({ ...product, id: productId, image: productImage });
+                         showToast('Added to wishlist!', 'success');
+                       }
+                     }}
+                     className="absolute top-2 right-2 z-10 bg-white rounded-full p-2 shadow-md hover:bg-red-50 transition-colors"
+                   >
+                     <Heart className={`h-5 w-5 ${isInWishlist(productId) ? 'text-red-500 fill-current' : 'text-gray-600'}`} />
+                   </button>
+                 )}
 
                  {/* Product Image - Clickable */}
                  <div 
-                  className="relative h-64 sm:h-72 md:h-80 bg-gray-50 cursor-pointer"
+                  className="relative h-64 bg-gray-50 cursor-pointer"
                   onClick={() => navigate(`/product/${productId}`, { state: { product: { ...product, id: productId } } })}
                  >
                    <img
                      src={productImage}
                      alt={productName}
-                     className="w-full h-full object-cover"
+                     className="w-full h-full object-contain lg:object-cover p-4"
                    />
                  </div>
 
@@ -297,22 +315,43 @@ const BestSellers = () => {
                      </span>
                    </div>
 
-                  {/* Add to Cart Button */}
-                  <button 
-                    onClick={() => {
-                      addToCart({
-                        ...product,
-                        id: productId,
-                        _id: product._id || productId,
-                        slug: productSlug || product.slug,
-                        price: priceForCart,
-                        image: productImage,
-                      });
-                    }}
-                    className="w-full border border-logo-green text-logo-green font-bold py-2 px-4 rounded text-sm uppercase hover:bg-logo-green hover:text-white transition-colors duration-300"
-                  >
-                    ADD TO CART
-                  </button>
+                  {/* Action Button */}
+                  {isComingSoon || isOutOfStock ? (
+                    // Show "Add to Wishlist" only for users, not for admin
+                    !isAdminAuthenticated ? (
+                      <button 
+                        onClick={() => {
+                          if (isInWishlist(productId)) {
+                            removeFromWishlist(productId);
+                            showToast('Removed from wishlist', 'success');
+                          } else {
+                            addToWishlist({ ...product, id: productId, name: productName, price: priceForCart, image: productImage });
+                            showToast('Added to wishlist!', 'success');
+                          }
+                        }}
+                        className="w-full border border-logo-green text-logo-green font-bold py-2 px-4 rounded text-sm uppercase hover:bg-logo-green hover:text-white transition-colors duration-300 flex items-center justify-center gap-2"
+                      >
+                        <Heart className={`h-4 w-4 ${isInWishlist(productId) ? 'text-red-500 fill-current' : ''}`} />
+                        {isInWishlist(productId) ? 'Remove from Wishlist' : 'Add to Wishlist'}
+                      </button>
+                    ) : null // Admin users don't see "Add to Wishlist" - they manage via admin panel
+                  ) : (
+                    <button 
+                      onClick={() => {
+                        addToCart({
+                          ...product,
+                          id: productId,
+                          _id: product._id || productId,
+                          slug: productSlug || product.slug,
+                          price: priceForCart,
+                          image: productImage,
+                        });
+                      }}
+                      className="w-full border border-logo-green text-logo-green font-bold py-2 px-4 rounded text-sm uppercase hover:bg-logo-green hover:text-white transition-colors duration-300"
+                    >
+                      ADD TO CART
+                    </button>
+                  )}
                  </div>
               </div>
              );

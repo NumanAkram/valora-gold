@@ -179,12 +179,18 @@ router.post('/', protect, authorize('admin'), async (req, res) => {
       imageList.push('/4.webp');
     }
 
+    // Set imageUrl to the first image if provided, otherwise use first from images array or default
+    const primaryImageUrl = imageUrl && imageUrl.trim() 
+      ? imageUrl.trim() 
+      : (imageList.length > 0 ? imageList[0] : '/4.webp');
+
     const product = await Product.create({
       name: name.trim(),
       price: numericPrice,
       originalPrice: numericOriginal,
       description: description.trim(),
       category,
+      imageUrl: primaryImageUrl,
       images: imageList,
       tags,
       benefits,
@@ -293,8 +299,16 @@ router.put('/:id', protect, authorize('admin'), async (req, res) => {
 
       if (imageList.length > 0) {
         product.images = imageList;
+        // Update imageUrl if imageUrl is provided, otherwise set it to first image in images array
+        if (imageUrl !== undefined) {
+          product.imageUrl = imageUrl && imageUrl.trim() ? imageUrl.trim() : (imageList.length > 0 ? imageList[0] : '/4.webp');
+        } else if (!product.imageUrl && imageList.length > 0) {
+          // If imageUrl doesn't exist but images array has items, set imageUrl to first image
+          product.imageUrl = imageList[0];
+        }
       } else if (imageUrl !== undefined && !imageUrl) {
         product.images = ['/4.webp'];
+        product.imageUrl = '/4.webp';
       }
     }
 

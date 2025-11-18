@@ -4,6 +4,7 @@ import { Star, Heart } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import { useWishlist } from '../context/WishlistContext';
+import { useAdminAuth } from '../context/AdminAuthContext';
 import { productsAPI } from '../utils/api';
 import { getDisplayRating } from '../utils/ratings';
 
@@ -14,6 +15,7 @@ const Bundles = () => {
   const { addToCart } = useCart();
   const { showToast } = useToast();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
+  const { isAuthenticated: isAdminAuthenticated } = useAdminAuth();
   
   useEffect(() => {
     const fetchBundles = async () => {
@@ -102,35 +104,38 @@ const Bundles = () => {
               const bundleRating = getDisplayRating(bundle);
               const bundleReviews = bundle.numReviews || 0;
               const isComingSoon = Boolean(bundle.comingSoon) || bundlePrice === null;
+              const isOutOfStock = Boolean(bundle.outOfStock) || (!bundle.inStock && bundle.stockCount === 0);
               const hasSale = !isComingSoon && bundleOriginalPrice !== null && bundlePrice !== null && bundleOriginalPrice > bundlePrice;
               const salePercent = hasSale ? Math.round(((bundleOriginalPrice - bundlePrice) / bundleOriginalPrice) * 100) : 0;
               
               return (
               <div key={bundleId} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden flex-shrink-0 w-[280px] sm:w-[300px] md:w-80 relative">
                 {/* Sale Badge - Top Left Corner - Responsive */}
-                {hasSale && salePercent > 0 && (
-                  <div className="absolute top-1 left-1 md:top-2 md:left-2 z-10">
-                    <div className="bg-logo-green text-white text-xs md:text-sm font-bold px-1 py-0.5 md:px-2 md:py-1 rounded-full">
+                {!isComingSoon && hasSale && salePercent > 0 && (
+                  <div className="absolute top-2 left-2 z-10">
+                    <div className="bg-logo-green text-white text-sm font-bold px-3 py-1.5 rounded-full shadow-lg">
                       Sale {salePercent}%
                     </div>
                   </div>
                 )}
 
-                {/* Wishlist Button */}
-                <button
-                  onClick={() => {
-                    if (isInWishlist(bundleId)) {
-                      removeFromWishlist(bundleId);
-                      showToast('Removed from wishlist', 'success');
-                    } else {
-                      addToWishlist({ ...bundle, id: bundleId, name: bundleTitle, price: bundlePrice ?? 0, image: bundleImage });
-                      showToast('Added to wishlist!', 'success');
-                    }
-                  }}
-                  className="absolute top-1 right-1 md:top-2 md:right-2 z-10 bg-white rounded-full p-2 shadow-md hover:bg-red-50 transition-colors"
-                >
-                  <Heart className={`h-5 w-5 ${isInWishlist(bundleId) ? 'text-red-500 fill-current' : 'text-gray-600'}`} />
-                </button>
+                {/* Wishlist Button - Only for users, not admin */}
+                {!isAdminAuthenticated && (
+                  <button
+                    onClick={() => {
+                      if (isInWishlist(bundleId)) {
+                        removeFromWishlist(bundleId);
+                        showToast('Removed from wishlist', 'success');
+                      } else {
+                        addToWishlist({ ...bundle, id: bundleId, name: bundleTitle, price: bundlePrice ?? 0, image: bundleImage });
+                        showToast('Added to wishlist!', 'success');
+                      }
+                    }}
+                    className="absolute top-1 right-1 md:top-2 md:right-2 z-10 bg-white rounded-full p-2 shadow-md hover:bg-red-50 transition-colors"
+                  >
+                    <Heart className={`h-5 w-5 ${isInWishlist(bundleId) ? 'text-red-500 fill-current' : 'text-gray-600'}`} />
+                  </button>
+                )}
 
                 {/* Bundle Image - Clickable */}
                 <div 
@@ -187,32 +192,43 @@ const Bundles = () => {
                     )}
                   </div>
 
-                  {/* Add to Cart Button */}
-                  <button 
-                    disabled={isComingSoon}
-                    onClick={() => {
-                      if (isComingSoon) {
-                        showToast('This product is coming soon!', 'info');
-                        return;
-                      }
-
-                      addToCart({ 
-                        ...bundle, 
-                        id: bundleId,
-                        name: bundleTitle,
-                        price: bundlePrice,
-                        image: bundleImage
-                      });
-                      showToast('Bundle added to cart!', 'success');
-                    }}
-                    className={`w-full border font-bold py-2 px-4 rounded text-sm uppercase transition-colors duration-300 ${
-                      isComingSoon
-                        ? 'border-gray-300 text-gray-400 bg-gray-100 cursor-not-allowed'
-                        : 'border-logo-green text-logo-green bg-white hover:bg-logo-green hover:text-white'
-                    }`}
-                  >
-                    {isComingSoon ? 'COMING SOON' : 'ADD TO CART'}
-                  </button>
+                  {/* Action Button */}
+                  {isComingSoon || isOutOfStock ? (
+                    // Show "Add to Wishlist" only for users, not for admin
+                    !isAdminAuthenticated ? (
+                      <button 
+                        onClick={() => {
+                          if (isInWishlist(bundleId)) {
+                            removeFromWishlist(bundleId);
+                            showToast('Removed from wishlist', 'success');
+                          } else {
+                            addToWishlist({ ...bundle, id: bundleId, name: bundleTitle, price: bundlePrice ?? 0, image: bundleImage });
+                            showToast('Added to wishlist!', 'success');
+                          }
+                        }}
+                        className="w-full border border-logo-green text-logo-green font-bold py-2 px-4 rounded text-sm uppercase transition-colors duration-300 hover:bg-logo-green hover:text-white flex items-center justify-center gap-2"
+                      >
+                        <Heart className={`h-4 w-4 ${isInWishlist(bundleId) ? 'text-red-500 fill-current' : ''}`} />
+                        {isInWishlist(bundleId) ? 'Remove from Wishlist' : 'Add to Wishlist'}
+                      </button>
+                    ) : null // Admin users don't see "Add to Wishlist" - they manage via admin panel
+                  ) : (
+                    <button 
+                      onClick={() => {
+                        addToCart({ 
+                          ...bundle, 
+                          id: bundleId,
+                          name: bundleTitle,
+                          price: bundlePrice,
+                          image: bundleImage
+                        });
+                        showToast('Bundle added to cart!', 'success');
+                      }}
+                      className="w-full border border-logo-green text-logo-green font-bold py-2 px-4 rounded text-sm uppercase transition-colors duration-300 hover:bg-logo-green hover:text-white"
+                    >
+                      ADD TO CART
+                    </button>
+                  )}
                 </div>
               </div>
               );

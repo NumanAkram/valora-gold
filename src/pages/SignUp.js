@@ -87,8 +87,18 @@ const SignUp = () => {
       return;
     }
 
+    // File validation
     if (!file.type.startsWith('image/')) {
-      showToast('Please select a valid image file.', 'error');
+      showToast('Please select a valid image file (JPG, PNG, GIF, WebP, etc.).', 'error');
+      event.target.value = '';
+      return;
+    }
+
+    // File size validation (2MB max for base64 during signup to prevent request entity too large)
+    const maxSize = 2 * 1024 * 1024; // 2MB (will be ~2.67MB as base64)
+    if (file.size > maxSize) {
+      showToast('Image size must be less than 2MB during signup. You can upload a larger image later in your account settings.', 'error');
+      event.target.value = '';
       return;
     }
 
@@ -99,6 +109,10 @@ const SignUp = () => {
         setProfilePreview(result);
         setFormData((prev) => ({ ...prev, profileImage: result }));
       }
+    };
+    reader.onerror = () => {
+      showToast('Failed to read image file. Please try again.', 'error');
+      event.target.value = '';
     };
     reader.readAsDataURL(file);
   };
@@ -311,7 +325,7 @@ const SignUp = () => {
                   Upload Photo
                 </label>
               </div>
-              <p className="mt-2 text-xs text-gray-500 font-sans">Supported formats: JPG, PNG. Max size 5MB.</p>
+              <p className="mt-2 text-xs text-gray-500 font-sans">Supported formats: JPG, PNG, GIF, WebP. Max size 2MB during signup (you can upload larger images later in account settings).</p>
             </div>
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1 font-sans">

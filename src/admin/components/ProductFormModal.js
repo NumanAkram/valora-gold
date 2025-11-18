@@ -14,6 +14,7 @@ const defaultState = {
   stockCount: '0',
   inStock: true,
   comingSoon: false,
+  outOfStock: false,
   isFeatured: false,
 };
 
@@ -53,6 +54,7 @@ const ProductFormModal = ({ open, onClose, onSubmit, product, categories }) => {
         stockCount: String(product.stockCount ?? 0),
         inStock: Boolean(product.inStock),
         comingSoon,
+        outOfStock: !Boolean(product.inStock) && !comingSoon,
         isFeatured: Boolean(product.isFeatured),
       });
       setImagePreview(product.images?.[0] || '');
@@ -105,6 +107,21 @@ const ProductFormModal = ({ open, onClose, onSubmit, product, categories }) => {
       const file = event.target.files && event.target.files[0];
       if (!file) return;
 
+      // File validation
+      if (!file.type.startsWith('image/')) {
+        showToast('Please select a valid image file (JPG, PNG, GIF, WebP, etc.).', 'error');
+        event.target.value = '';
+        return;
+      }
+
+      // File size validation (10MB max)
+      const maxSize = 10 * 1024 * 1024; // 10MB
+      if (file.size > maxSize) {
+        showToast('Image size must be less than 10MB. Please compress the image and try again.', 'error');
+        event.target.value = '';
+        return;
+      }
+
       setUploadingImage(true);
       try {
         const response = await uploadAPI.uploadImage(file);
@@ -120,7 +137,15 @@ const ProductFormModal = ({ open, onClose, onSubmit, product, categories }) => {
         }
       } catch (error) {
         console.error('Admin primary image upload error:', error);
-        showToast(error.message || 'Failed to upload image.', 'error');
+        let errorMessage = 'Failed to upload image.';
+        if (error.message && error.message.includes('too large')) {
+          errorMessage = 'Image file is too large. Please use an image smaller than 10MB.';
+        } else if (error.message && error.message.includes('Only image files')) {
+          errorMessage = 'Please select a valid image file (JPG, PNG, GIF, WebP, etc.).';
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        showToast(errorMessage, 'error');
       } finally {
         setUploadingImage(false);
         event.target.value = '';
@@ -134,18 +159,46 @@ const ProductFormModal = ({ open, onClose, onSubmit, product, categories }) => {
       const files = event.target.files ? Array.from(event.target.files) : [];
       if (!files.length) return;
 
+      // File validation
+      const maxSize = 10 * 1024 * 1024; // 10MB
+      const invalidFiles = files.filter((file) => !file.type.startsWith('image/') || file.size > maxSize);
+      
+      if (invalidFiles.length > 0) {
+        showToast(
+          invalidFiles.length === 1
+            ? 'Please select a valid image file (JPG, PNG, GIF, WebP, etc.) under 10MB.'
+            : 'Some files are invalid or too large. Only valid images under 10MB will be uploaded.',
+          'error'
+        );
+      }
+
+      const validFiles = files.filter((file) => file.type.startsWith('image/') && file.size <= maxSize);
+      if (validFiles.length === 0) {
+        event.target.value = '';
+        return;
+      }
+
       setUploadingGallery(true);
       try {
         const uploadedUrls = [];
-        for (const file of files) {
-          // eslint-disable-next-line no-await-in-loop
-          const response = await uploadAPI.uploadImage(file);
-          if (response.success && response.url) {
-            uploadedUrls.push(response.url);
+        const errors = [];
+        
+        for (const file of validFiles) {
+          try {
+            // eslint-disable-next-line no-await-in-loop
+            const response = await uploadAPI.uploadImage(file);
+            if (response.success && response.url) {
+              uploadedUrls.push(response.url);
+            } else {
+              errors.push(`${file.name}: ${response.message || 'Upload failed'}`);
+            }
+          } catch (fileError) {
+            console.error(`Error uploading ${file.name}:`, fileError);
+            errors.push(`${file.name}: ${fileError.message || 'Upload failed'}`);
           }
         }
 
-        if (uploadedUrls.length) {
+        if (uploadedUrls.length > 0) {
           setFormData((prev) => {
             const existing = prev.galleryImages.filter(Boolean);
             const combined = [...existing, ...uploadedUrls];
@@ -156,10 +209,17 @@ const ProductFormModal = ({ open, onClose, onSubmit, product, categories }) => {
           });
           showToast(
             uploadedUrls.length > 1
-              ? 'Gallery images uploaded successfully.'
+              ? `Successfully uploaded ${uploadedUrls.length} gallery images.`
               : 'Gallery image uploaded successfully.',
             'success'
           );
+        }
+
+        if (errors.length > 0) {
+          console.error('Some gallery uploads failed:', errors);
+          if (uploadedUrls.length === 0) {
+            showToast(`Failed to upload images: ${errors[0]}`, 'error');
+          }
         }
       } catch (error) {
         console.error('Admin gallery upload error:', error);
@@ -221,6 +281,10 @@ const ProductFormModal = ({ open, onClose, onSubmit, product, categories }) => {
 
     setLoading(true);
     try {
+      // If out of stock is checked, set stockCount to 0 and inStock to false
+      const finalStockCount = formData.comingSoon ? 0 : (formData.outOfStock ? 0 : numericStock);
+      const finalInStock = formData.comingSoon ? false : (formData.outOfStock ? false : formData.inStock);
+      
       await onSubmit({
         name: formData.name.trim(),
         price: numericPrice,
@@ -229,8 +293,8 @@ const ProductFormModal = ({ open, onClose, onSubmit, product, categories }) => {
         category: formData.category,
         imageUrl: formData.imageUrl.trim(),
         images: normalizedGalleryImages,
-        stockCount: numericStock,
-        inStock: formData.comingSoon ? false : numericStock > 0,
+        stockCount: finalStockCount,
+        inStock: finalInStock,
         comingSoon: formData.comingSoon,
         isFeatured: Boolean(formData.isFeatured),
       });
@@ -317,9 +381,9 @@ const ProductFormModal = ({ open, onClose, onSubmit, product, categories }) => {
                   value={formData.stockCount}
                   onChange={handleChange}
                   placeholder="e.g. 100"
-                  disabled={formData.comingSoon}
+                  disabled={formData.comingSoon || formData.outOfStock}
                   className={`w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-logo-green focus:border-transparent text-sm font-sans ${
-                    formData.comingSoon ? 'bg-gray-100 cursor-not-allowed' : ''
+                    formData.comingSoon || formData.outOfStock ? 'bg-gray-100 cursor-not-allowed' : ''
                   }`}
                 />
               </FormField>
@@ -337,6 +401,7 @@ const ProductFormModal = ({ open, onClose, onSubmit, product, categories }) => {
                       originalPrice: e.target.checked ? '' : prev.originalPrice,
                       stockCount: e.target.checked ? '0' : prev.stockCount === '0' ? '10' : prev.stockCount,
                       inStock: e.target.checked ? false : prev.inStock,
+                      outOfStock: false, // Reset out of stock when coming soon is checked
                     }))
                   }
                   className="h-4 w-4 text-logo-green border-gray-300 rounded focus:ring-logo-green"
@@ -344,6 +409,24 @@ const ProductFormModal = ({ open, onClose, onSubmit, product, categories }) => {
                 <span className="text-sm text-gray-600 font-sans">
                   Mark as Coming Soon (price not available yet)
                 </span>
+              </label>
+
+              <label className="flex items-center space-x-2">
+                <input
+                  id="adminOutOfStock"
+                  type="checkbox"
+                  checked={formData.outOfStock}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      outOfStock: e.target.checked,
+                      inStock: e.target.checked ? false : (prev.stockCount && Number(prev.stockCount) > 0 ? true : false),
+                    }))
+                  }
+                  disabled={formData.comingSoon}
+                  className="h-4 w-4 text-logo-green border-gray-300 rounded focus:ring-logo-green disabled:opacity-50 disabled:cursor-not-allowed"
+                />
+                <span className="text-sm text-gray-600 font-sans">Out of stock</span>
               </label>
             </div>
           </div>
@@ -500,7 +583,7 @@ const ProductFormModal = ({ open, onClose, onSubmit, product, categories }) => {
               checked={formData.inStock}
               onChange={handleChange}
               className="h-4 w-4 rounded text-logo-green border-gray-300 focus:ring-logo-green"
-              disabled={formData.comingSoon}
+              disabled={formData.comingSoon || formData.outOfStock}
             />
             <span className="text-sm text-gray-600 font-sans">Available in stock</span>
           </div>

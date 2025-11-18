@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Package,
@@ -7,6 +7,7 @@ import {
   Users,
   Truck,
   LogOut,
+  Home,
 } from 'lucide-react';
 import { useAdminAuth } from '../../context/AdminAuthContext';
 
@@ -20,6 +21,7 @@ const links = [
 
 const AdminSidebar = ({ isCollapsed }) => {
   const { logout } = useAdminAuth();
+  const navigate = useNavigate();
 
   return (
     <aside
@@ -54,7 +56,14 @@ const AdminSidebar = ({ isCollapsed }) => {
         ))}
       </nav>
 
-      <div className="mt-auto px-4 pb-6">
+      <div className="mt-auto px-4 pb-6 space-y-2">
+        <button
+          onClick={() => navigate('/')}
+          className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-100 transition-colors"
+        >
+          <Home className="h-4 w-4" />
+          {!isCollapsed && <span>Switch to Home</span>}
+        </button>
         <button
           onClick={logout}
           className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-100 transition-colors"

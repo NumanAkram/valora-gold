@@ -5,15 +5,21 @@ import { productsAPI, uploadAPI } from '../utils/api';
 import { useToast } from '../context/ToastContext';
 import { useAdminAuth } from '../context/AdminAuthContext';
 
+// Filter out "All" category from product categories (only for product upload)
+const PRODUCT_CATEGORIES = CATEGORIES.filter((cat) => cat.value !== 'All');
+
 const initialFormState = {
   name: '',
   price: '',
   originalPrice: '',
   stockCount: '10',
   description: '',
-  category: CATEGORIES[0]?.value || '',
+  category: PRODUCT_CATEGORIES[0]?.value || '',
   imageUrl: '',
   galleryImages: [''],
+  inStock: true,
+  outOfStock: false,
+  isFeatured: false,
 };
 
 const AddProductModal = ({ open, onClose, onProductCreated, allowAccess = false }) => {
@@ -30,9 +36,12 @@ const AddProductModal = ({ open, onClose, onProductCreated, allowAccess = false 
     if (open) {
       setFormData({
         ...initialFormState,
-        category: CATEGORIES[0]?.value || '',
+        category: PRODUCT_CATEGORIES[0]?.value || '',
         stockCount: '10',
         galleryImages: [''],
+        inStock: true,
+        outOfStock: false,
+        isFeatured: false,
       });
       setComingSoon(false);
       setImagePreview('');
@@ -42,10 +51,10 @@ const AddProductModal = ({ open, onClose, onProductCreated, allowAccess = false 
   }, [open]);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: type === 'checkbox' ? checked : value,
     }));
   };
 
@@ -76,6 +85,21 @@ const AddProductModal = ({ open, onClose, onProductCreated, allowAccess = false 
       const file = event.target.files && event.target.files[0];
       if (!file) return;
 
+      // File validation
+      if (!file.type.startsWith('image/')) {
+        showToast('Please select a valid image file (JPG, PNG, GIF, WebP, etc.).', 'error');
+        event.target.value = '';
+        return;
+      }
+
+      // File size validation (10MB max)
+      const maxSize = 10 * 1024 * 1024; // 10MB
+      if (file.size > maxSize) {
+        showToast('Image size must be less than 10MB. Please compress the image and try again.', 'error');
+        event.target.value = '';
+        return;
+      }
+
       setUploadingImage(true);
       try {
         const response = await uploadAPI.uploadImage(file);
@@ -91,7 +115,15 @@ const AddProductModal = ({ open, onClose, onProductCreated, allowAccess = false 
         }
       } catch (error) {
         console.error('Primary image upload error:', error);
-        showToast(error.message || 'Failed to upload image.', 'error');
+        let errorMessage = 'Failed to upload image.';
+        if (error.message && error.message.includes('too large')) {
+          errorMessage = 'Image file is too large. Please use an image smaller than 10MB.';
+        } else if (error.message && error.message.includes('Only image files')) {
+          errorMessage = 'Please select a valid image file (JPG, PNG, GIF, WebP, etc.).';
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        showToast(errorMessage, 'error');
       } finally {
         setUploadingImage(false);
         event.target.value = '';
@@ -105,14 +137,42 @@ const AddProductModal = ({ open, onClose, onProductCreated, allowAccess = false 
       const files = event.target.files ? Array.from(event.target.files) : [];
       if (files.length === 0) return;
 
+      // File validation
+      const maxSize = 10 * 1024 * 1024; // 10MB
+      const invalidFiles = files.filter((file) => !file.type.startsWith('image/') || file.size > maxSize);
+      
+      if (invalidFiles.length > 0) {
+        showToast(
+          invalidFiles.length === 1
+            ? 'Please select a valid image file (JPG, PNG, GIF, WebP, etc.) under 10MB.'
+            : 'Some files are invalid or too large. Only valid images under 10MB will be uploaded.',
+          'error'
+        );
+      }
+
+      const validFiles = files.filter((file) => file.type.startsWith('image/') && file.size <= maxSize);
+      if (validFiles.length === 0) {
+        event.target.value = '';
+        return;
+      }
+
       setUploadingGallery(true);
       try {
         const uploadedUrls = [];
-        for (const file of files) {
-          // eslint-disable-next-line no-await-in-loop
-          const response = await uploadAPI.uploadImage(file);
-          if (response.success && response.url) {
-            uploadedUrls.push(response.url);
+        const errors = [];
+        
+        for (const file of validFiles) {
+          try {
+            // eslint-disable-next-line no-await-in-loop
+            const response = await uploadAPI.uploadImage(file);
+            if (response.success && response.url) {
+              uploadedUrls.push(response.url);
+            } else {
+              errors.push(`${file.name}: ${response.message || 'Upload failed'}`);
+            }
+          } catch (fileError) {
+            console.error(`Error uploading ${file.name}:`, fileError);
+            errors.push(`${file.name}: ${fileError.message || 'Upload failed'}`);
           }
         }
 
@@ -127,10 +187,17 @@ const AddProductModal = ({ open, onClose, onProductCreated, allowAccess = false 
           });
           showToast(
             uploadedUrls.length > 1
-              ? 'Gallery images uploaded successfully.'
+              ? `Successfully uploaded ${uploadedUrls.length} gallery images.`
               : 'Gallery image uploaded successfully.',
             'success'
           );
+        }
+
+        if (errors.length > 0) {
+          console.error('Some gallery uploads failed:', errors);
+          if (uploadedUrls.length === 0) {
+            showToast(`Failed to upload images: ${errors[0]}`, 'error');
+          }
         }
       } catch (error) {
         console.error('Gallery upload error:', error);
@@ -209,6 +276,10 @@ const AddProductModal = ({ open, onClose, onProductCreated, allowAccess = false 
 
     setLoading(true);
     try {
+      // If out of stock is checked, set stockCount to 0 and inStock to false
+      const finalStockCount = comingSoon ? 0 : (formData.outOfStock ? 0 : numericStock);
+      const finalInStock = comingSoon ? false : (formData.outOfStock ? false : formData.inStock);
+      
       const payload = {
         name: formData.name.trim(),
         price: numericPrice,
@@ -218,8 +289,9 @@ const AddProductModal = ({ open, onClose, onProductCreated, allowAccess = false 
         imageUrl: formData.imageUrl.trim(),
         images: normalizedGalleryImages,
         comingSoon,
-        stockCount: comingSoon ? 0 : numericStock,
-        inStock: comingSoon ? false : numericStock > 0,
+        stockCount: finalStockCount,
+        inStock: finalInStock,
+        isFeatured: Boolean(formData.isFeatured),
       };
 
       const response = await productsAPI.create(payload);
@@ -322,9 +394,9 @@ const AddProductModal = ({ open, onClose, onProductCreated, allowAccess = false 
                 value={formData.stockCount}
                 onChange={handleChange}
                 placeholder="e.g. 100"
-                disabled={comingSoon}
+                disabled={comingSoon || formData.outOfStock}
                 className={`w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-logo-green focus:border-transparent text-sm font-sans ${
-                  comingSoon ? 'bg-gray-100 cursor-not-allowed' : ''
+                  comingSoon || formData.outOfStock ? 'bg-gray-100 cursor-not-allowed' : ''
                 }`}
               />
               <div className="flex items-center space-x-2">
@@ -335,11 +407,13 @@ const AddProductModal = ({ open, onClose, onProductCreated, allowAccess = false 
                   onChange={(e) => {
                     setComingSoon(e.target.checked);
                     if (e.target.checked) {
-                      setFormData((prev) => ({ ...prev, price: '', stockCount: '0' }));
+                      setFormData((prev) => ({ ...prev, price: '', stockCount: '0', inStock: false, outOfStock: false }));
                     } else {
                       setFormData((prev) => ({
                         ...prev,
                         stockCount: prev.stockCount === '0' ? '10' : prev.stockCount,
+                        inStock: true,
+                        outOfStock: false,
                       }));
                     }
                   }}
@@ -347,6 +421,26 @@ const AddProductModal = ({ open, onClose, onProductCreated, allowAccess = false 
                 />
                 <label htmlFor="comingSoon" className="text-sm text-gray-600 font-sans">
                   Mark as Coming Soon (price not available yet)
+                </label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <input
+                  id="outOfStock"
+                  type="checkbox"
+                  checked={formData.outOfStock}
+                  onChange={(e) => {
+                    setFormData((prev) => ({
+                      ...prev,
+                      outOfStock: e.target.checked,
+                      inStock: e.target.checked ? false : (prev.stockCount && Number(prev.stockCount) > 0 ? true : false),
+                    }));
+                  }}
+                  disabled={comingSoon}
+                  className="h-4 w-4 text-logo-green border-gray-300 rounded focus:ring-logo-green disabled:opacity-50 disabled:cursor-not-allowed"
+                />
+                <label htmlFor="outOfStock" className="text-sm text-gray-600 font-sans">
+                  Out of stock
                 </label>
               </div>
             </div>
@@ -364,7 +458,7 @@ const AddProductModal = ({ open, onClose, onProductCreated, allowAccess = false 
                   onChange={handleChange}
                   className="w-full appearance-none px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-logo-green focus:border-transparent text-sm font-sans bg-white cursor-pointer"
                 >
-                  {CATEGORIES.map((category) => (
+                  {PRODUCT_CATEGORIES.map((category) => (
                     <option key={category.value} value={category.value}>
                       {category.label}
                     </option>
@@ -500,6 +594,29 @@ const AddProductModal = ({ open, onClose, onProductCreated, allowAccess = false 
               placeholder="Describe the product, key ingredients, and benefits..."
               className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-logo-green focus:border-transparent text-sm font-sans"
             />
+          </div>
+
+          <div className="flex items-center space-x-2 pt-2">
+            <input
+              type="checkbox"
+              name="inStock"
+              checked={formData.inStock}
+              onChange={handleChange}
+              className="h-4 w-4 rounded text-logo-green border-gray-300 focus:ring-logo-green"
+              disabled={comingSoon || formData.outOfStock}
+            />
+            <span className="text-sm text-gray-600 font-sans">Available in stock</span>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              name="isFeatured"
+              checked={formData.isFeatured}
+              onChange={handleChange}
+              className="h-4 w-4 rounded text-logo-green border-gray-300 focus:ring-logo-green"
+            />
+            <span className="text-sm text-gray-600 font-sans">Mark as featured product</span>
           </div>
 
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end sm:space-x-3 space-y-3 sm:space-y-0 pt-2 border-t border-gray-100">

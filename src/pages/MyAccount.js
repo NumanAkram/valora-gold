@@ -15,7 +15,7 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
-import { authAPI, profileAPI } from '../utils/api';
+import { authAPI, profileAPI, uploadAPI } from '../utils/api';
 import Breadcrumbs from '../components/Breadcrumbs';
 import countries from '../data/countries';
 
@@ -44,6 +44,7 @@ const MyAccount = () => {
   });
   const [profilePreview, setProfilePreview] = useState('');
   const [phoneError, setPhoneError] = useState('');
+  const [uploadingProfileImage, setUploadingProfileImage] = useState(false);
   const countryDropdownRef = useRef(null);
 
   useEffect(() => {
@@ -75,7 +76,8 @@ const MyAccount = () => {
   }, [navigate, showToast]);
 
   useEffect(() => {
-    if (user) {
+    if (user && !isEditing) {
+      // Only reset formData when not editing to preserve user's changes
       const matchedCountry =
         countries.find((country) =>
           user.countryCode ? country.code === user.countryCode : country.dial_code === user.phoneDialCode
@@ -105,7 +107,7 @@ const MyAccount = () => {
       setProfilePreview(user.profileImage || '');
       setPhoneError('');
     }
-  }, [user]);
+  }, [user, isEditing]);
 
   useEffect(() => {
     const handler = (event) => {
@@ -151,26 +153,61 @@ const MyAccount = () => {
     }));
   };
 
-  const handleProfileImageChange = (event) => {
+  const handleProfileImageChange = async (event) => {
     const file = event.target.files?.[0];
     if (!file) {
       setProfilePreview('');
       setFormData((prev) => ({ ...prev, profileImage: '' }));
       return;
     }
+
+    // File validation
     if (!file.type.startsWith('image/')) {
-      showToast('Please select a valid image file.', 'error');
+      showToast('Please select a valid image file (JPG, PNG, GIF, WebP, etc.).', 'error');
+      event.target.value = '';
       return;
     }
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const result = reader.result;
-      if (typeof result === 'string') {
-        setProfilePreview(result);
-        setFormData((prev) => ({ ...prev, profileImage: result }));
+
+    // File size validation (10MB max)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      showToast('Image size must be less than 10MB. Please compress the image and try again.', 'error');
+      event.target.value = '';
+      return;
+    }
+
+    setUploadingProfileImage(true);
+    try {
+      const response = await uploadAPI.uploadProfileImage(file);
+      if (response.success && response.url) {
+        const newImageUrl = response.url;
+        // Update both preview and formData with the new image URL immediately
+        setProfilePreview(newImageUrl);
+        setFormData((prev) => {
+          const updated = { ...prev, profileImage: newImageUrl };
+          console.log('Profile image updated in formData:', newImageUrl);
+          return updated;
+        });
+        showToast('Profile image uploaded successfully.', 'success');
+      } else {
+        throw new Error(response.message || 'Failed to upload image.');
       }
-    };
-    reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Profile image upload error:', error);
+      let errorMessage = 'Failed to upload image.';
+      if (error.message && error.message.includes('too large')) {
+        errorMessage = 'Image file is too large. Please use an image smaller than 10MB.';
+      } else if (error.message && error.message.includes('Only image files')) {
+        errorMessage = 'Please select a valid image file (JPG, PNG, GIF, WebP, etc.).';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      showToast(errorMessage, 'error');
+    } finally {
+      setUploadingProfileImage(false);
+      // Don't reset the input value so user can see the file was selected
+      // event.target.value = '';
+    }
   };
 
   const clearProfileImage = () => {
@@ -203,23 +240,30 @@ const MyAccount = () => {
       country: selectedCountry.name,
       countryCode: selectedCountry.code,
       phoneDialCode: selectedCountry.dial_code,
-      profileImage: formData.profileImage,
+      profileImage: formData.profileImage || '', // Always include profileImage, use formData which has latest uploaded image
       gender: formData.gender || undefined,
       currentPassword: formData.currentPassword || undefined,
       newPassword: formData.newPassword || undefined,
     };
+    
+    console.log('Saving profile with image URL:', payload.profileImage);
 
     try {
       const response = await profileAPI.update(payload);
       if (response.success) {
+        // Update user state with new data
         setUser(response.data);
-        setIsEditing(false);
+        // Update profilePreview with updated profileImage
+        setProfilePreview(response.data.profileImage || '');
+        // Update formData with latest profileImage
         setFormData((prev) => ({
           ...prev,
+          profileImage: response.data.profileImage || '',
           currentPassword: '',
           newPassword: '',
           confirmPassword: '',
         }));
+        setIsEditing(false);
         localStorage.setItem('token', response.data.token);
         localStorage.setItem('user', JSON.stringify(response.data));
         window.dispatchEvent(new Event('valora-user-updated'));
@@ -420,9 +464,15 @@ const MyAccount = () => {
                         </button>
                       )}
                     </div>
-                    <label className="flex items-center justify-center px-4 py-2 border border-logo-green text-logo-green rounded-lg cursor-pointer hover:bg-logo-green hover:text-white transition-colors text-sm font-semibold">
-                      <input type="file" accept="image/*" className="hidden" onChange={handleProfileImageChange} />
-                      Upload Photo
+                    <label className="flex items-center justify-center px-4 py-2 border border-logo-green text-logo-green rounded-lg cursor-pointer hover:bg-logo-green hover:text-white transition-colors text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed">
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        className="hidden" 
+                        onChange={handleProfileImageChange}
+                        disabled={uploadingProfileImage || isSaving}
+                      />
+                      {uploadingProfileImage ? 'Uploading...' : 'Upload Photo'}
                     </label>
                   </div>
 

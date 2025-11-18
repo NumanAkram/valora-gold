@@ -21,6 +21,7 @@ import OtherProducts from './pages/OtherProducts';
 import HairCare from './pages/HairOil';
 import Perfume from './pages/Perfume';
 import BeautyProducts from './pages/BeautyProducts';
+import AllProducts from './pages/AllProducts';
 import Wishlist from './pages/Wishlist';
 import Contact from './pages/Contact';
 import SignIn from './pages/SignIn';
@@ -74,6 +75,7 @@ const AppShell = () => {
           <Route path="/wishlist" element={<Wishlist />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/search" element={<SearchResults />} />
+          <Route path="/all-products" element={<AllProducts />} />
           <Route path="/other-products" element={<OtherProducts />} />
           <Route path="/other" element={<OtherProducts />} />
           <Route path="/hair-care" element={<HairCare />} />

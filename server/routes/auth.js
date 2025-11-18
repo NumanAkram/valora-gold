@@ -269,8 +269,9 @@ router.put(
       if (phone !== undefined) {
         user.phone = phone.trim();
       }
-      if (profileImage !== undefined) {
-        user.profileImage = profileImage;
+      if (profileImage !== undefined && profileImage !== null) {
+        // Allow empty string to clear profile image, or set new URL
+        user.profileImage = typeof profileImage === 'string' ? profileImage.trim() : profileImage;
       }
       if (country !== undefined) {
         user.country = country.trim();

@@ -201,12 +201,8 @@ const Navbar = () => {
             <div className="hidden lg:flex items-center justify-between h-16 sm:h-18 md:h-20 min-h-[64px] sm:min-h-[72px] md:min-h-[80px]">
               {/* Logo */}
               <div className="flex-shrink-0 max-w-[40%] sm:max-w-none">
-                <a
-                  href="#top"
-                  onClick={(event) => {
-                    event.preventDefault();
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
+                <Link
+                  to="/"
                   className="flex items-center space-x-3 sm:space-x-4 md:space-x-5"
                 >
                   <div className="relative flex-shrink-0">
@@ -223,7 +219,7 @@ const Navbar = () => {
                     <span className="text-gray-900 font-extrabold text-sm sm:text-base md:text-lg lg:text-xl leading-tight whitespace-nowrap text-center" style={{ letterSpacing: '2px', fontFamily: 'Poppins, sans-serif', textShadow: '0 1px 2px rgba(0,0,0,0.12)' }}>VALORA</span>
                     <span className="text-yellow-600 font-bold text-xs sm:text-sm md:text-base lg:text-lg leading-tight mt-0.5 whitespace-nowrap text-center" style={{ letterSpacing: '4px', fontFamily: 'Poppins, sans-serif', textShadow: '0 1px 2px rgba(255,215,0,0.25)' }}>GOLD</span>
                   </div>
-                </a>
+                </Link>
               </div>
 
               {/* Search Bar - Hidden on tablet (768px), shown on desktop (1024px+) */}
@@ -305,7 +301,7 @@ const Navbar = () => {
               </button>
 
               {/* Logo - Center */}
-              <Link to="#top" className="flex items-center space-x-3 flex-shrink-0 absolute left-1/2 transform -translate-x-1/2">
+              <Link to="/" className="flex items-center space-x-3 flex-shrink-0 absolute left-1/2 transform -translate-x-1/2">
                 <div className="relative flex-shrink-0">
                   <div className="w-16 h-16 rounded-full overflow-hidden bg-white flex items-center justify-center p-2">
                     <img

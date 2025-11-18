@@ -1,42 +1,61 @@
 import React from 'react';
-import { Leaf, FlaskConical, HeartHandshake, ShieldCheck } from 'lucide-react';
+import { Leaf, FlaskConical, Heart, ShieldCheck } from 'lucide-react';
 
 const featureCards = [
   {
-    title: 'Best of Nature',
+    title: 'BEST OF',
+    subtitle: 'NATURE',
     Icon: Leaf,
   },
   {
-    title: 'No Toxins',
+    title: 'NO',
+    subtitle: 'TOXINS',
     Icon: FlaskConical,
   },
   {
-    title: 'Cruelty Free',
-    Icon: HeartHandshake,
+    title: 'CRUELTY',
+    subtitle: 'FREE',
+    Icon: Heart,
   },
   {
-    title: 'Safe & Certified',
+    title: 'SAFE &',
+    subtitle: 'CERTIFIED',
     Icon: ShieldCheck,
   },
 ];
 
 const FeaturesBanner = () => {
   return (
-    <section className="bg-white py-6 sm:py-8 md:py-10 lg:py-12">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
-          {featureCards.map(({ title, Icon }) => (
-            <div
-              key={title}
-              className="group rounded-2xl border border-[#e8dbc4] bg-[#fff7eb] shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 flex flex-col items-center justify-center text-center px-4 py-5 sm:px-5 sm:py-6"
-            >
-              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full border border-logo-green/40 bg-white flex items-center justify-center mb-3 sm:mb-4 transition-transform duration-300 group-hover:scale-105">
-                <Icon className="w-6 h-6 sm:w-7 sm:h-7 text-logo-green" strokeWidth={1.8} />
+    <section className="bg-[#fff7eb] w-full">
+      <div className="max-w-full mx-auto">
+        {/* 4 blocks continuously displayed in flex-row on all devices */}
+        <div className="flex flex-row items-stretch">
+          {featureCards.map(({ title, subtitle, Icon }, index) => (
+            <React.Fragment key={`${title}-${subtitle}`}>
+              {/* Vertical divider between sections */}
+              {index > 0 && (
+                <div className="w-px bg-[#1a4d1a]"></div>
+              )}
+              {/* Each section: icon and text display block (stacked) */}
+              <div className="flex-1 flex items-center justify-center px-2 sm:px-3 md:px-4 lg:px-8 py-3 sm:py-4 md:py-5 lg:py-7">
+                <div className="flex flex-col items-center justify-center gap-2 sm:gap-2 md:gap-3 lg:gap-4">
+                  {/* Circular icon with dark green outline - Display block */}
+                  <div className="block w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 lg:w-16 lg:h-16 rounded-full border-2 border-[#1a4d1a] bg-transparent flex items-center justify-center">
+                    <Icon className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 lg:w-8 lg:h-8 text-[#1a4d1a]" strokeWidth={1.5} />
+                  </div>
+                  
+                  {/* Stacked text - Display block */}
+                  <div className="block text-center">
+                    <span className="block font-semibold text-[#1a4d1a] uppercase tracking-wide text-[10px] sm:text-xs md:text-sm lg:text-lg leading-tight font-sans">
+                      {title}
+                    </span>
+                    <span className="block font-semibold text-[#1a4d1a] uppercase tracking-wide text-[10px] sm:text-xs md:text-sm lg:text-lg leading-tight font-sans">
+                      {subtitle}
+                    </span>
+                  </div>
+                </div>
               </div>
-              <p className="font-semibold text-logo-green uppercase tracking-wide leading-snug text-[15px] max-[425px]:text-[16px] sm:text-sm md:text-base">
-                {title}
-              </p>
-            </div>
+            </React.Fragment>
           ))}
         </div>
       </div>

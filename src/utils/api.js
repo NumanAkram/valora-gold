@@ -315,6 +315,14 @@ export const uploadAPI = {
       body: formData,
     });
   },
+  uploadProfileImage: (file) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    return apiRequest('/uploads/profile-image', {
+      method: 'POST',
+      body: formData,
+    });
+  },
 };
 
 export default {

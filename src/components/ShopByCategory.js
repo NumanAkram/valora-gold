@@ -5,15 +5,13 @@ import CATEGORIES from '../constants/categories';
 const ShopByCategory = () => {
   const navigate = useNavigate();
   
-  // Filter out 'Home' category from the slider - it should only appear in navigation
-  const categories = CATEGORIES
-    .filter((category) => category.value !== 'Home')
-    .map((category, index) => ({
-      id: index,
-      name: category.label,
-      image: category.image,
-      link: category.path,
-    }));
+  // Use all categories including "All Products"
+  const categories = CATEGORIES.map((category, index) => ({
+    id: index,
+    name: category.label,
+    image: category.image,
+    link: category.path,
+  }));
 
 
 
@@ -30,9 +28,9 @@ const ShopByCategory = () => {
           </div>
         </div>
 
-        {/* Categories Grid - All 4 categories visible on all devices with responsive widths (like Mama Organic) */}
+        {/* Categories Grid - All 5 categories visible on all devices with responsive widths */}
         <div className="w-full">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 md:gap-5 lg:gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-5 lg:gap-6">
             {categories.map((category, idx) => (
               <div
                 key={`${category.id}-${idx}`}

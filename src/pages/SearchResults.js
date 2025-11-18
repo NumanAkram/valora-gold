@@ -95,7 +95,8 @@ const SearchResults = () => {
                   priceValue !== null && originalValue !== null && originalValue > priceValue;
                 const formattedPrice = priceValue !== null ? `Rs.${priceValue.toLocaleString()}` : null;
                 const formattedOriginal = originalValue !== null ? `Rs.${originalValue.toLocaleString()}` : null;
-                const productImage = product.images?.[0] || product.image || '/4.webp';
+                // Priority: imageUrl (primary) > images[0] (first gallery) > image (fallback) > default
+                const productImage = product.imageUrl || product.images?.[0] || product.image || '/4.webp';
                 const productReviews = product.numReviews || 0;
                 const displayRating = getDisplayRating(product);
                 
@@ -103,18 +104,50 @@ const SearchResults = () => {
                 <div key={productId} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden">
                   <div
                     className="h-64 bg-gray-50 cursor-pointer"
-                    onClick={() => navigate(`/product/${productId}`, { state: { product: { ...product, id: productId, images: product.images || [productImage], image: productImage } } })}
+                    onClick={() => {
+                      // Ensure proper image structure: imageUrl as primary, images as array with imageUrl first
+                      const allImages = product.imageUrl 
+                        ? [product.imageUrl, ...(product.images || []).filter(img => img && img !== product.imageUrl)]
+                        : (product.images && product.images.length > 0 ? product.images : [productImage]);
+                      navigate(`/product/${productId}`, { 
+                        state: { 
+                          product: { 
+                            ...product, 
+                            id: productId,
+                            imageUrl: product.imageUrl || productImage,
+                            images: allImages,
+                            image: productImage 
+                          } 
+                        } 
+                      });
+                    }}
                   >
                     <img
                       src={productImage}
                       alt={product.name}
-                      className="w-full h-full object-contain p-4"
+                      className="w-full h-full object-contain lg:object-cover p-4"
                     />
                   </div>
                   <div className="p-4 space-y-2">
                     <h3
                       className="font-semibold text-gray-900 cursor-pointer hover:text-logo-green font-sans"
-                      onClick={() => navigate(`/product/${productId}`, { state: { product: { ...product, id: productId, images: product.images || [productImage], image: productImage } } })}
+                      onClick={() => {
+                      // Ensure proper image structure: imageUrl as primary, images as array with imageUrl first
+                      const allImages = product.imageUrl 
+                        ? [product.imageUrl, ...(product.images || []).filter(img => img && img !== product.imageUrl)]
+                        : (product.images && product.images.length > 0 ? product.images : [productImage]);
+                      navigate(`/product/${productId}`, { 
+                        state: { 
+                          product: { 
+                            ...product, 
+                            id: productId,
+                            imageUrl: product.imageUrl || productImage,
+                            images: allImages,
+                            image: productImage 
+                          } 
+                        } 
+                      });
+                    }}
                     >
                       {product.name}
                     </h3>

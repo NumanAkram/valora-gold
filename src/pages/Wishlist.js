@@ -66,7 +66,7 @@ const Wishlist = () => {
                 <img
                   src={item.image || '/4.webp'}
                   alt={item.name || item.title}
-                  className="w-full h-full object-contain p-4"
+                  className="w-full h-full object-contain lg:object-cover p-4"
                 />
               </div>
 

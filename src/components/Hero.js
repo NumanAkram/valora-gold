@@ -2,8 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 
 const Hero = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
-  // Using the banner images - adjust paths if your images have different names
-  const images = ['/1.webp', '/2.webp', '/3.webp', '/4.webp', '/5.webp'];
+  // Desktop banner images
+  const desktopImages = ['/1.webp', '/2.webp', '/3.webp', '/4.webp', '/5.webp'];
+  // Mobile banner images - only shown on mobile view
+  const mobileImages = ['/mobile1.webp', '/mobile2.webp', '/mobile3.webp', '/mobile4.webp', '/mobile5.webp'];
+  const images = desktopImages; // For slides count and navigation
   const intervalRef = useRef(null);
 
   // Auto-slide every 5 seconds with smooth transition
@@ -58,28 +61,37 @@ const Hero = () => {
             key={index}
                 className={`absolute inset-0 w-full h-full lg:h-full transition-all duration-[1500ms] ease-in-out transform ${positionClass}`}
           >
-            {/* Same image used for all devices - responsive like Mama Organic */}
-            <picture>
-              {/* Same image source for all breakpoints */}
-              <source
-                media="(min-width: 1024px)"
-                srcSet={image}
+            {/* Mobile images - only visible at 541px and below - Full width/height with cover */}
+            <div 
+              className="hidden max-[541px]:block w-full h-full"
+              style={{
+                backgroundImage: `url(${mobileImages[index]})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
+                width: '100%',
+                height: '100%'
+              }}
+            >
+              <img
+                src={mobileImages[index]}
+                alt={`Hero slide ${index + 1} - Mobile`}
+                className="w-full h-full object-cover"
+                style={{ display: 'none' }}
+                loading={index === 0 ? 'eager' : 'lazy'}
+                decoding="async"
               />
+            </div>
+
+            {/* Desktop images - visible from 427px onwards (tablet and desktop views) */}
+            <picture className="hidden min-[427px]:block">
               <source
-                media="(min-width: 768px)"
-                srcSet={image}
-              />
-              <source
-                media="(min-width: 640px)"
-                srcSet={image}
-              />
-              <source
-                media="(min-width: 480px)"
+                media="(min-width: 427px)"
                 srcSet={image}
               />
               <img
                 src={image}
-                alt={`Hero slide ${index + 1}`}
+                alt={`Hero slide ${index + 1} - Desktop`}
                 className="w-full h-full hero-banner-image"
                 loading={index === 0 ? 'eager' : 'lazy'}
                 decoding="async"
@@ -133,3 +145,4 @@ const Hero = () => {
 };
 
 export default Hero;
+

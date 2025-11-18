@@ -20,6 +20,10 @@ const productSchema = new mongoose.Schema({
     type: Number,
     min: 0
   },
+  imageUrl: {
+    type: String,
+    default: ''
+  },
   images: [{
     type: String,
     required: true
@@ -130,6 +134,21 @@ productSchema.pre('save', function(next) {
     }
   } else if (this.price !== null && (this.originalPrice === null || this.originalPrice === undefined)) {
     this.originalPrice = this.price;
+  }
+
+  // Ensure imageUrl is set - use first image from images array if imageUrl is empty
+  if (!this.imageUrl || this.imageUrl.trim() === '') {
+    if (this.images && Array.isArray(this.images) && this.images.length > 0) {
+      // Filter out empty strings and get first valid image
+      const validImages = this.images.filter(img => img && img.trim());
+      if (validImages.length > 0) {
+        this.imageUrl = validImages[0];
+      } else {
+        this.imageUrl = '/4.webp';
+      }
+    } else {
+      this.imageUrl = '/4.webp';
+    }
   }
 
   // Auto-build keyword list for richer search
