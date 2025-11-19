@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { Package, Truck, CheckCircle, Clock, MapPin, Home, Search } from 'lucide-react';
+import { Package, Truck, CheckCircle, Clock, MapPin, Home, Search, XCircle } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { ordersAPI } from '../utils/api';
 import Breadcrumbs from '../components/Breadcrumbs';
@@ -78,6 +78,24 @@ const TrackOrder = () => {
       cancelled: 'text-red-600 bg-red-100'
     };
     return statusColors[status?.toLowerCase()] || statusColors.pending;
+  };
+
+  const getPaymentStatusColor = (paymentStatus) => {
+    const paymentColors = {
+      pending: 'text-yellow-600 bg-yellow-100',
+      paid: 'text-green-600 bg-green-100',
+      failed: 'text-red-600 bg-red-100'
+    };
+    return paymentColors[paymentStatus?.toLowerCase()] || paymentColors.pending;
+  };
+
+  const getPaymentStatusLabel = (paymentStatus) => {
+    const labels = {
+      pending: 'Pending',
+      paid: 'Paid',
+      failed: 'Failed'
+    };
+    return labels[paymentStatus?.toLowerCase()] || 'Pending';
   };
 
   const formatDate = (dateString) => {
@@ -159,9 +177,17 @@ const TrackOrder = () => {
                     Placed on {formatDate(order.createdAt || order.orderDate)}
                   </p>
                 </div>
-                <span className={`px-4 py-2 rounded-full font-semibold text-sm font-sans ${getStatusColor(order.status)}`}>
-                  {order.status || 'Pending'}
-                </span>
+                <div className="flex flex-col items-end gap-2">
+                  <span className={`px-4 py-2 rounded-full font-semibold text-sm font-sans ${getStatusColor(order.status)}`}>
+                    {order.status || 'Pending'}
+                  </span>
+                  <span className={`px-4 py-2 rounded-full font-semibold text-sm font-sans flex items-center gap-1.5 ${getPaymentStatusColor(order.paymentStatus)}`}>
+                    {order.paymentStatus?.toLowerCase() === 'paid' && <CheckCircle className="h-4 w-4" />}
+                    {order.paymentStatus?.toLowerCase() === 'failed' && <XCircle className="h-4 w-4" />}
+                    {order.paymentStatus?.toLowerCase() === 'pending' && <Clock className="h-4 w-4" />}
+                    Payment: {getPaymentStatusLabel(order.paymentStatus)}
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -197,6 +223,65 @@ const TrackOrder = () => {
                     );
                   })}
                 </div>
+              </div>
+            </div>
+
+            {/* Payment Status Section */}
+            <div className="mb-6 pt-6 border-t border-gray-200">
+              <h3 className="text-lg font-bold text-gray-900 mb-4 font-sans">Payment Status</h3>
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    {order.paymentStatus?.toLowerCase() === 'paid' && (
+                      <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
+                        <CheckCircle className="h-6 w-6 text-green-600" />
+                      </div>
+                    )}
+                    {order.paymentStatus?.toLowerCase() === 'failed' && (
+                      <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                        <XCircle className="h-6 w-6 text-red-600" />
+                      </div>
+                    )}
+                    {order.paymentStatus?.toLowerCase() === 'pending' && (
+                      <div className="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center">
+                        <Clock className="h-6 w-6 text-yellow-600" />
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-sm text-gray-600 font-sans">Payment Status</p>
+                      <p className={`text-lg font-bold font-sans ${getPaymentStatusColor(order.paymentStatus).split(' ')[0]}`}>
+                        {getPaymentStatusLabel(order.paymentStatus)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-600 font-sans">Amount</p>
+                    <p className="text-lg font-bold text-gray-900 font-sans">
+                      Rs.{(order.total || order.totalAmount || 0).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+                {order.paymentStatus?.toLowerCase() === 'failed' && (
+                  <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-sm text-red-700 font-sans">
+                      <strong>Payment Failed:</strong> Your payment was not successful. Please contact support or try again.
+                    </p>
+                  </div>
+                )}
+                {order.paymentStatus?.toLowerCase() === 'pending' && (
+                  <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-sm text-yellow-700 font-sans">
+                      <strong>Payment Pending:</strong> Your payment is being processed. Please wait for confirmation.
+                    </p>
+                  </div>
+                )}
+                {order.paymentStatus?.toLowerCase() === 'paid' && (
+                  <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <p className="text-sm text-green-700 font-sans">
+                      <strong>Payment Received:</strong> Your payment has been successfully processed.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -245,12 +330,6 @@ const TrackOrder = () => {
               <div className="flex items-center justify-between">
                 <div className="text-sm text-gray-600 font-sans">
                   <span className="font-semibold">Payment Method:</span> {order.paymentMethod || 'N/A'}
-                </div>
-                <div className="text-right">
-                  <p className="text-sm text-gray-600 font-sans mb-1">Total Amount</p>
-                  <p className="text-2xl font-bold text-logo-green font-sans">
-                    Rs.{(order.total || order.totalAmount || 0).toLocaleString()}
-                  </p>
                 </div>
               </div>
             </div>

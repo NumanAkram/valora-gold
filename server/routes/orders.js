@@ -328,11 +328,20 @@ router.get('/track/:orderNumber', async (req, res) => {
     res.json({
       success: true,
       data: {
+        _id: order._id,
+        id: order._id,
         orderNumber: order.orderNumber,
         status: order.orderStatus,
+        orderStatus: order.orderStatus,
+        paymentStatus: order.paymentStatus || 'pending',
         trackingNumber: order.trackingNumber,
         createdAt: order.createdAt,
-        total: order.total
+        orderDate: order.createdAt,
+        total: order.total,
+        totalAmount: order.total,
+        items: order.items,
+        shippingAddress: order.shippingAddress,
+        paymentMethod: order.paymentMethod
       }
     });
   } catch (error) {

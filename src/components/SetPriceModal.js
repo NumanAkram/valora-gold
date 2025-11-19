@@ -44,6 +44,10 @@ const SetPriceModal = ({ open, onClose, product, onPriceUpdated }) => {
         if (onPriceUpdated) {
           onPriceUpdated(response.data);
         }
+        // Dispatch product-updated event to update wishlist and other components
+        if (typeof window !== 'undefined' && response.data) {
+          window.dispatchEvent(new CustomEvent('product-updated', { detail: response.data }));
+        }
         onClose();
       } else {
         showToast(response.message || 'Failed to update price.', 'error');

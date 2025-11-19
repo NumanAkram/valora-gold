@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Star, Heart, Tag } from 'lucide-react';
 import { useCart } from '../context/CartContext';
@@ -9,6 +9,7 @@ import Breadcrumbs from '../components/Breadcrumbs';
 import { productsAPI } from '../utils/api';
 import { getDisplayRating } from '../utils/ratings';
 import SetPriceModal from '../components/SetPriceModal';
+import { getActiveUserRole } from '../utils/authHelper';
 
 const OtherProducts = () => {
   const navigate = useNavigate();
@@ -20,6 +21,47 @@ const OtherProducts = () => {
   const [loading, setLoading] = useState(true);
   const [priceProduct, setPriceProduct] = useState(null);
   const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
+  const [userRole, setUserRole] = useState(null);
+
+  // Check user role from localStorage
+  const syncUserRole = useCallback(() => {
+    try {
+      const authInfo = getActiveUserRole();
+      setUserRole(authInfo.role);
+    } catch (error) {
+      console.error('Failed to determine user role', error);
+      setUserRole(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    syncUserRole();
+
+    const handleStorage = (event) => {
+      if (
+        event.key === 'user' ||
+        event.key === 'valora_admin' ||
+        event.key === 'token' ||
+        event.key === 'admin_token' ||
+        event.key === null
+      ) {
+        syncUserRole();
+      }
+    };
+
+    window.addEventListener('storage', handleStorage);
+    window.addEventListener('valora-user-updated', syncUserRole);
+    window.addEventListener('admin-auth-changed', syncUserRole);
+
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('valora-user-updated', syncUserRole);
+      window.removeEventListener('admin-auth-changed', syncUserRole);
+    };
+  }, [syncUserRole]);
+
+  // Check if user is admin (either through admin login or regular login with admin role)
+  const isAdmin = isAdminAuthenticated || (userRole && userRole.toLowerCase() === 'admin');
 
   // Scroll to top when component mounts
   useEffect(() => {
@@ -139,7 +181,7 @@ const OtherProducts = () => {
                     )}
 
                     {/* Wishlist Button - Only for users, not admin */}
-                    {!isAdminAuthenticated && (
+                    {!isAdmin && (
                       <button
                         onClick={() => {
                           if (isInWishlist(productId)) {
@@ -158,7 +200,7 @@ const OtherProducts = () => {
 
                     {/* Product Image */}
                     <div
-                      className="h-64 bg-gray-50 cursor-pointer"
+                      className="relative h-64 bg-gray-50 cursor-pointer"
                       onClick={() => {
                         // Ensure proper image structure: imageUrl as primary, images as array with imageUrl first
                         const allImages = product.imageUrl 
@@ -189,6 +231,33 @@ const OtherProducts = () => {
                         alt={productName}
                         className="w-full h-full object-contain lg:object-cover p-4"
                       />
+                      
+                      {/* Coming Soon Badge - Priority */}
+                      {isComingSoon && (
+                        <div className="absolute top-2 left-2 z-10">
+                          <span className="px-3 py-1.5 text-xs font-semibold rounded-full bg-yellow-500 text-white shadow-lg uppercase">
+                            Coming Soon
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Out of Stock Badge - Priority after Coming Soon */}
+                      {!isComingSoon && isOutOfStock && (
+                        <div className="absolute top-2 left-2 z-10">
+                          <span className="px-3 py-1.5 text-xs font-semibold rounded-full bg-red-500 text-white shadow-lg uppercase">
+                            Out of Stock
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Sale Badge - Only show if not coming soon and not out of stock */}
+                      {!isComingSoon && !isOutOfStock && hasSale && salePercent > 0 && (
+                        <div className="absolute top-2 left-2 z-10">
+                          <div className="bg-logo-green text-white text-sm font-bold px-3 py-1.5 rounded-full shadow-lg">
+                            Sale {salePercent}%
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* Product Details */}
@@ -263,14 +332,14 @@ const OtherProducts = () => {
                       {isComingSoon || isOutOfStock ? (
                         // Admin: Show "Set Price" only for Coming Soon, nothing for Out of Stock
                         // Users: Show "Add to Wishlist" for both Coming Soon and Out of Stock
-                        isAdminAuthenticated && isComingSoon ? (
+                        isAdmin && isComingSoon ? (
                           <button
                             onClick={() => openPriceModal(product)}
                             className="w-full border border-logo-green text-logo-green font-bold py-2 px-4 rounded text-sm uppercase transition-colors duration-300 hover:bg-logo-green hover:text-white"
                           >
                             Set Price
                           </button>
-                        ) : !isAdminAuthenticated ? (
+                        ) : !isAdmin ? (
                           <button
                             onClick={() => {
                               if (isInWishlist(productId)) {

@@ -288,7 +288,7 @@ const SalesPopup = () => {
     } else {
       selectedProduct = hairOilProduct || saleProducts.find((item) => item) || selectedProduct;
       const productName = selectedProduct?.name || selectedProduct?.title || 'Aura Hair Oil';
-      actionText = ` from ${buyerCity} just bought ${productName}!`;
+      actionText = ` from ${buyerCity} just ordered ${productName}!`;
     }
 
     if (!selectedProduct) {

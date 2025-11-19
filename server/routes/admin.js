@@ -397,9 +397,28 @@ router.get('/users', async (req, res) => {
       User.countDocuments(query),
     ]);
 
+    // Get orders count and latest address for each user
+    const usersWithOrders = await Promise.all(
+      users.map(async (user) => {
+        const userOrders = await Order.find({ user: user._id })
+          .sort({ createdAt: -1 })
+          .limit(1)
+          .select('shippingAddress');
+        
+        const ordersCount = await Order.countDocuments({ user: user._id });
+        const latestAddress = userOrders.length > 0 ? userOrders[0].shippingAddress : null;
+
+        return {
+          ...user.toObject(),
+          ordersCount,
+          latestAddress,
+        };
+      })
+    );
+
     res.json({
       success: true,
-      data: users,
+      data: usersWithOrders,
       pagination: {
         page: pageNumber,
         limit: limitNumber,
@@ -412,6 +431,37 @@ router.get('/users', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch users',
+    });
+  }
+});
+
+// @route   GET /api/admin/users/:id/orders
+// @desc    Get all orders for a specific user
+// @access  Private/Admin
+router.get('/users/:id/orders', async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid user id',
+      });
+    }
+
+    const orders = await Order.find({ user: req.params.id })
+      .sort({ createdAt: -1 })
+      .populate('items.product', 'name images price')
+      .select('orderNumber orderStatus paymentStatus total createdAt shippingAddress items');
+
+    res.json({
+      success: true,
+      data: orders,
+      count: orders.length,
+    });
+  } catch (error) {
+    console.error('Admin Get User Orders Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch user orders',
     });
   }
 });

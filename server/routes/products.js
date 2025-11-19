@@ -171,7 +171,7 @@ router.post('/', protect, authorize('admin'), async (req, res) => {
       });
     }
 
-    const imageList = Array.isArray(images) && images.length > 0
+    let imageList = Array.isArray(images) && images.length > 0
       ? images.filter(Boolean)
       : (imageUrl ? [imageUrl] : []);
 
@@ -183,6 +183,11 @@ router.post('/', protect, authorize('admin'), async (req, res) => {
     const primaryImageUrl = imageUrl && imageUrl.trim() 
       ? imageUrl.trim() 
       : (imageList.length > 0 ? imageList[0] : '/4.webp');
+
+    // ALWAYS ensure primary imageUrl is first in the images array
+    // Remove primary image from imageList if it exists, then put it first
+    const imagesWithoutPrimary = imageList.filter(img => img && img !== primaryImageUrl);
+    imageList = [primaryImageUrl, ...imagesWithoutPrimary];
 
     const product = await Product.create({
       name: name.trim(),
@@ -246,6 +251,14 @@ router.put('/:id', protect, authorize('admin'), async (req, res) => {
       });
     }
 
+    // Save previous state for notification tracking (before any changes)
+    const previousState = {
+      comingSoon: product.comingSoon,
+      inStock: product.inStock,
+      stockCount: product.stockCount,
+      price: product.price
+    };
+
     if (name !== undefined) {
       product.name = name.trim();
     }
@@ -293,19 +306,32 @@ router.put('/:id', protect, authorize('admin'), async (req, res) => {
     }
 
     if (images !== undefined || imageUrl !== undefined) {
-      const imageList = Array.isArray(images) && images.length > 0
+      let imageList = Array.isArray(images) && images.length > 0
         ? images.filter(Boolean)
         : (imageUrl !== undefined ? (imageUrl ? [imageUrl] : []) : product.images);
 
       if (imageList.length > 0) {
-        product.images = imageList;
-        // Update imageUrl if imageUrl is provided, otherwise set it to first image in images array
+        // Determine the primary imageUrl
+        let primaryImageUrl;
         if (imageUrl !== undefined) {
-          product.imageUrl = imageUrl && imageUrl.trim() ? imageUrl.trim() : (imageList.length > 0 ? imageList[0] : '/4.webp');
-        } else if (!product.imageUrl && imageList.length > 0) {
-          // If imageUrl doesn't exist but images array has items, set imageUrl to first image
-          product.imageUrl = imageList[0];
+          primaryImageUrl = imageUrl && imageUrl.trim() ? imageUrl.trim() : (imageList.length > 0 ? imageList[0] : '/4.webp');
+        } else if (product.imageUrl && product.imageUrl.trim()) {
+          // Keep existing imageUrl if no new one provided
+          primaryImageUrl = product.imageUrl;
+        } else if (imageList.length > 0) {
+          // Use first image from list if no imageUrl exists
+          primaryImageUrl = imageList[0];
+        } else {
+          primaryImageUrl = '/4.webp';
         }
+
+        // ALWAYS ensure primary imageUrl is first in the images array
+        // Remove primary image from imageList if it exists, then put it first
+        const imagesWithoutPrimary = imageList.filter(img => img && img !== primaryImageUrl);
+        imageList = [primaryImageUrl, ...imagesWithoutPrimary];
+
+        product.images = imageList;
+        product.imageUrl = primaryImageUrl;
       } else if (imageUrl !== undefined && !imageUrl) {
         product.images = ['/4.webp'];
         product.imageUrl = '/4.webp';
@@ -358,6 +384,22 @@ router.put('/:id', protect, authorize('admin'), async (req, res) => {
     }
 
     await product.save();
+
+    // Send wishlist notifications asynchronously (don't block response)
+    // Only notify if relevant fields changed
+    const { notifyWishlistUsers } = require('../utils/wishlistNotifications');
+    setImmediate(async () => {
+      try {
+        console.log('🚀 Starting wishlist notification process...');
+        const result = await notifyWishlistUsers(product, previousState);
+        console.log('📊 Notification result:', result);
+      } catch (error) {
+        console.error('❌ Failed to send wishlist notifications:', error);
+        console.error('Error details:', error.message);
+        console.error('Stack trace:', error.stack);
+        // Don't fail the request if notifications fail
+      }
+    });
 
     res.json({
       success: true,
@@ -416,11 +458,34 @@ router.put('/:id/price', protect, authorize('admin'), async (req, res) => {
       });
     }
 
+    // Save previous state for notification tracking
+    const previousState = {
+      comingSoon: product.comingSoon,
+      inStock: product.inStock,
+      stockCount: product.stockCount,
+      price: product.price
+    };
+
     product.price = numericPrice;
     product.originalPrice = numericOriginal;
     product.comingSoon = false;
 
     await product.save();
+
+    // Send wishlist notifications asynchronously (don't block response)
+    const { notifyWishlistUsers } = require('../utils/wishlistNotifications');
+    setImmediate(async () => {
+      try {
+        console.log('🚀 Starting wishlist notification process for price update...');
+        const result = await notifyWishlistUsers(product, previousState);
+        console.log('📊 Notification result:', result);
+      } catch (error) {
+        console.error('❌ Failed to send wishlist notifications:', error);
+        console.error('Error details:', error.message);
+        console.error('Stack trace:', error.stack);
+        // Don't fail the request if notifications fail
+      }
+    });
 
     res.json({
       success: true,

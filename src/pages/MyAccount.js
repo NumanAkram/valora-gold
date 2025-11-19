@@ -18,6 +18,7 @@ import { useToast } from '../context/ToastContext';
 import { authAPI, profileAPI, uploadAPI } from '../utils/api';
 import Breadcrumbs from '../components/Breadcrumbs';
 import countries from '../data/countries';
+import { validatePhoneNumber } from '../utils/phoneValidation';
 
 const MyAccount = () => {
   const navigate = useNavigate();
@@ -136,6 +137,18 @@ const MyAccount = () => {
     }));
     setIsCountryDropdownOpen(false);
     setCountryQuery('');
+    
+    // Re-validate phone number with new country code
+    if (formData.phone.trim()) {
+      const validation = validatePhoneNumber(formData.phone, country.dial_code);
+      if (!validation.isValid) {
+        setPhoneError(validation.error);
+      } else {
+        setPhoneError('');
+      }
+    } else {
+      setPhoneError('');
+    }
   };
 
   const handleInputChange = (event) => {
@@ -143,7 +156,18 @@ const MyAccount = () => {
     if (name === 'phone') {
       const cleaned = value.replace(/[^0-9+\s()-]/g, '');
       setFormData((prev) => ({ ...prev, phone: cleaned }));
-      setPhoneError('');
+      
+      // Real-time validation
+      if (cleaned.trim() && selectedCountry) {
+        const validation = validatePhoneNumber(cleaned, selectedCountry.dial_code);
+        if (!validation.isValid) {
+          setPhoneError(validation.error);
+        } else {
+          setPhoneError('');
+        }
+      } else {
+        setPhoneError('');
+      }
       return;
     }
 
@@ -226,12 +250,17 @@ const MyAccount = () => {
       return;
     }
 
-    const numericPhone = formData.phone.replace(/\D/g, '');
-    if (numericPhone && (numericPhone.length < 6 || numericPhone.length > 14)) {
-      setPhoneError('Please enter a valid phone number for the selected country.');
-      setIsSaving(false);
-      return;
+    // Validate phone number with country code
+    if (formData.phone.trim()) {
+      const phoneValidation = validatePhoneNumber(formData.phone, selectedCountry.dial_code);
+      if (!phoneValidation.isValid) {
+        setPhoneError(phoneValidation.error);
+        setIsSaving(false);
+        return;
+      }
     }
+    
+    const numericPhone = formData.phone.replace(/\D/g, '');
 
     const payload = {
       name: formData.name,

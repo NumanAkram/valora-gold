@@ -8,8 +8,10 @@ import { useRecentlyViewed } from '../context/RecentlyViewedContext';
 import { useAdminAuth } from '../context/AdminAuthContext';
 import Breadcrumbs from '../components/Breadcrumbs';
 import RelatedProducts from '../components/RelatedProducts';
+import SetPriceModal from '../components/SetPriceModal';
 import { productsAPI, reviewsAPI } from '../utils/api';
 import { getDisplayRating } from '../utils/ratings';
+import { getActiveUserRole } from '../utils/authHelper';
 
 // WhatsApp Icon Component - Official WhatsApp Logo
 const WhatsAppIcon = ({ className }) => (
@@ -32,8 +34,8 @@ const ProductDetail = () => {
   const { addToRecentlyViewed } = useRecentlyViewed();
   const [quantity, setQuantity] = useState(1);
   const [activeImage, setActiveImage] = useState(0);
-  // Start on reviews so the content doesn't appear empty to users at first view
-  const [activeTab, setActiveTab] = useState('reviews');
+  // Start on description by default
+  const [activeTab, setActiveTab] = useState('description');
   const [product, setProduct] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -45,15 +47,66 @@ const ProductDetail = () => {
   const [reviewForm, setReviewForm] = useState({ name: '', rating: 5, reviewText: '' });
   const errorShownRef = useRef(false); // Track if error has been shown
   const fetchingRef = useRef(false); // Track if currently fetching
+  const [priceProduct, setPriceProduct] = useState(null);
+  const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
+  const [userRole, setUserRole] = useState(null);
 
   const location = useLocation();
-  const { isAuthenticated: isAdmin } = useAdminAuth();
+  const { isAuthenticated: isAdminAuthenticated } = useAdminAuth();
   const [hasAdminAccess, setHasAdminAccess] = useState(false);
+  
+  // Check user role from localStorage
   useEffect(() => {
-    const storedAdmin = localStorage.getItem('valora_admin');
-    const storedAdminToken = localStorage.getItem('admin_token');
-    setHasAdminAccess(Boolean(storedAdmin || storedAdminToken) || isAdmin);
-  }, [isAdmin]);
+    const syncUserRole = () => {
+      try {
+        const authInfo = getActiveUserRole();
+        setUserRole(authInfo.role);
+        setHasAdminAccess(authInfo.isAdmin || isAdminAuthenticated);
+      } catch (error) {
+        console.error('Failed to determine user role', error);
+        setUserRole(null);
+        setHasAdminAccess(false);
+      }
+    };
+
+    syncUserRole();
+
+    const handleStorage = (event) => {
+      if (
+        event.key === 'user' ||
+        event.key === 'valora_admin' ||
+        event.key === 'token' ||
+        event.key === 'admin_token' ||
+        event.key === null
+      ) {
+        syncUserRole();
+      }
+    };
+
+    window.addEventListener('storage', handleStorage);
+    window.addEventListener('valora-user-updated', syncUserRole);
+    window.addEventListener('admin-auth-changed', syncUserRole);
+
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('valora-user-updated', syncUserRole);
+      window.removeEventListener('admin-auth-changed', syncUserRole);
+    };
+  }, [isAdminAuthenticated]);
+
+  // Check if user is admin (either through admin login or regular login with admin role)
+  const isAdmin = hasAdminAccess || (userRole && userRole.toLowerCase() === 'admin');
+
+  const openPriceModal = (product) => {
+    setPriceProduct(product);
+    setIsPriceModalOpen(true);
+  };
+
+  const handlePriceUpdated = (updatedProduct) => {
+    if (product && (product._id === updatedProduct._id || product.id === updatedProduct.id)) {
+      setProduct({ ...product, ...updatedProduct });
+    }
+  };
 
 
   // Scroll to top when component mounts or product ID changes
@@ -236,6 +289,72 @@ const ProductDetail = () => {
   const productDescription = product.description || '';
   const productIngredients = product.ingredients || '';
   const productBenefits = product.benefits || [];
+
+  // Helper function to format description with proper paragraphs, lists, and alignment
+  const formatDescription = (text) => {
+    if (!text) return null;
+    
+    // Normalize the text - replace different bullet characters with standard ones
+    let normalizedText = text
+      .replace(/[\u2022\u2023\u25E6\u2043\u2219]/g, '•') // Various bullet chars to •
+      .replace(/^[\s]*[-]\s+/gm, '• ') // Dashes at line start to bullets
+      .replace(/^[\s]*[\*]\s+/gm, '• ') // Asterisks at line start to bullets
+      .replace(/^[\s]*[+]\s+/gm, '• '); // Plus signs at line start to bullets
+    
+    // Split by double newlines (paragraphs)
+    const paragraphs = normalizedText.split(/\n\s*\n/).filter(p => p.trim());
+    
+    if (paragraphs.length === 0) return null;
+    
+    return paragraphs.map((para, paraIndex) => {
+      const trimmedPara = para.trim();
+      const lines = trimmedPara.split('\n').map(line => line.trim()).filter(line => line);
+      
+      if (lines.length === 0) return null;
+      
+      // Check if this paragraph contains bullet points
+      const bulletPattern = /^[\s]*[•]\s+/;
+      const hasBullets = lines.some(line => bulletPattern.test(line));
+      
+      // If it has bullets, render as a list (even if mixed with regular text)
+      if (hasBullets) {
+        return (
+          <ul key={paraIndex} className="space-y-2 my-4 list-none">
+            {lines.map((line, lineIndex) => {
+              if (bulletPattern.test(line)) {
+                // Extract bullet and content
+                const content = line.replace(bulletPattern, '').trim();
+                return (
+                  <li key={lineIndex} className="flex items-start space-x-3">
+                    <span className="text-[#D4AF37] font-bold text-lg mt-0.5 flex-shrink-0">•</span>
+                    <span className="text-gray-700 leading-relaxed font-sans text-justify flex-1">{content}</span>
+                  </li>
+                );
+              } else if (line.trim()) {
+                // Regular text line within a list context
+                return (
+                  <li key={lineIndex} className="flex items-start space-x-3">
+                    <span className="flex-shrink-0 w-4"></span>
+                    <span className="text-gray-700 leading-relaxed font-sans text-justify flex-1">{line}</span>
+                  </li>
+                );
+              }
+              return null;
+            })}
+          </ul>
+        );
+      }
+      
+      // Regular paragraph with text-justify
+      // Join lines with spaces if they're part of the same paragraph
+      const paragraphText = lines.join(' ');
+      return (
+        <p key={paraIndex} className="text-gray-700 leading-relaxed font-sans text-justify mb-4">
+          {paragraphText}
+        </p>
+      );
+    });
+  };
   // Calculate rating: Use real reviews if available, otherwise use fallback rating (same as product cards)
   const productRating = reviews.length > 0
     ? reviews.reduce((sum, review) => sum + (Number(review.rating) || 0), 0) / reviews.length
@@ -653,31 +772,51 @@ const ProductDetail = () => {
             </div>
 
             {/* Cart Actions */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <button
-                onClick={handleAddToCart}
-                disabled={!productInStock}
-                className={`w-full font-bold py-4 px-6 rounded-lg text-lg uppercase transition-colors duration-300 flex items-center justify-center space-x-2 font-sans ${
-                  productInStock
-                    ? 'bg-logo-green text-white hover:bg-banner-green'
-                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                }`}
-              >
-                <ShoppingCart className="h-5 w-5" />
-                <span>{productInStock ? 'Add to Cart' : 'Out of Stock'}</span>
-              </button>
-              <button
-                onClick={handleBuyNow}
-                disabled={!productInStock}
-                className={`w-full font-bold py-4 px-6 rounded-lg text-lg uppercase transition-colors duration-300 font-sans border-2 ${
-                  productInStock
-                    ? 'border-logo-green text-logo-green hover:bg-green-50'
-                    : 'border-gray-300 text-gray-500 cursor-not-allowed'
-                }`}
-              >
-                Buy it now
-              </button>
-            </div>
+            {isComingSoon ? (
+              // Coming Soon: Show Set Price for admin, Add to Wishlist for users
+              isAdmin ? (
+                <button
+                  onClick={() => openPriceModal(product)}
+                  className="w-full border border-logo-green text-logo-green font-bold py-4 px-6 rounded-lg text-lg uppercase transition-colors duration-300 hover:bg-logo-green hover:text-white font-sans"
+                >
+                  Set Price
+                </button>
+              ) : (
+                <button
+                  onClick={handleWishlist}
+                  className="w-full border border-logo-green text-logo-green font-bold py-4 px-6 rounded-lg text-lg uppercase transition-colors duration-300 hover:bg-logo-green hover:text-white flex items-center justify-center space-x-2 font-sans"
+                >
+                  <Heart className={`h-5 w-5 ${isInWishlist(productId) ? 'fill-current' : ''}`} />
+                  <span>{isInWishlist(productId) ? 'Remove from Wishlist' : 'Add to Wishlist'}</span>
+                </button>
+              )
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  onClick={handleAddToCart}
+                  disabled={!productInStock}
+                  className={`w-full font-bold py-4 px-6 rounded-lg text-lg uppercase transition-colors duration-300 flex items-center justify-center space-x-2 font-sans ${
+                    productInStock
+                      ? 'bg-logo-green text-white hover:bg-banner-green'
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  }`}
+                >
+                  <ShoppingCart className="h-5 w-5" />
+                  <span>{productInStock ? 'Add to Cart' : 'Out of Stock'}</span>
+                </button>
+                <button
+                  onClick={handleBuyNow}
+                  disabled={!productInStock}
+                  className={`w-full font-bold py-4 px-6 rounded-lg text-lg uppercase transition-colors duration-300 font-sans border-2 ${
+                    productInStock
+                      ? 'border-logo-green text-logo-green hover:bg-green-50'
+                      : 'border-gray-300 text-gray-500 cursor-not-allowed'
+                  }`}
+                >
+                  Buy it now
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -710,15 +849,17 @@ const ProductDetail = () => {
           <div className="min-h-[200px]">
             {activeTab === 'description' && (
               <div className="space-y-4">
-                <p className="text-gray-700 leading-relaxed font-sans">{productDescription}</p>
+                <div className="text-gray-700 leading-relaxed font-sans">
+                  {formatDescription(productDescription)}
+                </div>
                 {productBenefits.length > 0 && (
-                  <div>
+                  <div className="mt-6">
                     <h3 className="font-bold text-gray-900 mb-3 font-sans">Benefits:</h3>
-                    <ul className="space-y-2">
+                    <ul className="space-y-2 list-none">
                       {productBenefits.map((benefit, index) => (
-                        <li key={index} className="flex items-start space-x-2">
-                          <span className="text-logo-green mt-1">✓</span>
-                          <span className="text-gray-600 font-sans">{benefit}</span>
+                        <li key={index} className="flex items-start space-x-3">
+                          <span className="text-[#D4AF37] font-bold text-lg mt-0.5 flex-shrink-0">•</span>
+                          <span className="text-gray-700 leading-relaxed font-sans text-justify flex-1">{benefit}</span>
                         </li>
                       ))}
                     </ul>
@@ -930,6 +1071,15 @@ const ProductDetail = () => {
           </div>
         </div>
       )}
+      <SetPriceModal
+        open={isPriceModalOpen}
+        onClose={() => {
+          setIsPriceModalOpen(false);
+          setPriceProduct(null);
+        }}
+        product={priceProduct}
+        onPriceUpdated={handlePriceUpdated}
+      />
     </div>
   );
 };

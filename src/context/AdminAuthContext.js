@@ -19,13 +19,21 @@ export const AdminAuthProvider = ({ children }) => {
 
   useEffect(() => {
     const storedAdmin = localStorage.getItem('valora_admin');
-    if (storedAdmin) {
+    const adminToken = localStorage.getItem('admin_token');
+    
+    // Only restore admin session if both admin data and token exist
+    // This ensures we don't restore admin session when regular user is logged in
+    if (storedAdmin && adminToken) {
       try {
         setAdmin(JSON.parse(storedAdmin));
       } catch (err) {
         console.error('Failed to parse stored admin data', err);
         localStorage.removeItem('valora_admin');
+        localStorage.removeItem('admin_token');
       }
+    } else if (storedAdmin && !adminToken) {
+      // Clean up orphaned admin data without token
+      localStorage.removeItem('valora_admin');
     }
     setLoading(false);
   }, []);
@@ -34,12 +42,18 @@ export const AdminAuthProvider = ({ children }) => {
     localStorage.removeItem('valora_admin');
     localStorage.removeItem('admin_token');
     setAdmin(null);
+    window.dispatchEvent(new Event('admin-auth-changed'));
   }, []);
 
   const login = useCallback(
     async (credentials) => {
     setError(null);
     try {
+      // Clear regular user session when admin logs in
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.dispatchEvent(new Event('valora-user-updated'));
+      
       const response = await adminAPI.login(credentials);
       if (response.success) {
         setAdmin(response.data);
@@ -47,6 +61,7 @@ export const AdminAuthProvider = ({ children }) => {
         if (response.data?.token) {
           localStorage.setItem('admin_token', response.data.token);
         }
+        window.dispatchEvent(new Event('admin-auth-changed'));
         navigate('/admin');
         return { success: true };
       }
@@ -62,6 +77,7 @@ export const AdminAuthProvider = ({ children }) => {
 
   const logout = useCallback(() => {
     clearSession();
+    window.dispatchEvent(new Event('admin-auth-changed'));
     navigate('/admin/login');
   }, [clearSession, navigate]);
 

@@ -7,7 +7,7 @@ import Spinner from '../../components/Spinner';
 const AdminLogin = () => {
   const { login, error: authError, isAuthenticated } = useAdminAuth();
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({ email: 'testing@gmail.com', password: 'asdfqwer' });
+  const [formData, setFormData] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [showLoginForm, setShowLoginForm] = useState(false);
@@ -127,8 +127,9 @@ const AdminLogin = () => {
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  placeholder="testing@gmail.com"
+                  placeholder="Enter your admin email"
                   className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-logo-green focus:border-transparent text-sm font-sans"
+                  required
                 />
               </div>
 
@@ -143,8 +144,9 @@ const AdminLogin = () => {
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
-                    placeholder="Enter your password"
+                    placeholder="Enter your admin password"
                     className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-logo-green focus:border-transparent text-sm font-sans"
+                    required
                   />
                 </div>
               </div>

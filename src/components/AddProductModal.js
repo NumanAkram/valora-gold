@@ -274,6 +274,39 @@ const AddProductModal = ({ open, onClose, onProductCreated, allowAccess = false 
       .map((url) => url && url.trim())
       .filter(Boolean);
 
+    // Ensure images array is never empty (required by Product model)
+    // Use imageUrl if available, otherwise use default
+    const primaryImageUrl = formData.imageUrl.trim() || '';
+    
+    // ALWAYS ensure primary imageUrl is first in the images array
+    // Remove primary image from gallery images if it exists there, then put it first
+    const galleryWithoutPrimary = normalizedGalleryImages.filter(img => img && img !== primaryImageUrl);
+    let finalImages = [];
+    
+    if (primaryImageUrl) {
+      // Primary image should always be first
+      finalImages = [primaryImageUrl, ...galleryWithoutPrimary];
+    } else if (galleryWithoutPrimary.length > 0) {
+      // If no primary image, use gallery images
+      finalImages = galleryWithoutPrimary;
+    } else {
+      // Default fallback
+      finalImages = ['/4.webp'];
+    }
+    
+    // Ensure imageUrl is set (use first image if imageUrl is empty)
+    const finalImageUrl = primaryImageUrl || finalImages[0] || '/4.webp';
+
+    // Handle originalPrice for coming soon products
+    let finalOriginalPrice = numericOriginalPrice;
+    if (comingSoon) {
+      // For coming soon, originalPrice should be null or same as price
+      finalOriginalPrice = null;
+    } else if (finalOriginalPrice === null || finalOriginalPrice === undefined) {
+      // If not coming soon and originalPrice is not set, use price
+      finalOriginalPrice = numericPrice;
+    }
+
     setLoading(true);
     try {
       // If out of stock is checked, set stockCount to 0 and inStock to false
@@ -283,11 +316,11 @@ const AddProductModal = ({ open, onClose, onProductCreated, allowAccess = false 
       const payload = {
         name: formData.name.trim(),
         price: numericPrice,
-        originalPrice: numericOriginalPrice,
+        originalPrice: finalOriginalPrice,
         description: formData.description.trim(),
         category: formData.category,
-        imageUrl: formData.imageUrl.trim(),
-        images: normalizedGalleryImages,
+        imageUrl: finalImageUrl,
+        images: finalImages,
         comingSoon,
         stockCount: finalStockCount,
         inStock: finalInStock,

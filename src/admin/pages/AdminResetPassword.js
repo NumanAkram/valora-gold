@@ -47,9 +47,15 @@ const AdminResetPassword = () => {
 
     try {
       setLoading(true);
-      await authAPI.forgotPassword(email, newPassword);
-      showToast('Password updated successfully! You can now sign in.', 'success');
-      navigate('/admin/login');
+      const response = await authAPI.adminResetPassword(email, newPassword);
+      if (response.success) {
+        showToast('Password updated successfully! You can now sign in.', 'success');
+        navigate('/admin/login');
+      } else {
+        const message = response.message || 'Failed to reset password';
+        setError(message);
+        showToast(message, 'error');
+      }
     } catch (err) {
       const message = err.message || 'Failed to reset password';
       setError(message);
@@ -97,7 +103,7 @@ const AdminResetPassword = () => {
                 onChange={handleChange}
                 required
                 className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-logo-green focus:border-transparent text-sm font-sans"
-                placeholder="testing@gmail.com"
+                placeholder="Enter admin email"
               />
             </div>
           </div>

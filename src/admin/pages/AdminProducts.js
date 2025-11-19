@@ -58,6 +58,10 @@ const AdminProducts = () => {
           showToast('Product updated successfully', 'success');
           setIsFormOpen(false);
           fetchProducts();
+          // Dispatch product-updated event to update wishlist and other components
+          if (typeof window !== 'undefined' && response.data) {
+            window.dispatchEvent(new CustomEvent('product-updated', { detail: response.data }));
+          }
         } else {
           showToast(response.message || 'Failed to update product', 'error');
         }
@@ -68,6 +72,10 @@ const AdminProducts = () => {
           setIsFormOpen(false);
           setPage(1);
           fetchProducts();
+          // Dispatch product-added event for new products
+          if (typeof window !== 'undefined' && response.data) {
+            window.dispatchEvent(new CustomEvent('product-added', { detail: response.data }));
+          }
         } else {
           showToast(response.message || 'Failed to create product', 'error');
         }

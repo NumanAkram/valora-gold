@@ -4,6 +4,7 @@ import { Mail, Lock, User, Phone, LogOut, Image as ImageIcon, X as CloseIcon, Gl
 import { useToast } from '../context/ToastContext';
 import { authAPI } from '../utils/api';
 import countries from '../data/countries';
+import { validatePhoneNumber } from '../utils/phoneValidation';
 
 const SignUp = () => {
   const navigate = useNavigate();
@@ -69,7 +70,18 @@ const SignUp = () => {
         ...prev,
         phone: cleaned,
       }));
-      setPhoneError('');
+      
+      // Real-time validation
+      if (cleaned.trim()) {
+        const validation = validatePhoneNumber(cleaned, selectedCountry.dial_code);
+        if (!validation.isValid) {
+          setPhoneError(validation.error);
+        } else {
+          setPhoneError('');
+        }
+      } else {
+        setPhoneError('');
+      }
       return;
     }
 
@@ -139,7 +151,18 @@ const SignUp = () => {
     }));
     setIsCountryDropdownOpen(false);
     setCountryQuery('');
-    setPhoneError('');
+    
+    // Re-validate phone number with new country code
+    if (formData.phone.trim()) {
+      const validation = validatePhoneNumber(formData.phone, country.dial_code);
+      if (!validation.isValid) {
+        setPhoneError(validation.error);
+      } else {
+        setPhoneError('');
+      }
+    } else {
+      setPhoneError('');
+    }
   };
 
   useEffect(() => {
@@ -174,12 +197,15 @@ const SignUp = () => {
       return;
     }
 
-    const numericPhone = formData.phone.replace(/\D/g, '');
-    if (numericPhone.length < 6 || numericPhone.length > 14) {
-      setPhoneError('Please enter a valid phone number for the selected country.');
+    // Validate phone number with country code
+    const validation = validatePhoneNumber(formData.phone, selectedCountry.dial_code);
+    if (!validation.isValid) {
+      setPhoneError(validation.error);
       setLoading(false);
       return;
     }
+    
+    const numericPhone = formData.phone.replace(/\D/g, '');
     const parsedPhoneNumber = `${selectedCountry.dial_code}${numericPhone}`;
 
     if (formData.password !== formData.confirmPassword) {

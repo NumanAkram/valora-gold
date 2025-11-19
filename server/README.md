@@ -25,9 +25,23 @@ SMTP_USER=info@valoragold.store
 SMTP_PASS=your_app_password_here
 SMTP_FROM=info@valoragold.store
 ADMIN_NOTIFICATION_EMAILS=info@valoragold.store,valoragold.pk@gmail.com
+
+# SMS and WhatsApp notifications (using Twilio)
+# Get these from https://console.twilio.com/
+TWILIO_ACCOUNT_SID=your_twilio_account_sid
+TWILIO_AUTH_TOKEN=your_twilio_auth_token
+TWILIO_PHONE_NUMBER=+1234567890
+TWILIO_WHATSAPP_NUMBER=whatsapp:+14155238886
 ```
 
 > 💡 Generate an **App Password** for `SMTP_PASS` by enabling 2-Step Verification on the Gmail/Workspace account and creating an app-specific password (Security → App passwords). Paste the 16-character code without spaces.
+
+> 📱 For **SMS and WhatsApp notifications**, sign up at [Twilio](https://www.twilio.com/) and get your credentials:
+> - Create a free account at https://console.twilio.com/
+> - Get your `TWILIO_ACCOUNT_SID` and `TWILIO_AUTH_TOKEN` from the dashboard
+> - For SMS: Get a phone number from Twilio and set it as `TWILIO_PHONE_NUMBER`
+> - For WhatsApp: Use Twilio's sandbox number `whatsapp:+14155238886` (for testing) or get your own WhatsApp Business number
+> - Note: Twilio free tier includes limited SMS/WhatsApp messages for testing
 
 3. Start MongoDB (if using local):
 - Make sure MongoDB is installed and running

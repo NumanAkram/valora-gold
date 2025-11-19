@@ -101,6 +101,15 @@ export const authAPI = {
         newPassword,
       },
     }),
+
+  adminResetPassword: (email, newPassword) =>
+    apiRequest('/auth/admin/reset-password', {
+      method: 'POST',
+      body: {
+        email: typeof email === 'string' ? email.trim().toLowerCase() : email,
+        newPassword,
+      },
+    }),
 };
 
 // Products API
@@ -196,6 +205,8 @@ export const adminAPI = {
       method: 'PUT',
       body: payload,
     }),
+
+  getUserOrders: (userId) => apiRequest(`/admin/users/${userId}/orders`),
 };
 
 export const profileAPI = {

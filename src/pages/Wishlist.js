@@ -50,53 +50,82 @@ const Wishlist = () => {
         <h1 className="text-3xl font-bold text-logo-green mb-8 font-sans">My Wishlist ({wishlistItems.length})</h1>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {wishlistItems.map((item) => (
-            <div key={item.id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden relative">
-              <button
-                onClick={() => handleRemove(item.id)}
-                className="absolute top-2 right-2 z-10 bg-white rounded-full p-2 shadow-md hover:bg-red-50 transition-colors"
-              >
-                <Heart className="h-5 w-5 text-red-500 fill-current" />
-              </button>
-              
-              <div
-                className="h-64 bg-gray-50 cursor-pointer"
-                onClick={() => navigate(`/product/${item.id}`, { state: { product: { ...item, id: item.id, images: item.images || [item.image || '/4.webp'], image: item.image || '/4.webp' } } })}
-              >
-                <img
-                  src={item.image || '/4.webp'}
-                  alt={item.name || item.title}
-                  className="w-full h-full object-contain lg:object-cover p-4"
-                />
-              </div>
+          {wishlistItems.map((item) => {
+            const isComingSoon = Boolean(item.comingSoon) || item.price === null || item.price === undefined;
+            const isOutOfStock = Boolean(item.outOfStock) || (!item.inStock && (item.stockCount === 0 || item.stockCount === undefined));
+            const productPrice = item.price || item.salePrice || item.originalPrice || 0;
 
-              <div className="p-4 space-y-3">
-                <h3
-                  className="font-semibold text-gray-900 cursor-pointer hover:text-logo-green transition-colors font-sans"
+            return (
+              <div key={item.id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden relative">
+                <button
+                  onClick={() => handleRemove(item.id)}
+                  className="absolute top-2 right-2 z-10 bg-white rounded-full p-2 shadow-md hover:bg-red-50 transition-colors"
+                >
+                  <Heart className="h-5 w-5 text-red-500 fill-current" />
+                </button>
+
+                {/* Status Badge */}
+                {(isComingSoon || isOutOfStock) && (
+                  <div className="absolute top-2 left-2 z-10">
+                    {isComingSoon && (
+                      <span className="bg-yellow-500 text-white text-xs font-semibold px-3 py-1 rounded-full font-sans">
+                        Coming Soon
+                      </span>
+                    )}
+                    {!isComingSoon && isOutOfStock && (
+                      <span className="bg-red-500 text-white text-xs font-semibold px-3 py-1 rounded-full font-sans">
+                        Out of Stock
+                      </span>
+                    )}
+                  </div>
+                )}
+                
+                <div
+                  className="h-64 bg-gray-50 cursor-pointer"
                   onClick={() => navigate(`/product/${item.id}`, { state: { product: { ...item, id: item.id, images: item.images || [item.image || '/4.webp'], image: item.image || '/4.webp' } } })}
                 >
-                  {item.name || item.title}
-                </h3>
-                <div className="flex items-center space-x-2">
-                  {item.originalPrice && item.price && item.originalPrice > item.price && (
-                    <span className="text-sm text-red-600 line-through font-sans">
-                      Rs.{Number(item.originalPrice).toLocaleString()}
-                    </span>
-                  )}
-                  <span className="text-lg font-bold text-gray-900 font-sans">
-                    Rs.{Number(item.price || item.salePrice || item.originalPrice || 0).toLocaleString()}
-                  </span>
+                  <img
+                    src={item.image || '/4.webp'}
+                    alt={item.name || item.title}
+                    className="w-full h-full object-contain lg:object-cover p-4"
+                  />
                 </div>
-                <button
-                  onClick={() => handleAddToCart(item)}
-                  className="w-full bg-logo-green text-white py-2 px-4 rounded hover:bg-banner-green transition-colors font-sans font-medium flex items-center justify-center space-x-2"
-                >
-                  <ShoppingCart className="h-4 w-4" />
-                  <span>Add to Cart</span>
-                </button>
+
+                <div className="p-4 space-y-3">
+                  <h3
+                    className="font-semibold text-gray-900 cursor-pointer hover:text-logo-green transition-colors font-sans"
+                    onClick={() => navigate(`/product/${item.id}`, { state: { product: { ...item, id: item.id, images: item.images || [item.image || '/4.webp'], image: item.image || '/4.webp' } } })}
+                  >
+                    {item.name || item.title}
+                  </h3>
+                  <div className="flex items-center space-x-2">
+                    {item.originalPrice && item.price && item.originalPrice > item.price && !isComingSoon && (
+                      <span className="text-sm text-red-600 line-through font-sans">
+                        Rs.{Number(item.originalPrice).toLocaleString()}
+                      </span>
+                    )}
+                    <span className="text-lg font-bold text-gray-900 font-sans">
+                      {isComingSoon ? 'Price TBA' : `Rs.${Number(productPrice).toLocaleString()}`}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => !isComingSoon && !isOutOfStock && handleAddToCart(item)}
+                    disabled={isComingSoon || isOutOfStock}
+                    className={`w-full py-2 px-4 rounded transition-colors font-sans font-medium flex items-center justify-center space-x-2 ${
+                      isComingSoon || isOutOfStock
+                        ? 'bg-gray-400 text-white cursor-not-allowed'
+                        : 'bg-logo-green text-white hover:bg-banner-green'
+                    }`}
+                  >
+                    <ShoppingCart className="h-4 w-4" />
+                    <span>
+                      {isComingSoon ? 'Coming Soon' : isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
+                    </span>
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Star, Heart, ShoppingBag, Eye } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
@@ -6,6 +6,7 @@ import { useWishlist } from '../context/WishlistContext';
 import { useAdminAuth } from '../context/AdminAuthContext';
 import { getDisplayRating } from '../utils/ratings';
 import { productsAPI } from '../utils/api';
+import { getActiveUserRole } from '../utils/authHelper';
 
 const MAX_FEATURED = 4;
 
@@ -15,6 +16,47 @@ const FeaturedProducts = () => {
   const { showToast } = useToast();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
   const { isAuthenticated: isAdminAuthenticated } = useAdminAuth();
+  const [userRole, setUserRole] = useState(null);
+
+  // Check user role from localStorage
+  const syncUserRole = useCallback(() => {
+    try {
+      const authInfo = getActiveUserRole();
+      setUserRole(authInfo.role);
+    } catch (error) {
+      console.error('Failed to determine user role', error);
+      setUserRole(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    syncUserRole();
+
+    const handleStorage = (event) => {
+      if (
+        event.key === 'user' ||
+        event.key === 'valora_admin' ||
+        event.key === 'token' ||
+        event.key === 'admin_token' ||
+        event.key === null
+      ) {
+        syncUserRole();
+      }
+    };
+
+    window.addEventListener('storage', handleStorage);
+    window.addEventListener('valora-user-updated', syncUserRole);
+    window.addEventListener('admin-auth-changed', syncUserRole);
+
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('valora-user-updated', syncUserRole);
+      window.removeEventListener('admin-auth-changed', syncUserRole);
+    };
+  }, [syncUserRole]);
+
+  // Check if user is admin (either through admin login or regular login with admin role)
+  const isAdmin = isAdminAuthenticated || (userRole && userRole.toLowerCase() === 'admin');
 
   useEffect(() => {
     const fetchFeatured = async () => {
@@ -110,8 +152,26 @@ const FeaturedProducts = () => {
                   className="w-full h-64 object-contain lg:object-cover p-4 group-hover:scale-110 transition-transform duration-500"
                 />
                 
-                {/* Sale Badge */}
-                {!isComingSoon && hasSale && discount > 0 && (
+                {/* Coming Soon Badge - Priority */}
+                {isComingSoon && (
+                  <div className="absolute top-4 left-4 z-10">
+                    <span className="px-3 py-1.5 text-xs font-semibold rounded-full bg-yellow-500 text-white shadow-lg uppercase">
+                      Coming Soon
+                    </span>
+                  </div>
+                )}
+
+                {/* Out of Stock Badge - Priority after Coming Soon */}
+                {!isComingSoon && isOutOfStock && (
+                  <div className="absolute top-4 left-4 z-10">
+                    <span className="px-3 py-1.5 text-xs font-semibold rounded-full bg-red-500 text-white shadow-lg uppercase">
+                      Out of Stock
+                    </span>
+                  </div>
+                )}
+
+                {/* Sale Badge - Only show if not coming soon and not out of stock */}
+                {!isComingSoon && !isOutOfStock && hasSale && discount > 0 && (
                   <div className="absolute top-4 left-4 z-10">
                     <div className="bg-logo-green text-white text-sm font-bold px-3 py-1.5 rounded-full shadow-lg">
                       Sale {discount}%
@@ -119,8 +179,8 @@ const FeaturedProducts = () => {
                   </div>
                 )}
 
-                {/* Badge - Only show if no sale badge */}
-                {(!hasSale || discount === 0 || isComingSoon) && (
+                {/* New Arrival Badge - Only show if no sale badge, not coming soon, and not out of stock */}
+                {!isComingSoon && !isOutOfStock && (!hasSale || discount === 0) && (
                   <div className="absolute top-4 left-4">
                     <span className="px-3 py-1 text-xs font-semibold rounded-full bg-gold-500 text-white">
                       New Arrival
@@ -129,7 +189,7 @@ const FeaturedProducts = () => {
                 )}
 
                 {/* Action Buttons - Only for users, not admin */}
-                {!isAdminAuthenticated && (
+                {!isAdmin && (
                   <div className="absolute top-4 right-4 flex flex-col space-y-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                     <button
                       className="p-2 bg-white rounded-full shadow-lg hover:bg-gold-50 transition-colors"
@@ -160,7 +220,7 @@ const FeaturedProducts = () => {
                 <div className="absolute bottom-4 left-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                   {isComingSoon || isOutOfStock ? (
                     // Show "Add to Wishlist" only for users, not for admin
-                    !isAdminAuthenticated ? (
+                    !isAdmin ? (
                       <button
                         className="w-full bg-gold-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-gold-700 transition-colors flex items-center justify-center space-x-2"
                         onClick={() => {

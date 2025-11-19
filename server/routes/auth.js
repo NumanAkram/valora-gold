@@ -212,6 +212,48 @@ router.post('/admin/login', [
   }
 });
 
+// @route   POST /api/auth/admin/reset-password
+// @desc    Reset admin password (direct reset without code)
+// @access  Public (validates admin role)
+router.post('/admin/reset-password', [
+  body('email').isEmail().withMessage('Please provide a valid email'),
+  body('newPassword').isLength({ min: 6 }).withMessage('Password must be at least 6 characters')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        errors: errors.array()
+      });
+    }
+
+    const { email, newPassword } = req.body;
+
+    const user = await User.findOne({ email }).select('+password');
+    if (!user || user.role !== 'admin') {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid admin email'
+      });
+    }
+
+    user.password = newPassword;
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'Admin password reset successfully'
+    });
+  } catch (error) {
+    console.error('Admin Reset Password Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during password reset'
+    });
+  }
+});
+
 // @route   PUT /api/auth/profile
 // @desc    Update current user's profile
 // @access  Private

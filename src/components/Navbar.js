@@ -6,6 +6,7 @@ import { useWishlist } from '../context/WishlistContext';
 import CATEGORIES from '../constants/categories';
 import AddProductModal from './AddProductModal';
 import { useAdminAuth } from '../context/AdminAuthContext';
+import { getActiveUserRole } from '../utils/authHelper';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -38,53 +39,9 @@ const Navbar = () => {
 
   const syncUserRole = useCallback(() => {
     try {
-      let resolvedRole = null;
-      let resolvedUserInfo = null;
-
-      const adminData = localStorage.getItem('valora_admin');
-      if (adminData) {
-        try {
-          const parsedAdmin = JSON.parse(adminData);
-          if (parsedAdmin) {
-            resolvedRole = String(parsedAdmin.role || 'admin').toLowerCase();
-            resolvedUserInfo = { ...parsedAdmin, role: parsedAdmin.role || 'admin', isAdmin: true };
-          }
-        } catch (error) {
-          console.error('Failed to parse stored admin data', error);
-        }
-      }
-
-      if (!resolvedRole) {
-        const storedUser = localStorage.getItem('user');
-        if (storedUser) {
-          try {
-            const parsedUser = JSON.parse(storedUser);
-            if (parsedUser?.role) {
-              resolvedRole = String(parsedUser.role).toLowerCase();
-            }
-            resolvedUserInfo = { ...parsedUser, role: parsedUser?.role || 'user', isAdmin: false };
-          } catch (error) {
-            console.error('Failed to parse stored user', error);
-          }
-        }
-      }
-
-      if (!resolvedUserInfo) {
-        const token = localStorage.getItem('token');
-        if (token) {
-          resolvedUserInfo = { role: resolvedRole || 'user', isAdmin: false };
-        }
-      }
-
-      if (!resolvedUserInfo) {
-        const adminToken = localStorage.getItem('admin_token');
-        if (adminToken) {
-          resolvedUserInfo = { role: 'admin', isAdmin: true };
-        }
-      }
-
-      setUserRole(resolvedRole);
-      setUserInfo(resolvedUserInfo);
+      const authInfo = getActiveUserRole();
+      setUserRole(authInfo.role);
+      setUserInfo(authInfo.userInfo);
     } catch (error) {
       console.error('Failed to determine user role', error);
       setUserRole(null);
@@ -95,15 +52,17 @@ const Navbar = () => {
   useEffect(() => {
     syncUserRole();
     const handleStorage = (event) => {
-      if (event.key === 'user' || event.key === null) {
+      if (event.key === 'user' || event.key === 'valora_admin' || event.key === 'token' || event.key === 'admin_token' || event.key === null) {
         syncUserRole();
       }
     };
     window.addEventListener('storage', handleStorage);
     window.addEventListener('valora-user-updated', syncUserRole);
+    window.addEventListener('admin-auth-changed', syncUserRole);
     return () => {
       window.removeEventListener('storage', handleStorage);
       window.removeEventListener('valora-user-updated', syncUserRole);
+      window.removeEventListener('admin-auth-changed', syncUserRole);
     };
   }, [syncUserRole]);
 

@@ -7,6 +7,7 @@ import { useWishlist } from '../context/WishlistContext';
 import { getDisplayRating } from '../utils/ratings';
 import { useAdminAuth } from '../context/AdminAuthContext';
 import { productsAPI } from '../utils/api';
+import { getActiveUserRole } from '../utils/authHelper';
 
 const MAX_PRODUCTS = 4;
 const ADD_PRODUCT_BUTTON_ID = 'add-product-button';
@@ -72,35 +73,8 @@ const BestSellers = () => {
 
   const syncUserRole = useCallback(() => {
     try {
-      let resolvedRole = null;
-
-      const adminData = localStorage.getItem('valora_admin');
-      if (adminData) {
-        try {
-          const parsedAdmin = JSON.parse(adminData);
-          if (parsedAdmin?.role) {
-            resolvedRole = String(parsedAdmin.role).toLowerCase();
-          }
-        } catch (error) {
-          console.error('Failed to parse stored admin data', error);
-        }
-      }
-
-      if (!resolvedRole) {
-        const storedUser = localStorage.getItem('user');
-        if (storedUser) {
-          try {
-            const parsedUser = JSON.parse(storedUser);
-            if (parsedUser?.role) {
-              resolvedRole = String(parsedUser.role).toLowerCase();
-            }
-          } catch (error) {
-            console.error('Failed to parse stored user', error);
-          }
-        }
-      }
-
-      setUserRole(resolvedRole);
+      const authInfo = getActiveUserRole();
+      setUserRole(authInfo.role);
     } catch (error) {
       console.error('Failed to determine user role', error);
       setUserRole(null);
@@ -114,6 +88,8 @@ const BestSellers = () => {
       if (
         event.key === 'user' ||
         event.key === 'valora_admin' ||
+        event.key === 'token' ||
+        event.key === 'admin_token' ||
         event.key === null
       ) {
         syncUserRole();
@@ -241,17 +217,47 @@ const BestSellers = () => {
               
               return (
               <div key={productId} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden relative">
-                 {/* Sale Badge */}
-                 {!isComingSoon && hasSale && salePercent > 0 && (
-                   <div className="absolute top-2 left-2 z-10">
-                     <div className="bg-logo-green text-white text-sm font-bold px-3 py-1.5 rounded-full shadow-lg">
-                       Sale {salePercent}%
+                 {/* Product Image - Clickable */}
+                 <div 
+                  className="relative h-64 bg-gray-50 cursor-pointer"
+                  onClick={() => navigate(`/product/${productId}`, { state: { product: { ...product, id: productId } } })}
+                 >
+                   <img
+                     src={productImage}
+                     alt={productName}
+                     className="w-full h-full object-contain lg:object-cover p-4"
+                   />
+
+                   {/* Coming Soon Badge - Priority */}
+                   {isComingSoon && (
+                     <div className="absolute top-2 left-2 z-10">
+                       <span className="px-3 py-1.5 text-xs font-semibold rounded-full bg-yellow-500 text-white shadow-lg uppercase">
+                         Coming Soon
+                       </span>
                      </div>
-                   </div>
-                 )}
+                   )}
+
+                   {/* Out of Stock Badge - Priority after Coming Soon */}
+                   {!isComingSoon && isOutOfStock && (
+                     <div className="absolute top-2 left-2 z-10">
+                       <span className="px-3 py-1.5 text-xs font-semibold rounded-full bg-red-500 text-white shadow-lg uppercase">
+                         Out of Stock
+                       </span>
+                     </div>
+                   )}
+
+                   {/* Sale Badge - Only show if not coming soon and not out of stock */}
+                   {!isComingSoon && !isOutOfStock && hasSale && salePercent > 0 && (
+                     <div className="absolute top-2 left-2 z-10">
+                       <div className="bg-logo-green text-white text-sm font-bold px-3 py-1.5 rounded-full shadow-lg">
+                         Sale {salePercent}%
+                       </div>
+                     </div>
+                   )}
+                 </div>
 
                  {/* Wishlist Button - Only for users, not admin */}
-                 {!isAdminAuthenticated && (
+                 {!canManageProducts && (
                    <button
                      onClick={() => {
                        if (isInWishlist(productId)) {
@@ -267,18 +273,6 @@ const BestSellers = () => {
                      <Heart className={`h-5 w-5 ${isInWishlist(productId) ? 'text-red-500 fill-current' : 'text-gray-600'}`} />
                    </button>
                  )}
-
-                 {/* Product Image - Clickable */}
-                 <div 
-                  className="relative h-64 bg-gray-50 cursor-pointer"
-                  onClick={() => navigate(`/product/${productId}`, { state: { product: { ...product, id: productId } } })}
-                 >
-                   <img
-                     src={productImage}
-                     alt={productName}
-                     className="w-full h-full object-contain lg:object-cover p-4"
-                   />
-                 </div>
 
                  {/* Product Details */}
                  <div className="p-4 space-y-3 font-sans">
@@ -305,20 +299,32 @@ const BestSellers = () => {
 
                    {/* Price */}
                    <div className="flex items-center space-x-2">
-                     {hasDiscount && formattedOriginal && (
-                       <span className="text-sm text-red-600 line-through">
-                         {formattedOriginal}
+                     {isComingSoon ? (
+                       <span className="inline-flex items-center gap-1 rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-700 uppercase">
+                         Coming Soon
                        </span>
+                     ) : isOutOfStock ? (
+                       <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700 uppercase">
+                         Out of Stock
+                       </span>
+                     ) : (
+                       <>
+                         {hasDiscount && formattedOriginal && (
+                           <span className="text-sm text-red-600 line-through">
+                             {formattedOriginal}
+                           </span>
+                         )}
+                         <span className="text-base font-bold text-gray-900">
+                           {formattedPrice || formattedOriginal || 'Rs.0'}
+                         </span>
+                       </>
                      )}
-                     <span className="text-base font-bold text-gray-900">
-                       {formattedPrice || formattedOriginal || 'Rs.0'}
-                     </span>
                    </div>
 
                   {/* Action Button */}
                   {isComingSoon || isOutOfStock ? (
                     // Show "Add to Wishlist" only for users, not for admin
-                    !isAdminAuthenticated ? (
+                    !canManageProducts ? (
                       <button 
                         onClick={() => {
                           if (isInWishlist(productId)) {

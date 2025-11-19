@@ -279,6 +279,22 @@ const ProductFormModal = ({ open, onClose, onSubmit, product, categories }) => {
       .map((url) => url && url.trim())
       .filter(Boolean);
 
+    // ALWAYS ensure primary imageUrl is first in the images array
+    const primaryImageUrl = formData.imageUrl.trim() || '';
+    const galleryWithoutPrimary = normalizedGalleryImages.filter(img => img && img !== primaryImageUrl);
+    let finalImages = [];
+    
+    if (primaryImageUrl) {
+      // Primary image should always be first
+      finalImages = [primaryImageUrl, ...galleryWithoutPrimary];
+    } else if (galleryWithoutPrimary.length > 0) {
+      // If no primary image, use gallery images
+      finalImages = galleryWithoutPrimary;
+    } else {
+      // Default fallback
+      finalImages = ['/4.webp'];
+    }
+
     setLoading(true);
     try {
       // If out of stock is checked, set stockCount to 0 and inStock to false
@@ -291,8 +307,8 @@ const ProductFormModal = ({ open, onClose, onSubmit, product, categories }) => {
         originalPrice: numericOriginalPrice,
         description: formData.description.trim(),
         category: formData.category,
-        imageUrl: formData.imageUrl.trim(),
-        images: normalizedGalleryImages,
+        imageUrl: primaryImageUrl || finalImages[0] || '/4.webp',
+        images: finalImages,
         stockCount: finalStockCount,
         inStock: finalInStock,
         comingSoon: formData.comingSoon,

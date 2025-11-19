@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell, Menu, Search, Loader2 } from 'lucide-react';
+import { Bell, Menu, Loader2 } from 'lucide-react';
 import { useAdminAuth } from '../../context/AdminAuthContext';
 import { useAdminNotifications } from '../context/AdminNotificationContext';
 import AdminNotificationsPanel from './AdminNotificationsPanel';
@@ -18,15 +18,6 @@ const AdminHeader = ({ onToggleSidebar }) => {
         >
           <Menu className="h-5 w-5" />
         </button>
-
-        <div className="hidden sm:flex items-center bg-gray-100 rounded-lg px-3 py-1.5">
-          <Search className="h-4 w-4 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search..."
-            className="bg-transparent border-0 focus:ring-0 text-sm pl-2 text-gray-700 font-sans"
-          />
-        </div>
       </div>
 
       <div className="flex items-center gap-4">

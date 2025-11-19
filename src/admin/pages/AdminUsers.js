@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Users as UsersIcon, Search, Shield } from 'lucide-react';
+import { Users as UsersIcon, Search, Shield, Download } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import AdminLayout from '../layout/AdminLayout';
 import { adminAPI } from '../../utils/api';
 import Spinner from '../../components/Spinner';
@@ -85,6 +86,88 @@ const AdminUsers = () => {
     }
   };
 
+  const handleExportData = async () => {
+    try {
+      setLoading(true);
+      showToast('Preparing export...', 'success');
+
+      // Fetch all users without pagination
+      const params = {
+        page: 1,
+        limit: 10000, // Large limit to get all users
+      };
+
+      if (filters.role && filters.role !== 'all') {
+        params.role = filters.role;
+      }
+      if (filters.search) {
+        params.search = filters.search;
+      }
+
+      const response = await adminAPI.getUsers(params);
+
+      if (!response.success || !response.data || response.data.length === 0) {
+        showToast('No users found to export', 'error');
+        return;
+      }
+
+      // Format data for Excel
+      const excelData = response.data.map((user) => {
+        const address = user.latestAddress
+          ? `${user.latestAddress.street || ''}, ${user.latestAddress.city || ''}, ${user.latestAddress.province || ''}, ${user.latestAddress.postalCode || ''}`.replace(/^,\s*|,\s*$/g, '').replace(/,\s*,/g, ',')
+          : 'No address';
+
+        return {
+          'User Name': user.name || 'N/A',
+          'User ID': user._id || 'N/A',
+          'Role': user.role === 'admin' ? 'Administrator' : 'Customer',
+          'Email': user.email || 'N/A',
+          'Phone Number': user.phone || 'N/A',
+          'Orders Count': user.ordersCount || 0,
+          'Address': address,
+        };
+      });
+
+      // Create workbook and worksheet
+      const worksheet = XLSX.utils.json_to_sheet(excelData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Users Data');
+
+      // Set column widths
+      const columnWidths = [
+        { wch: 20 }, // User Name
+        { wch: 25 }, // User ID
+        { wch: 15 }, // Role
+        { wch: 30 }, // Email
+        { wch: 18 }, // Phone Number
+        { wch: 12 }, // Orders Count
+        { wch: 50 }, // Address
+      ];
+      worksheet['!cols'] = columnWidths;
+
+      // Generate Excel file
+      const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+      const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `users_export_${new Date().toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      showToast('Data exported successfully!', 'success');
+    } catch (err) {
+      console.error('Export error:', err);
+      showToast(err.message || 'Failed to export data', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <AdminLayout>
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
@@ -94,6 +177,14 @@ const AdminUsers = () => {
             Manage customer accounts, update roles, and review user activity.
           </p>
         </div>
+        <button
+          onClick={handleExportData}
+          disabled={loading}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-logo-green text-white rounded-lg font-semibold text-sm hover:bg-banner-green transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-sans"
+        >
+          <Download className="h-4 w-4" />
+          Export Data
+        </button>
       </div>
 
       <section className="bg-white border border-gray-200 rounded-2xl shadow">
@@ -137,19 +228,21 @@ const AdminUsers = () => {
                 <HeaderCell>User</HeaderCell>
                 <HeaderCell>Email</HeaderCell>
                 <HeaderCell>Phone</HeaderCell>
+                <HeaderCell>Orders</HeaderCell>
+                <HeaderCell>Address</HeaderCell>
                 <HeaderCell>Actions</HeaderCell>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan={4} className="py-10">
+                  <td colSpan={6} className="py-10">
                     <Spinner label="Loading users..." />
                   </td>
                 </tr>
               ) : error ? (
                 <tr>
-                  <td colSpan={4} className="px-4 py-6 text-center text-red-600 text-sm font-sans">
+                  <td colSpan={6} className="px-4 py-6 text-center text-red-600 text-sm font-sans">
                     {error}
                   </td>
                 </tr>
@@ -194,6 +287,26 @@ const AdminUsers = () => {
                     <BodyCell>{user.email}</BodyCell>
                     <BodyCell>{user.phone || 'N/A'}</BodyCell>
                     <BodyCell>
+                      <div className="flex flex-col">
+                        <span className="font-semibold text-gray-900">{user.ordersCount || 0}</span>
+                        <span className="text-xs text-gray-500">order{user.ordersCount !== 1 ? 's' : ''}</span>
+                      </div>
+                    </BodyCell>
+                    <BodyCell>
+                      <div className="max-w-[10rem]">
+                        {user.latestAddress ? (
+                          <div className="text-sm text-gray-700">
+                            <p className="font-medium truncate">{user.latestAddress.street || 'N/A'}</p>
+                            <p className="text-xs text-gray-500 truncate">
+                              {[user.latestAddress.city, user.latestAddress.province].filter(Boolean).join(', ') || 'N/A'}
+                            </p>
+                          </div>
+                        ) : (
+                          <span className="text-sm text-gray-400">No address</span>
+                        )}
+                      </div>
+                    </BodyCell>
+                    <BodyCell>
                       <button
                         onClick={() => openEditUser(user)}
                         className="inline-flex items-center gap-1 px-3 py-1 rounded-md border border-gray-200 text-xs font-semibold text-gray-600 hover:bg-gray-100"
@@ -205,7 +318,7 @@ const AdminUsers = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={4} className="px-4 py-6 text-center text-sm text-gray-500 font-sans">
+                  <td colSpan={6} className="px-4 py-6 text-center text-sm text-gray-500 font-sans">
                     No users found.
                   </td>
                 </tr>
@@ -219,24 +332,34 @@ const AdminUsers = () => {
             Showing {(page - 1) * limit + (users.length ? 1 : 0)}-
             {Math.min(page * limit, total)} of {total} users
           </p>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <button
-              onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
-              disabled={page === 1}
-              className="px-3 py-1.5 rounded-md border border-gray-200 text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handleExportData}
+              disabled={loading}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-logo-green text-white rounded-lg font-semibold text-sm hover:bg-banner-green transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-sans"
             >
-              Previous
+              <Download className="h-4 w-4" />
+              Export Data
             </button>
-            <span className="text-sm text-gray-500 font-sans">
-              Page {page} of {pageCount}
-            </span>
-            <button
-              onClick={() => setPage((prev) => Math.min(prev + 1, pageCount))}
-              disabled={page === pageCount}
-              className="px-3 py-1.5 rounded-md border border-gray-200 text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Next
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+                disabled={page === 1}
+                className="px-3 py-1.5 rounded-md border border-gray-200 text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              <span className="text-sm text-gray-500 font-sans">
+                Page {page} of {pageCount}
+              </span>
+              <button
+                onClick={() => setPage((prev) => Math.min(prev + 1, pageCount))}
+                disabled={page === pageCount}
+                className="px-3 py-1.5 rounded-md border border-gray-200 text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
           </div>
         </div>
       </section>

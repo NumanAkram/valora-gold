@@ -6,6 +6,7 @@ import { useToast } from '../context/ToastContext';
 import { ordersAPI, authAPI, shippingAPI } from '../utils/api';
 import Breadcrumbs from '../components/Breadcrumbs';
 import countries from '../data/countries';
+import { validatePhoneNumber } from '../utils/phoneValidation';
 
 const Checkout = () => {
   const navigate = useNavigate();
@@ -43,6 +44,7 @@ const Checkout = () => {
   });
   const [shippingCharge, setShippingCharge] = useState(200);
   const [loadingShipping, setLoadingShipping] = useState(false);
+  const [phoneError, setPhoneError] = useState('');
   const defaultCountry = countries.find((country) => country.code === 'PK') || countries[0];
   const [selectedCountry, setSelectedCountry] = useState(defaultCountry);
   const [countryQuery, setCountryQuery] = useState('');
@@ -60,6 +62,18 @@ const Checkout = () => {
     setSelectedCountry(country);
     setIsCountryDropdownOpen(false);
     setCountryQuery('');
+    
+    // Re-validate phone number with new country code
+    if (formData.phone.trim()) {
+      const validation = validatePhoneNumber(formData.phone, country.dial_code);
+      if (!validation.isValid) {
+        setPhoneError(validation.error);
+      } else {
+        setPhoneError('');
+      }
+    } else {
+      setPhoneError('');
+    }
   };
 
   useEffect(() => {
@@ -158,6 +172,27 @@ const Checkout = () => {
   }
 
   const handleChange = (e) => {
+    if (e.target.name === 'phone') {
+      const cleaned = e.target.value.replace(/[^0-9+\s()-]/g, '');
+      setFormData({
+        ...formData,
+        phone: cleaned,
+      });
+      
+      // Real-time validation
+      if (cleaned.trim()) {
+        const validation = validatePhoneNumber(cleaned, selectedCountry.dial_code);
+        if (!validation.isValid) {
+          setPhoneError(validation.error);
+        } else {
+          setPhoneError('');
+        }
+      } else {
+        setPhoneError('');
+      }
+      return;
+    }
+
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
@@ -170,6 +205,14 @@ const Checkout = () => {
     // Validation
     if (!formData.street || !formData.city || !formData.province || !formData.phone) {
       showToast('Please fill in all required shipping fields', 'error');
+      return;
+    }
+
+    // Validate phone number with country code
+    const phoneValidation = validatePhoneNumber(formData.phone, selectedCountry.dial_code);
+    if (!phoneValidation.isValid) {
+      setPhoneError(phoneValidation.error);
+      showToast(phoneValidation.error, 'error');
       return;
     }
 
@@ -376,6 +419,9 @@ const Checkout = () => {
                       <p className="mt-1 text-xs text-gray-500 font-sans">
                         Enter your number without the leading zero; we'll prepend the {selectedCountry.dial_code} dial code automatically.
                       </p>
+                      {phoneError && (
+                        <p className="mt-1 text-xs text-red-600 font-sans">{phoneError}</p>
+                      )}
                     </div>
                   </div>
                 </div>
