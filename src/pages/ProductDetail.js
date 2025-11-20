@@ -1195,12 +1195,59 @@ export default ProductDetail;
 const RecentlyViewedList = ({ currentId }) => {
   const { recentlyViewed } = useRecentlyViewed();
   const navigate = useNavigate();
+  const { addToCart } = useCart();
+  const { showToast } = useToast();
+  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
+  const { isAuthenticated: isAdminAuthenticated } = useAdminAuth();
+  const [userRole, setUserRole] = useState(null);
+
+  // Check user role from localStorage
+  useEffect(() => {
+    const syncUserRole = () => {
+      try {
+        const authInfo = getActiveUserRole();
+        setUserRole(authInfo.role);
+      } catch (error) {
+        console.error('Failed to determine user role', error);
+        setUserRole(null);
+      }
+    };
+
+    syncUserRole();
+
+    const handleStorage = (event) => {
+      if (
+        event.key === 'user' ||
+        event.key === 'valora_admin' ||
+        event.key === 'token' ||
+        event.key === 'admin_token' ||
+        event.key === null
+      ) {
+        syncUserRole();
+      }
+    };
+
+    window.addEventListener('storage', handleStorage);
+    window.addEventListener('valora-user-updated', syncUserRole);
+    window.addEventListener('admin-auth-changed', syncUserRole);
+
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('valora-user-updated', syncUserRole);
+      window.removeEventListener('admin-auth-changed', syncUserRole);
+    };
+  }, []);
+
+  // Check if user is admin
+  const isAdmin = isAdminAuthenticated || (userRole && userRole.toLowerCase() === 'admin');
+
   const items = (recentlyViewed || []).filter(p => (p._id || p.id) !== currentId).slice(0, 2);
   if (items.length === 0) return null;
+  
   return (
     <div className="mt-8 sm:mt-10 md:mt-12">
       <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 sm:mb-6 font-sans">Recently Viewed</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-4 md:gap-6">
+      <div className="flex justify-start md:justify-center space-x-2 sm:space-x-3 md:space-x-4 px-2 sm:px-4 md:px-8 lg:px-20 overflow-x-auto scrollbar-hide">
         {items.map((p, index) => {
           const prodId = p._id || p.id;
           const prodImage = p.imageUrl || (p.images && p.images[0]) || p.image || '/4.webp';
@@ -1217,24 +1264,42 @@ const RecentlyViewedList = ({ currentId }) => {
           return (
             <div 
               key={prodId} 
-              className="group card p-3 sm:p-4 md:p-6 animate-slide-up cursor-pointer" 
-              style={{animationDelay: `${index * 0.1}s`}}
-              onClick={() => navigate(`/product/${prodId}`, { state: { product: { ...p, id: prodId, images: p.images || [prodImage], image: prodImage, imageUrl: p.imageUrl || prodImage } } })}
+              className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden flex-shrink-0 w-[280px] sm:w-[300px] md:w-80 relative"
             >
-              {/* Product Image */}
-              <div className="relative mb-3 sm:mb-4 overflow-hidden rounded-lg">
-                <div className="relative h-48 sm:h-56 md:h-64 lg:h-[22rem] bg-gray-50 rounded-lg overflow-hidden">
-                  <img 
-                    src={prodImage} 
-                    alt={prodName} 
-                    className="w-full h-full object-contain lg:object-cover p-2 sm:p-3 md:p-4 group-hover:scale-110 transition-transform duration-500" 
-                  />
-                </div>
+              {/* Wishlist Button - Only for users, not admin */}
+              {!isAdmin && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (isInWishlist(prodId)) {
+                      removeFromWishlist(prodId);
+                      showToast('Removed from wishlist', 'success');
+                    } else {
+                      addToWishlist({ ...p, id: prodId, name: prodName, price: priceValue ?? 0, image: prodImage });
+                      showToast('Added to wishlist!', 'success');
+                    }
+                  }}
+                  className="absolute top-1 right-1 md:top-2 md:right-2 z-10 bg-white rounded-full p-2 shadow-md hover:bg-red-50 transition-colors"
+                >
+                  <Heart className={`h-5 w-5 ${isInWishlist(prodId) ? 'text-red-500 fill-current' : 'text-gray-600'}`} />
+                </button>
+              )}
+
+              {/* Product Image - Clickable */}
+              <div 
+                className="relative h-60 sm:h-72 md:h-80 lg:h-[22rem] bg-gray-50 cursor-pointer"
+                onClick={() => navigate(`/product/${prodId}`, { state: { product: { ...p, id: prodId, _id: prodId, name: prodName, title: prodName, price: priceValue, originalPrice: originalPriceValue, images: p.images || [prodImage], image: prodImage, rating: ratingValue, numReviews: productReviews } } })}
+              >
+                <img 
+                  src={prodImage} 
+                  alt={prodName} 
+                  className="w-full h-full object-contain lg:object-cover" 
+                />
                 
                 {/* Coming Soon Badge - Priority */}
                 {isComingSoon && (
-                  <div className="absolute top-2 left-2 sm:top-3 sm:left-3 md:top-4 md:left-4 z-10">
-                    <span className="px-2 py-1 sm:px-3 sm:py-1.5 text-xs font-semibold rounded-full bg-yellow-500 text-white shadow-lg uppercase">
+                  <div className="absolute top-2 left-2 z-10">
+                    <span className="px-3 py-1.5 text-xs font-semibold rounded-full bg-yellow-500 text-white shadow-lg uppercase">
                       Coming Soon
                     </span>
                   </div>
@@ -1242,8 +1307,8 @@ const RecentlyViewedList = ({ currentId }) => {
 
                 {/* Out of Stock Badge - Priority after Coming Soon */}
                 {!isComingSoon && isOutOfStock && (
-                  <div className="absolute top-2 left-2 sm:top-3 sm:left-3 md:top-4 md:left-4 z-10">
-                    <span className="px-2 py-1 sm:px-3 sm:py-1.5 text-xs font-semibold rounded-full bg-red-500 text-white shadow-lg uppercase">
+                  <div className="absolute top-2 left-2 z-10">
+                    <span className="px-3 py-1.5 text-xs font-semibold rounded-full bg-red-500 text-white shadow-lg uppercase">
                       Out of Stock
                     </span>
                   </div>
@@ -1251,67 +1316,107 @@ const RecentlyViewedList = ({ currentId }) => {
 
                 {/* Sale Badge - Only show if not coming soon and not out of stock */}
                 {!isComingSoon && !isOutOfStock && hasSale && discount > 0 && (
-                  <div className="absolute top-2 left-2 sm:top-3 sm:left-3 md:top-4 md:left-4 z-10">
-                    <div className="bg-logo-green text-white text-xs sm:text-sm font-bold px-2 py-1 sm:px-3 sm:py-1.5 rounded-full shadow-lg">
+                  <div className="absolute top-2 left-2 z-10">
+                    <div className="bg-logo-green text-white text-sm font-bold px-3 py-1.5 rounded-full shadow-lg">
                       Sale {discount}%
                     </div>
-                  </div>
-                )}
-
-                {/* New Arrival Badge - Only show if no sale badge, not coming soon, and not out of stock */}
-                {!isComingSoon && !isOutOfStock && (!hasSale || discount === 0) && (
-                  <div className="absolute top-2 left-2 sm:top-3 sm:left-3 md:top-4 md:left-4">
-                    <span className="px-2 py-0.5 sm:px-3 sm:py-1 text-xs font-semibold rounded-full bg-gold-500 text-white">
-                      New Arrival
-                    </span>
                   </div>
                 )}
               </div>
 
               {/* Product Info */}
-              <div className="space-y-1.5 sm:space-y-2">
-                <h3 className="text-base sm:text-lg font-semibold text-gray-900 group-hover:text-gold-600 transition-colors font-sans line-clamp-2">
+              <div className="p-4 space-y-3 font-sans">
+                {/* Product Title - Clickable */}
+                <h3 
+                  className="text-sm font-medium text-gray-800 leading-tight h-12 overflow-hidden cursor-pointer hover:text-logo-green transition-colors"
+                  onClick={() => navigate(`/product/${prodId}`, { state: { product: { ...p, id: prodId, _id: prodId, name: prodName, title: prodName, price: priceValue, originalPrice: originalPriceValue, images: p.images || [prodImage], image: prodImage, rating: ratingValue, numReviews: productReviews } } })}
+                >
                   {prodName}
                 </h3>
                 
                 {/* Rating */}
-                <div className="flex items-center space-x-1 flex-wrap">
-                  <div className="flex items-center">
+                <div className="flex items-center space-x-2">
+                  <div className="flex">
                     {[...Array(5)].map((_, i) => (
                       <Star
                         key={i}
-                        className={`h-3 w-3 sm:h-4 sm:w-4 ${
-                          i + 1 <= ratingValue
-                            ? 'text-yellow-400 fill-current'
-                            : 'text-gray-300'
-                        }`}
+                        className={`h-4 w-4 ${i + 1 <= (Number(ratingValue) || 0) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
                       />
                     ))}
                   </div>
-                  <span className="text-xs sm:text-sm text-gray-600 font-sans">
-                    {ratingValue} ({productReviews} reviews)
-                  </span>
+                  <span className="text-xs text-gray-600">{productReviews} reviews</span>
                 </div>
 
-                {/* Price */}
-                <div className="flex items-center space-x-2 flex-wrap">
-                  {priceValue !== null ? (
+                {/* Pricing */}
+                <div className="flex items-center space-x-2">
+                  {isComingSoon ? (
+                    <span className="text-base font-semibold text-gray-500 uppercase tracking-wide">
+                      Coming Soon
+                    </span>
+                  ) : (
                     <>
-                      <span className="text-lg sm:text-xl md:text-2xl font-bold text-gold-600 font-sans">
-                        Rs.{priceValue.toLocaleString()}
+                      <span className="text-lg font-bold text-red-600">
+                        Rs.{priceValue?.toLocaleString()}
                       </span>
                       {originalPriceValue && originalPriceValue > priceValue && (
-                        <span className="text-sm sm:text-base md:text-lg text-gray-400 line-through font-sans">
+                        <span className="text-sm text-gray-500 line-through">
                           Rs.{originalPriceValue.toLocaleString()}
                         </span>
                       )}
                     </>
-                  ) : (
-                    <span className="text-sm sm:text-base md:text-lg font-semibold text-gray-500 uppercase tracking-wide font-sans">
-                      Coming Soon
-                    </span>
                   )}
                 </div>
+
+                {/* Action Button */}
+                {isComingSoon || isOutOfStock ? (
+                  // Admin: Show "Set Price" only for Coming Soon, nothing for Out of Stock
+                  // Users: Show "Add to Wishlist" for both Coming Soon and Out of Stock
+                  isAdmin && isComingSoon ? (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // Set price functionality would go here if needed
+                      }}
+                      className="w-full border border-logo-green text-logo-green font-bold py-2 px-4 rounded text-sm uppercase transition-colors duration-300 hover:bg-logo-green hover:text-white"
+                    >
+                      Set Price
+                    </button>
+                  ) : !isAdmin ? (
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (isInWishlist(prodId)) {
+                          removeFromWishlist(prodId);
+                          showToast('Removed from wishlist', 'success');
+                        } else {
+                          addToWishlist({ ...p, id: prodId, name: prodName, price: priceValue ?? 0, image: prodImage });
+                          showToast('Added to wishlist!', 'success');
+                        }
+                      }}
+                      className="w-full border border-logo-green text-logo-green font-bold py-2 px-4 rounded text-sm uppercase transition-colors duration-300 hover:bg-logo-green hover:text-white flex items-center justify-center gap-2"
+                    >
+                      <Heart className={`h-4 w-4 ${isInWishlist(prodId) ? 'text-red-500 fill-current' : ''}`} />
+                      {isInWishlist(prodId) ? 'Remove from Wishlist' : 'Add to Wishlist'}
+                    </button>
+                  ) : null // Admin + Out of Stock = no button
+                ) : (
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      addToCart({ 
+                        ...p, 
+                        id: prodId,
+                        name: prodName,
+                        price: priceValue,
+                        image: prodImage
+                      });
+                      showToast('Product added to cart!', 'success');
+                    }}
+                    className="w-full border border-logo-green text-logo-green font-bold py-2 px-4 rounded text-sm uppercase transition-colors duration-300 hover:bg-logo-green hover:text-white"
+                  >
+                    ADD TO CART
+                  </button>
+                )}
               </div>
             </div>
           );
