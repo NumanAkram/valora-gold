@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const Product = require('../models/Product');
 const { sendMail } = require('./mailer');
 const { sendSMSAndWhatsApp } = require('./smsService');
 
@@ -11,8 +12,44 @@ const { sendSMSAndWhatsApp } = require('./smsService');
  */
 exports.notifyWishlistUsers = async (product, previousState = {}) => {
   try {
+    // Convert Mongoose document to plain object if needed
+    let productData = product;
+    if (product && typeof product.toObject === 'function') {
+      productData = product.toObject({ getters: true, virtuals: false });
+    } else if (product && typeof product.toJSON === 'function') {
+      productData = product.toJSON();
+    }
+    
+    // Ensure we have the product data
+    if (!productData || !productData._id) {
+      console.log('⚠️ Invalid product data passed to notifyWishlistUsers');
+      return { sent: 0, error: 'Invalid product data' };
+    }
+    
+    // Fetch fresh product data from database to ensure all fields are populated
+    try {
+      const freshProduct = await Product.findById(productData._id)
+        .select('name price originalPrice imageUrl images comingSoon inStock stockCount category');
+      
+      if (freshProduct) {
+        // Convert to plain object
+        productData = freshProduct.toObject ? freshProduct.toObject({ getters: true, virtuals: false }) : freshProduct;
+        console.log('✅ Fetched fresh product data from database');
+      } else {
+        console.log('⚠️ Could not fetch fresh product data, using provided data');
+      }
+    } catch (error) {
+      console.log('⚠️ Error fetching fresh product data:', error.message);
+      // Continue with existing productData
+    }
+    
     console.log('=== Wishlist Notification Check ===');
-    console.log('Product:', product.name, 'ID:', product._id);
+    console.log('Product:', productData.name, 'ID:', productData._id);
+    console.log('Product ImageUrl:', productData.imageUrl);
+    console.log('Product Images:', productData.images);
+    console.log('Product Price:', productData.price);
+    console.log('Product ComingSoon:', productData.comingSoon);
+    console.log('Product InStock:', productData.inStock);
     console.log('Previous State:', {
       comingSoon: previousState.comingSoon,
       inStock: previousState.inStock,
@@ -20,38 +57,54 @@ exports.notifyWishlistUsers = async (product, previousState = {}) => {
       price: previousState.price
     });
     console.log('Current State:', {
-      comingSoon: product.comingSoon,
-      inStock: product.inStock,
-      stockCount: product.stockCount,
-      price: product.price
+      comingSoon: productData.comingSoon,
+      inStock: productData.inStock,
+      stockCount: productData.stockCount,
+      price: productData.price
     });
 
-    // Check if product state changed in a way that should trigger notifications
-    // Coming Soon: either comingSoon flag was true OR price was null/undefined
+    // Check previous state
     const wasComingSoon = previousState.comingSoon === true || 
                           previousState.price === null || 
                           previousState.price === undefined;
     
-    // Out of Stock: inStock was false OR stockCount was 0
+    const wasInStock = previousState.inStock === true && 
+                       (previousState.stockCount === undefined || previousState.stockCount > 0);
+    
     const wasOutOfStock = previousState.inStock === false || 
                          (previousState.stockCount !== undefined && previousState.stockCount === 0 && previousState.inStock !== true);
     
-    // Now Available: comingSoon is false AND price exists
-    const isNowAvailable = product.comingSoon === false && 
-                          product.price !== null && 
-                          product.price !== undefined &&
-                          typeof product.price === 'number' &&
-                          product.price > 0;
+    const hadPrice = previousState.price !== null && 
+                     previousState.price !== undefined &&
+                     typeof previousState.price === 'number' &&
+                     previousState.price > 0;
     
-    // Now In Stock: inStock is true AND (stockCount is undefined OR stockCount > 0)
-    const isNowInStock = product.inStock === true && 
-                        (product.stockCount === undefined || product.stockCount > 0);
+    // Check current state using productData
+    const isNowAvailable = productData.comingSoon === false && 
+                          productData.price !== null && 
+                          productData.price !== undefined &&
+                          typeof productData.price === 'number' &&
+                          productData.price > 0;
+    
+    const isNowInStock = productData.inStock === true && 
+                        (productData.stockCount === undefined || productData.stockCount > 0);
+    
+    const isNowOutOfStock = productData.inStock === false || 
+                           (productData.stockCount !== undefined && productData.stockCount === 0 && productData.inStock !== true);
+    
+    const isNowComingSoon = productData.comingSoon === true || 
+                           productData.price === null || 
+                           productData.price === undefined;
 
     console.log('Detection:', {
       wasComingSoon,
+      wasInStock,
       wasOutOfStock,
+      hadPrice,
       isNowAvailable,
-      isNowInStock
+      isNowInStock,
+      isNowOutOfStock,
+      isNowComingSoon
     });
 
     // Determine what changed
@@ -61,14 +114,26 @@ exports.notifyWishlistUsers = async (product, previousState = {}) => {
     // Case 1: Product was coming soon (no price) and now has price and is available
     if (wasComingSoon && isNowAvailable) {
       notificationType = 'coming_soon_available';
-      notificationMessage = `Great news! "${product.name}" is now available for purchase!`;
+      notificationMessage = `Great news! "${productData.name}" is now available for purchase!`;
       console.log('✅ Triggering: Coming Soon -> Available');
     } 
     // Case 2: Product was out of stock and now has stock
     else if (wasOutOfStock && isNowInStock) {
       notificationType = 'back_in_stock';
-      notificationMessage = `Good news! "${product.name}" is back in stock!`;
+      notificationMessage = `Good news! "${productData.name}" is back in stock!`;
       console.log('✅ Triggering: Out of Stock -> In Stock');
+    }
+    // Case 3: Product was in stock and now is out of stock
+    else if (wasInStock && isNowOutOfStock) {
+      notificationType = 'out_of_stock';
+      notificationMessage = `Update: "${productData.name}" is currently out of stock.`;
+      console.log('✅ Triggering: In Stock -> Out of Stock');
+    }
+    // Case 4: Product had price (was available) and now is coming soon (no price)
+    else if (hadPrice && isNowComingSoon && !wasComingSoon) {
+      notificationType = 'coming_soon';
+      notificationMessage = `Update: "${productData.name}" is now marked as coming soon.`;
+      console.log('✅ Triggering: Available -> Coming Soon');
     }
 
     // Only send notifications if there's a relevant change
@@ -79,7 +144,7 @@ exports.notifyWishlistUsers = async (product, previousState = {}) => {
 
     // Find all users who have this product in their wishlist
     const usersWithProductInWishlist = await User.find({
-      wishlist: product._id,
+      wishlist: productData._id,
       $or: [
         { email: { $exists: true, $ne: '' } }, // Users with valid email
         { phone: { $exists: true, $ne: '' } }   // OR users with valid phone
@@ -94,13 +159,81 @@ exports.notifyWishlistUsers = async (product, previousState = {}) => {
     }
 
     // Prepare email content
-    const productImage = product.imageUrl || (product.images && product.images[0]) || '/4.webp';
-    const productPrice = product.price ? `Rs. ${product.price.toLocaleString()}` : 'Price available';
     const siteUrl = process.env.FRONTEND_URL || process.env.CLIENT_URL || 'http://localhost:3000';
-    const productUrl = `${siteUrl}/product/${product._id}`;
+    const backendUrl = process.env.BACKEND_URL || process.env.API_URL || process.env.SERVER_URL || `http://localhost:${process.env.PORT || 5000}`;
+    const productUrl = `${siteUrl}/product/${productData._id}`;
+    
+    // Get product image - prioritize imageUrl, then images array, then default
+    // Ensure we check all possible image fields
+    let productImage = productData.imageUrl || 
+                      (productData.images && Array.isArray(productData.images) && productData.images.length > 0 && productData.images[0]) ||
+                      productData.image ||
+                      '/4.webp';
+    
+    console.log('🖼️ Raw productImage value:', productImage);
+    
+    // Clean up image path - remove any whitespace and handle null/undefined
+    if (productImage && typeof productImage === 'string') {
+      productImage = productImage.trim();
+    } else if (!productImage || productImage === null || productImage === undefined || productImage === 'null' || productImage === 'undefined') {
+      productImage = '/4.webp';
+      console.log('⚠️ Image was null/undefined, using default');
+    }
+    
+    // Handle empty strings
+    if (productImage === '' || productImage === ' ') {
+      productImage = '/4.webp';
+      console.log('⚠️ Image was empty, using default');
+    }
+    
+    // If image is a relative path, make it absolute
+    // Check if it's already an absolute URL (http/https) or data URI
+    if (productImage && 
+        !productImage.startsWith('http://') && 
+        !productImage.startsWith('https://') && 
+        !productImage.startsWith('data:')) {
+      const imagePath = productImage.startsWith('/') ? productImage : `/${productImage}`;
+      
+      // If image is in /uploads/ directory, use backend URL (backend serves these)
+      // Otherwise, use frontend URL for public assets
+      if (imagePath.startsWith('/uploads/')) {
+        productImage = `${backendUrl}${imagePath}`;
+        console.log('🖼️ Using backend URL for uploads:', productImage);
+      } else {
+        productImage = `${siteUrl}${imagePath}`;
+        console.log('🖼️ Using frontend URL for public assets:', productImage);
+      }
+    } else {
+      console.log('🖼️ Image already absolute URL:', productImage);
+    }
+    
+    // Determine if product has a valid price (not coming soon)
+    // For back_in_stock notifications, check if price exists even if comingSoon flag exists
+    const hasValidPrice = productData.price !== null && 
+                         productData.price !== undefined && 
+                         typeof productData.price === 'number' && 
+                         productData.price > 0 &&
+                         (productData.comingSoon !== true); // Only show price if not explicitly coming soon
+    
+    console.log('💰 Price check:', {
+      price: productData.price,
+      comingSoon: productData.comingSoon,
+      hasValidPrice: hasValidPrice
+    });
+    
+    const productPrice = hasValidPrice ? `Rs. ${productData.price.toLocaleString()}` : 'Price: Coming Soon';
 
     // Prepare SMS/WhatsApp message (shorter format)
-    const smsMessage = `${notificationMessage}\n\nProduct: ${product.name}\nPrice: ${productPrice}\n\nView: ${productUrl}\n\n- Valora Gold`;
+    let smsMessage = '';
+    const smsPriceText = hasValidPrice ? `Price: Rs. ${productData.price.toLocaleString()}` : 'Price: Coming Soon';
+    
+    if (notificationType === 'coming_soon_available' || notificationType === 'back_in_stock') {
+      smsMessage = `${notificationMessage}\n\nProduct: ${productData.name}\n${smsPriceText}\n\nView: ${productUrl}\n\n- Valora Gold`;
+    } else if (notificationType === 'out_of_stock') {
+      smsMessage = `${notificationMessage}\n\nProduct: ${productData.name}\n\nWe'll notify you when it's back in stock.\n\nView: ${productUrl}\n\n- Valora Gold`;
+    } else if (notificationType === 'coming_soon') {
+      smsMessage = `${notificationMessage}\n\nProduct: ${productData.name}\n\nWe'll notify you when it's available for purchase.\n\nView: ${productUrl}\n\n- Valora Gold`;
+    }
 
     // Send notifications to all users (Email, SMS, WhatsApp)
     const notificationPromises = usersWithProductInWishlist.map(async (user) => {
@@ -119,9 +252,16 @@ exports.notifyWishlistUsers = async (product, previousState = {}) => {
 
         // Send Email
         if (userEmail && userEmail.trim()) {
-          const subject = notificationType === 'coming_soon_available' 
-            ? `🎉 "${product.name}" is Now Available!`
-            : `✅ "${product.name}" is Back in Stock!`;
+          let subject = '';
+          if (notificationType === 'coming_soon_available') {
+            subject = `🎉 "${productData.name}" is Now Available!`;
+          } else if (notificationType === 'back_in_stock') {
+            subject = `✅ "${productData.name}" is Back in Stock!`;
+          } else if (notificationType === 'out_of_stock') {
+            subject = `⚠️ "${productData.name}" is Out of Stock`;
+          } else if (notificationType === 'coming_soon') {
+            subject = `⏳ "${productData.name}" is Coming Soon`;
+          }
           
           console.log(`📧 Preparing email for ${userEmail}...`);
 
@@ -140,7 +280,7 @@ exports.notifyWishlistUsers = async (product, previousState = {}) => {
                 <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                   <!-- Header -->
                   <tr>
-                    <td style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); padding: 30px; text-align: center;">
+                    <td style="background: ${notificationType === 'coming_soon_available' || notificationType === 'back_in_stock' ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)' : notificationType === 'out_of_stock' ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' : 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'}; padding: 30px; text-align: center;">
                       <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">Valora Gold</h1>
                     </td>
                   </tr>
@@ -158,38 +298,53 @@ exports.notifyWishlistUsers = async (product, previousState = {}) => {
                         ? `<p style="color: #666666; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
                             The product you added to your wishlist is now available with a price and ready to purchase!
                           </p>`
-                        : `<p style="color: #666666; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+                        : notificationType === 'back_in_stock'
+                        ? `<p style="color: #666666; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
                             Stock has been added to the product you were waiting for. Don't miss out!
+                          </p>`
+                        : notificationType === 'out_of_stock'
+                        ? `<p style="color: #666666; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+                            The product you added to your wishlist is currently out of stock. We'll notify you when it becomes available again.
+                          </p>`
+                        : `<p style="color: #666666; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+                            The product you added to your wishlist has been marked as coming soon. We'll notify you when it becomes available for purchase.
                           </p>`
                       }
 
-                      <!-- Product Card -->
-                      <table width="100%" cellpadding="0" cellspacing="0" style="border: 1px solid #e5e5e5; border-radius: 8px; overflow: hidden; margin: 20px 0;">
-                        <tr>
-                          <td width="200" style="background-color: #f9f9f9; padding: 15px; vertical-align: top;">
-                            <img src="${productImage}" alt="${product.name}" style="width: 100%; height: auto; border-radius: 4px;" />
-                          </td>
-                          <td style="padding: 20px; vertical-align: top;">
-                            <h3 style="color: #333333; margin: 0 0 10px 0; font-size: 18px; font-weight: bold;">${product.name}</h3>
-                            <p style="color: #22c55e; font-size: 20px; font-weight: bold; margin: 10px 0;">${productPrice}</p>
-                            ${product.originalPrice && product.originalPrice > product.price 
-                              ? `<p style="color: #999999; font-size: 14px; margin: 5px 0; text-decoration: line-through;">Rs. ${product.originalPrice.toLocaleString()}</p>`
-                              : ''
-                            }
-                          </td>
-                        </tr>
-                      </table>
+                      <!-- Product Details (without image) -->
+                      <div style="background-color: #f9f9f9; border: 1px solid #e5e5e5; border-radius: 8px; padding: 20px; margin: 20px 0;">
+                        <h3 style="color: #333333; margin: 0 0 10px 0; font-size: 18px; font-weight: bold;">${productData.name}</h3>
+                        ${hasValidPrice
+                          ? `<p style="color: #22c55e; font-size: 20px; font-weight: bold; margin: 10px 0;">Rs. ${productData.price.toLocaleString()}</p>`
+                          : `<p style="color: #666666; font-size: 16px; margin: 10px 0; font-style: italic;">Price: Coming Soon</p>`
+                        }
+                        ${hasValidPrice && productData.originalPrice && productData.originalPrice > productData.price 
+                          ? `<p style="color: #999999; font-size: 14px; margin: 5px 0; text-decoration: line-through;">Rs. ${productData.originalPrice.toLocaleString()}</p>`
+                          : ''
+                        }
+                      </div>
 
-                      <!-- CTA Button -->
-                      <table width="100%" cellpadding="0" cellspacing="0" style="margin: 30px 0;">
-                        <tr>
-                          <td align="center">
-                            <a href="${productUrl}" style="display: inline-block; background-color: #22c55e; color: #ffffff; text-decoration: none; padding: 14px 30px; border-radius: 6px; font-weight: bold; font-size: 16px;">
-                              View Product
-                            </a>
-                          </td>
-                        </tr>
-                      </table>
+                      <!-- CTA Button (only show for available/in stock products) -->
+                      ${(notificationType === 'coming_soon_available' || notificationType === 'back_in_stock') 
+                        ? `<table width="100%" cellpadding="0" cellspacing="0" style="margin: 30px 0;">
+                            <tr>
+                              <td align="center">
+                                <a href="${productUrl}" style="display: inline-block; background-color: #22c55e; color: #ffffff; text-decoration: none; padding: 14px 30px; border-radius: 6px; font-weight: bold; font-size: 16px;">
+                                  View Product
+                                </a>
+                              </td>
+                            </tr>
+                          </table>`
+                        : `<table width="100%" cellpadding="0" cellspacing="0" style="margin: 30px 0;">
+                            <tr>
+                              <td align="center">
+                                <a href="${productUrl}" style="display: inline-block; background-color: #6b7280; color: #ffffff; text-decoration: none; padding: 14px 30px; border-radius: 6px; font-weight: bold; font-size: 16px;">
+                                  View Product Details
+                                </a>
+                              </td>
+                            </tr>
+                          </table>`
+                      }
 
                       <p style="color: #999999; font-size: 14px; line-height: 1.6; margin: 20px 0 0 0;">
                         This email was sent because you added this product to your wishlist. 
@@ -221,11 +376,15 @@ ${notificationMessage}
 
 ${notificationType === 'coming_soon_available' 
   ? 'The product you added to your wishlist is now available with a price and ready to purchase!'
-  : 'Stock has been added to the product you were waiting for. Don\'t miss out!'
+  : notificationType === 'back_in_stock'
+  ? 'Stock has been added to the product you were waiting for. Don\'t miss out!'
+  : notificationType === 'out_of_stock'
+  ? 'The product you added to your wishlist is currently out of stock. We\'ll notify you when it becomes available again.'
+  : 'The product you added to your wishlist has been marked as coming soon. We\'ll notify you when it becomes available for purchase.'
 }
 
-Product: ${product.name}
-Price: ${productPrice}
+Product: ${productData.name}
+${hasValidPrice ? `Price: Rs. ${productData.price.toLocaleString()}` : 'Price: Coming Soon'}
 View Product: ${productUrl}
 
 This email was sent because you added this product to your wishlist.
@@ -294,7 +453,7 @@ Manage your wishlist: ${siteUrl}/wishlist
     const smsCount = results.filter(r => r.sms === true).length;
     const whatsappCount = results.filter(r => r.whatsapp === true).length;
 
-    console.log(`📧 Wishlist notifications for "${product.name}":`);
+    console.log(`📧 Wishlist notifications for "${productData.name}":`);
     console.log(`   📧 Emails: ${emailCount}/${usersWithProductInWishlist.length}`);
     console.log(`   📱 SMS: ${smsCount}/${usersWithProductInWishlist.length}`);
     console.log(`   💬 WhatsApp: ${whatsappCount}/${usersWithProductInWishlist.length}`);

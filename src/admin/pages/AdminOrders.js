@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Filter, RefreshCcw, Eye, ClipboardEdit } from 'lucide-react';
+import { Filter, RefreshCcw, Eye, ClipboardEdit, Download } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import AdminLayout from '../layout/AdminLayout';
 import { adminAPI } from '../../utils/api';
 import Spinner from '../../components/Spinner';
@@ -142,6 +143,106 @@ const AdminOrders = () => {
     }
   };
 
+  const handleExportData = async () => {
+    try {
+      setLoading(true);
+      showToast('Preparing export...', 'success');
+
+      // Fetch all orders without pagination
+      const params = {
+        page: 1,
+        limit: 10000, // Large limit to get all orders
+      };
+
+      if (filters.status && filters.status !== 'all') {
+        params.status = filters.status;
+      }
+      if (filters.search) {
+        params.search = filters.search;
+      }
+      if (filters.startDate) {
+        params.startDate = filters.startDate;
+      }
+      if (filters.endDate) {
+        params.endDate = filters.endDate;
+      }
+
+      const response = await adminAPI.getOrders(params);
+
+      if (!response.success || !response.data || response.data.length === 0) {
+        showToast('No orders found to export', 'error');
+        return;
+      }
+
+      // Format data for Excel
+      const excelData = response.data.map((order) => {
+        const shippingAddress = order.shippingAddress
+          ? `${order.shippingAddress.street || ''}, ${order.shippingAddress.city || ''}, ${order.shippingAddress.province || ''}, ${order.shippingAddress.postalCode || ''}`.replace(/^,\s*|,\s*$/g, '').replace(/,\s*,/g, ',')
+          : 'No address';
+
+        const itemsList = order.items && Array.isArray(order.items)
+          ? order.items.map(item => `${item.name || 'N/A'} (Qty: ${item.quantity || 0})`).join('; ')
+          : 'No items';
+
+        return {
+          'Order Number': order.orderNumber || 'N/A',
+          'Order ID': order._id || 'N/A',
+          'Customer Name': order.user?.name || 'Guest',
+          'Customer Email': order.user?.email || 'N/A',
+          'Customer Phone': order.user?.phone || 'N/A',
+          'Total Amount': `Rs.${Number(order.total || 0).toLocaleString()}`,
+          'Payment Status': order.paymentStatus || 'N/A',
+          'Order Status': order.orderStatus || 'N/A',
+          'Shipping Address': shippingAddress,
+          'Items': itemsList,
+          'Placed On': order.createdAt ? new Date(order.createdAt).toLocaleString() : 'N/A',
+        };
+      });
+
+      // Create workbook and worksheet
+      const worksheet = XLSX.utils.json_to_sheet(excelData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Orders Data');
+
+      // Set column widths
+      const columnWidths = [
+        { wch: 25 }, // Order Number
+        { wch: 25 }, // Order ID
+        { wch: 20 }, // Customer Name
+        { wch: 30 }, // Customer Email
+        { wch: 18 }, // Customer Phone
+        { wch: 15 }, // Total Amount
+        { wch: 15 }, // Payment Status
+        { wch: 15 }, // Order Status
+        { wch: 50 }, // Shipping Address
+        { wch: 60 }, // Items
+        { wch: 25 }, // Placed On
+      ];
+      worksheet['!cols'] = columnWidths;
+
+      // Generate Excel file
+      const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+      const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `orders_export_${new Date().toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      showToast('Data exported successfully!', 'success');
+    } catch (err) {
+      console.error('Export error:', err);
+      showToast(err.message || 'Failed to export data', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <AdminLayout>
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
@@ -151,13 +252,23 @@ const AdminOrders = () => {
             Track and manage customer orders, update statuses, and review order history.
           </p>
         </div>
-        <button
-          onClick={handleRefresh}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-100 transition-colors"
-        >
-          <RefreshCcw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-          Refresh
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleExportData}
+            disabled={loading}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-logo-green text-white rounded-lg font-semibold text-sm hover:bg-banner-green transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-sans"
+          >
+            <Download className="h-4 w-4" />
+            Export Data
+          </button>
+          <button
+            onClick={handleRefresh}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-100 transition-colors"
+          >
+            <RefreshCcw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+        </div>
       </div>
 
       <section className="bg-white border border-gray-200 rounded-2xl shadow">
@@ -336,24 +447,34 @@ const AdminOrders = () => {
             Showing {(page - 1) * limit + (orders.length ? 1 : 0)}-
             {Math.min(page * limit, total)} of {total} orders
           </p>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <button
-              onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
-              disabled={page === 1}
-              className="px-3 py-1.5 rounded-md border border-gray-200 text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handleExportData}
+              disabled={loading}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-logo-green text-white rounded-lg font-semibold text-sm hover:bg-banner-green transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-sans"
             >
-              Previous
+              <Download className="h-4 w-4" />
+              Export Data
             </button>
-            <span className="text-sm text-gray-500 font-sans">
-              Page {page} of {pageCount}
-            </span>
-            <button
-              onClick={() => setPage((prev) => Math.min(prev + 1, pageCount))}
-              disabled={page === pageCount}
-              className="px-3 py-1.5 rounded-md border border-gray-200 text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Next
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+                disabled={page === 1}
+                className="px-3 py-1.5 rounded-md border border-gray-200 text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              <span className="text-sm text-gray-500 font-sans">
+                Page {page} of {pageCount}
+              </span>
+              <button
+                onClick={() => setPage((prev) => Math.min(prev + 1, pageCount))}
+                disabled={page === pageCount}
+                className="px-3 py-1.5 rounded-md border border-gray-200 text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
           </div>
         </div>
       </section>

@@ -51,9 +51,20 @@ const Wishlist = () => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {wishlistItems.map((item) => {
-            const isComingSoon = Boolean(item.comingSoon) || item.price === null || item.price === undefined;
-            const isOutOfStock = Boolean(item.outOfStock) || (!item.inStock && (item.stockCount === 0 || item.stockCount === undefined));
+            // Check if product is coming soon (no price or comingSoon flag)
+            const isComingSoon = item.comingSoon === true || 
+                                item.price === null || 
+                                item.price === undefined ||
+                                (typeof item.price === 'number' && item.price <= 0);
+            
+            // Check if product is out of stock
+            const isOutOfStock = item.inStock === false || 
+                                (item.stockCount !== undefined && item.stockCount === 0 && item.inStock !== true);
+            
             const productPrice = item.price || item.salePrice || item.originalPrice || 0;
+            
+            // Get the primary image
+            const productImage = item.imageUrl || item.image || (item.images && item.images[0]) || '/4.webp';
 
             return (
               <div key={item.id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden relative">
@@ -81,13 +92,16 @@ const Wishlist = () => {
                 )}
                 
                 <div
-                  className="h-64 bg-gray-50 cursor-pointer"
-                  onClick={() => navigate(`/product/${item.id}`, { state: { product: { ...item, id: item.id, images: item.images || [item.image || '/4.webp'], image: item.image || '/4.webp' } } })}
+                  className="h-64 lg:h-[22rem] bg-gray-50 cursor-pointer"
+                  onClick={() => navigate(`/product/${item.id}`, { state: { product: { ...item, id: item.id, images: item.images || [productImage], image: productImage, imageUrl: productImage } } })}
                 >
                   <img
-                    src={item.image || '/4.webp'}
+                    src={productImage}
                     alt={item.name || item.title}
-                    className="w-full h-full object-contain lg:object-cover p-4"
+                    className="w-full h-full object-contain lg:object-cover"
+                    onError={(e) => {
+                      e.target.src = '/4.webp';
+                    }}
                   />
                 </div>
 

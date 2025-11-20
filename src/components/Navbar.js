@@ -109,7 +109,7 @@ const Navbar = () => {
   };
 
   return (
-    <div className="bg-white sticky top-0 z-50 shadow-sm" id="top">
+    <div className="bg-white sticky top-0 z-[110] shadow-sm" id="top">
       {/* Top Promotional Banner */}
       {showBanner && (
         <div className="bg-banner-green text-white py-2 sm:py-2.5">
@@ -117,7 +117,7 @@ const Navbar = () => {
             <div className="w-full flex items-center gap-3 sm:gap-4 pr-6">
               <div className="flex-1 overflow-hidden">
                 <div className="marquee-container">
-                  <div className="marquee-content text-[11px] sm:text-sm font-medium whitespace-nowrap">
+                  <div className="marquee-content text-[13px] sm:text-sm font-medium whitespace-nowrap">
                     <span className="px-4">
                       Cash on Delivery Available in all over the Pakistan 🚚 | Delivery in just 3–4 working days ⏱ | Enjoy free shipping on all orders above PKR 8,000 🎁 | Get an additional 5% discount on advance payment 💳
                     </span>
@@ -162,7 +162,7 @@ const Navbar = () => {
               <div className="flex-shrink-0 max-w-[40%] sm:max-w-none">
                 <Link
                   to="/"
-                  className="flex items-center space-x-3 sm:space-x-4 md:space-x-5"
+                  className="flex items-center space-x-1 sm:space-x-2 md:space-x-2"
                 >
                   <div className="relative flex-shrink-0">
                     {/* Logo Container */}
@@ -260,7 +260,7 @@ const Navbar = () => {
               </button>
 
               {/* Logo - Center */}
-              <Link to="/" className="flex items-center space-x-3 flex-shrink-0 absolute left-1/2 transform -translate-x-1/2">
+              <Link to="/" className="flex items-center space-x-1 flex-shrink-0 absolute left-1/2 transform -translate-x-1/2">
                 <div className="relative flex-shrink-0">
                   <div className="w-16 h-16 rounded-full overflow-hidden bg-white flex items-center justify-center p-2">
                     <img
@@ -326,7 +326,7 @@ const Navbar = () => {
               </button>
 
               {/* Logo - Center */}
-              <Link to="/" className="flex items-center space-x-2 flex-shrink-0">
+              <Link to="/" className="flex items-center space-x-1 flex-shrink-0">
                 <div className="relative flex-shrink-0">
                   <div className="w-16 h-16 rounded-full overflow-hidden bg-white flex items-center justify-center p-2">
                     <img
@@ -415,7 +415,7 @@ const Navbar = () => {
 
       {/* Mobile/Tablet Menu - Shows for mobile and tablet (below 1024px) */}
       {isMenuOpen && (
-        <div className="lg:hidden bg-white border-b border-gray-200 sticky top-0 z-40">
+        <div className="lg:hidden bg-white border-b border-gray-200 sticky top-0 z-[105]">
           <div className="px-4 py-4 space-y-3">
             {/* Mobile Search */}
             <form onSubmit={handleSearch} className="mb-4">

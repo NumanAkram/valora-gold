@@ -102,11 +102,27 @@ export const authAPI = {
       },
     }),
 
-  adminResetPassword: (email, newPassword) =>
+  adminRequestPasswordReset: (email) =>
+    apiRequest('/auth/admin/forgot-password', {
+      method: 'POST',
+      body: { email },
+    }),
+
+  adminVerifyResetCode: (email, code) =>
+    apiRequest('/auth/admin/verify-reset-code', {
+      method: 'POST',
+      body: {
+        email: typeof email === 'string' ? email.trim() : email,
+        code: typeof code === 'string' ? code.trim() : code,
+      },
+    }),
+
+  adminResetPassword: (email, code, newPassword) =>
     apiRequest('/auth/admin/reset-password', {
       method: 'POST',
       body: {
-        email: typeof email === 'string' ? email.trim().toLowerCase() : email,
+        email: typeof email === 'string' ? email.trim() : email,
+        code: typeof code === 'string' ? code.trim() : code,
         newPassword,
       },
     }),

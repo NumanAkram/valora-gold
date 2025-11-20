@@ -1,19 +1,31 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, ArrowLeft } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Lock, ArrowLeft } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 import { authAPI } from '../../utils/api';
 
 const AdminResetPassword = () => {
+  const location = useLocation();
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const initialEmail = location.state?.email || '';
+  const initialCode = location.state?.code || '';
+  
   const [formData, setFormData] = useState({
-    email: '',
+    email: initialEmail,
+    code: initialCode,
     newPassword: '',
     confirmPassword: '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!initialEmail || !initialCode) {
+      // Redirect to forgot password if email or code is missing
+      navigate('/admin/forgot-password');
+    }
+  }, [initialEmail, initialCode, navigate]);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -28,10 +40,15 @@ const AdminResetPassword = () => {
     event.preventDefault();
     setError('');
 
-    const { email, newPassword, confirmPassword } = formData;
+    const { email, code, newPassword, confirmPassword } = formData;
 
-    if (!email || !newPassword || !confirmPassword) {
+    if (!email || !code || !newPassword || !confirmPassword) {
       setError('Please fill in all fields');
+      return;
+    }
+
+    if (code.trim().length !== 6) {
+      setError('Please enter the 6-digit verification code');
       return;
     }
 
@@ -47,7 +64,7 @@ const AdminResetPassword = () => {
 
     try {
       setLoading(true);
-      const response = await authAPI.adminResetPassword(email, newPassword);
+      const response = await authAPI.adminResetPassword(email, code, newPassword);
       if (response.success) {
         showToast('Password updated successfully! You can now sign in.', 'success');
         navigate('/admin/login');
@@ -78,7 +95,7 @@ const AdminResetPassword = () => {
           </Link>
           <h1 className="text-2xl font-bold text-gray-900 font-sans">Reset Admin Password</h1>
           <p className="text-sm text-gray-500 font-sans">
-            Enter the admin email and your new password to regain access.
+            Enter the verification code and your new password to reset your admin account password.
           </p>
         </div>
 
@@ -93,19 +110,34 @@ const AdminResetPassword = () => {
             <label className="block text-sm font-medium text-gray-700 mb-2 font-sans" htmlFor="email">
               Admin Email
             </label>
-            <div className="relative">
-              <Mail className="h-4 w-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                id="email"
-                name="email"
-                type="email"
-                value={formData.email}
-                onChange={handleChange}
-                required
-                className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-logo-green focus:border-transparent text-sm font-sans"
-                placeholder="Enter admin email"
-              />
-            </div>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              value={formData.email}
+              onChange={handleChange}
+              required
+              readOnly
+              className="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-gray-50 focus:outline-none text-sm font-sans"
+              placeholder="Enter admin email"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2 font-sans" htmlFor="code">
+              Verification Code
+            </label>
+            <input
+              id="code"
+              name="code"
+              type="text"
+              value={formData.code}
+              onChange={(e) => setFormData(prev => ({ ...prev, code: e.target.value.replace(/[^0-9]/g, '').slice(0, 6) }))}
+              required
+              className="w-full px-3 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-logo-green focus:border-transparent text-sm font-sans tracking-widest"
+              placeholder="######"
+              maxLength={6}
+            />
           </div>
 
           <div>

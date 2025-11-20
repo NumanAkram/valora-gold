@@ -5,6 +5,7 @@ import { productsAPI } from '../utils/api';
 const ROTATION_INTERVAL = 10000; // switch every 10 seconds
 const INITIAL_DELAY = 8500; // show 8.5s after load (7-10 second range)
 const TRANSITION_DURATION = 500; // ms for show/hide animation
+const POPUP_DELAY = 5000; // 5 seconds delay between popups
 const DISMISSED_STORAGE_KEY = 'valora_sales_popup_dismissed';
 
 const BUYERS = [
@@ -230,9 +231,12 @@ const SalesPopup = () => {
       hideTimer = setTimeout(() => {
         setAnimateIn(false);
         changeTimer = setTimeout(() => {
-          showNextEvent();
-          setAnimateIn(true);
-          scheduleNext();
+          // Wait 5 seconds before showing next popup
+          setTimeout(() => {
+            showNextEvent();
+            setAnimateIn(true);
+            scheduleNext();
+          }, POPUP_DELAY);
         }, TRANSITION_DURATION);
       }, ROTATION_INTERVAL);
     };

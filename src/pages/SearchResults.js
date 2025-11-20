@@ -169,7 +169,7 @@ const SearchResults = () => {
                 return (
                 <div key={productId} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden relative">
                   <div
-                    className="relative h-64 bg-gray-50 cursor-pointer"
+                    className="relative h-64 lg:h-[22rem] bg-gray-50 cursor-pointer"
                     onClick={() => {
                       // Ensure proper image structure: imageUrl as primary, images as array with imageUrl first
                       const allImages = product.imageUrl 
@@ -191,7 +191,7 @@ const SearchResults = () => {
                     <img
                       src={productImage}
                       alt={product.name}
-                      className="w-full h-full object-contain lg:object-cover p-4"
+                      className="w-full h-full object-contain lg:object-cover"
                     />
                     
                     {/* Coming Soon Badge - Priority */}

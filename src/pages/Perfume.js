@@ -210,7 +210,7 @@ const Perfume = () => {
                     )}
 
                     <div
-                      className="relative h-64 bg-gray-50 cursor-pointer"
+                      className="relative h-64 lg:h-[22rem] bg-gray-50 cursor-pointer"
                       onClick={() =>
                         navigate(`/product/${productId}`, {
                           state: {
@@ -234,7 +234,7 @@ const Perfume = () => {
                         })
                       }
                     >
-                      <img src={productImage} alt={productName} className="w-full h-full object-contain lg:object-cover p-4" />
+                      <img src={productImage} alt={productName} className="w-full h-full object-contain lg:object-cover" />
                       
                       {/* Coming Soon Badge - Priority */}
                       {isComingSoon && (

@@ -47,6 +47,8 @@ import AdminLogin from './admin/pages/AdminLogin';
 import AdminShipping from './admin/pages/AdminShipping';
 import AdminRegister from './admin/pages/AdminRegister';
 import AdminResetPassword from './admin/pages/AdminResetPassword';
+import AdminForgotPassword from './admin/pages/AdminForgotPassword';
+import AdminVerifyResetCode from './admin/pages/AdminVerifyResetCode';
 
 const AppShell = () => {
   const location = useLocation();
@@ -60,6 +62,8 @@ const AppShell = () => {
         <Routes>
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin/register" element={<AdminRegister />} />
+          <Route path="/admin/forgot-password" element={<AdminForgotPassword />} />
+          <Route path="/admin/verify-reset-code" element={<AdminVerifyResetCode />} />
           <Route path="/admin/reset-password" element={<AdminResetPassword />} />
           <Route path="/admin" element={<AdminRoute />}>
             <Route index element={<AdminDashboard />} />

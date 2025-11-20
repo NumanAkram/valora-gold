@@ -175,11 +175,11 @@ const AdminLogin = () => {
 
             <div className="space-y-3">
               <Link
-                to="/admin/reset-password"
+                to="/admin/forgot-password"
                 className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-100 transition-colors"
               >
                 <RefreshCw className="h-4 w-4" />
-                Reset Admin Password
+                Forgot Password?
               </Link>
               <button
                 onClick={() => setShowLoginForm(false)}

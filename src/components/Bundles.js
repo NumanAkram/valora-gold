@@ -168,14 +168,6 @@ const Bundles = () => {
               
               return (
               <div key={bundleId} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden flex-shrink-0 w-[280px] sm:w-[300px] md:w-80 relative">
-                {/* Sale Badge - Top Left Corner - Responsive */}
-                {!isComingSoon && hasSale && salePercent > 0 && (
-                  <div className="absolute top-2 left-2 z-10">
-                    <div className="bg-logo-green text-white text-sm font-bold px-3 py-1.5 rounded-full shadow-lg">
-                      Sale {salePercent}%
-                    </div>
-                  </div>
-                )}
 
                 {/* Wishlist Button - Only for users, not admin */}
                 {!isAdmin && (
@@ -197,13 +189,13 @@ const Bundles = () => {
 
                 {/* Bundle Image - Clickable */}
                 <div 
-                  className="relative h-60 sm:h-72 md:h-80 bg-gray-50 cursor-pointer"
+                  className="relative h-60 sm:h-72 md:h-80 lg:h-[22rem] bg-gray-50 cursor-pointer"
                   onClick={() => navigate(`/product/${bundleId}`, { state: { product: { ...bundle, id: bundleId, _id: bundleId, name: bundleTitle, title: bundleTitle, price: bundlePrice, originalPrice: bundleOriginalPrice, images: bundle.images || [bundleImage], image: bundleImage, rating: bundleRating, numReviews: bundleReviews } } })}
                 >
                   <img
                     src={bundleImage}
                     alt={bundleTitle}
-                    className="w-full h-full object-contain"
+                    className="w-full h-full object-contain lg:object-cover"
                   />
                   
                   {/* Coming Soon Badge - Priority */}

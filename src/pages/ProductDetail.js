@@ -639,7 +639,7 @@ const ProductDetail = () => {
               <img
                 src={productImages[activeImage]}
                 alt={productName}
-                className="w-full h-full object-contain p-4"
+                className="w-full h-full object-contain lg:object-cover p-4"
               />
             </div>
             
@@ -1001,18 +1001,123 @@ const ProductDetail = () => {
         {featuredProducts.length > 0 && (
           <div className="mt-12">
             <h2 className="text-xl font-bold text-gray-900 mb-4 font-sans">Special For You</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {featuredProducts.map((p) => {
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+              {featuredProducts.map((p, index) => {
                 const prodId = p._id || p.id;
-                const prodImage = (p.images && p.images[0]) || '/4.webp';
+                const prodImage = p.imageUrl || (p.images && p.images[0]) || p.image || '/4.webp';
+                const prodName = p.name || p.title || 'Product';
+                const priceValue = typeof p.price === 'number' ? p.price : null;
+                const originalPriceValue = typeof p.originalPrice === 'number' ? p.originalPrice : priceValue;
+                const isComingSoon = Boolean(p.comingSoon) || priceValue === null;
+                const isOutOfStock = Boolean(p.outOfStock) || (!p.inStock && p.stockCount === 0);
+                const hasSale = !isComingSoon && priceValue !== null && originalPriceValue && originalPriceValue > priceValue;
+                const discount = hasSale ? Math.round(((originalPriceValue - priceValue) / originalPriceValue) * 100) : 0;
+                const ratingValue = getDisplayRating(p);
+                const productReviews = typeof p.numReviews === 'number' ? p.numReviews : 0;
+
                 return (
-                <div key={prodId} className="border rounded-lg p-3 hover:shadow transition cursor-pointer" onClick={() => navigate(`/product/${prodId}`, { state: { product: { ...p, id: prodId, images: p.images || [prodImage], image: prodImage } } })}>
-                  <div className="h-40 bg-gray-50 rounded flex items-center justify-center overflow-hidden">
-                    <img src={prodImage} alt={p.name} className="object-contain lg:object-cover w-full h-full p-3" />
+                <div 
+                  key={prodId} 
+                  className="group card p-6 animate-slide-up cursor-pointer" 
+                  style={{animationDelay: `${index * 0.1}s`}}
+                  onClick={() => navigate(`/product/${prodId}`, { state: { product: { ...p, id: prodId, images: p.images || [prodImage], image: prodImage, imageUrl: p.imageUrl || prodImage } } })}
+                >
+                  {/* Product Image */}
+                  <div className="relative mb-4 overflow-hidden rounded-lg">
+                    <div className="relative h-64 lg:h-[22rem] bg-gray-50 rounded-lg overflow-hidden">
+                      <img 
+                        src={prodImage} 
+                        alt={prodName} 
+                        className="w-full h-full object-contain lg:object-cover group-hover:scale-110 transition-transform duration-500" 
+                      />
+                    </div>
+                    
+                    {/* Coming Soon Badge - Priority */}
+                    {isComingSoon && (
+                      <div className="absolute top-4 left-4 z-10">
+                        <span className="px-3 py-1.5 text-xs font-semibold rounded-full bg-yellow-500 text-white shadow-lg uppercase">
+                          Coming Soon
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Out of Stock Badge - Priority after Coming Soon */}
+                    {!isComingSoon && isOutOfStock && (
+                      <div className="absolute top-4 left-4 z-10">
+                        <span className="px-3 py-1.5 text-xs font-semibold rounded-full bg-red-500 text-white shadow-lg uppercase">
+                          Out of Stock
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Sale Badge - Only show if not coming soon and not out of stock */}
+                    {!isComingSoon && !isOutOfStock && hasSale && discount > 0 && (
+                      <div className="absolute top-4 left-4 z-10">
+                        <div className="bg-logo-green text-white text-sm font-bold px-3 py-1.5 rounded-full shadow-lg">
+                          Sale {discount}%
+                        </div>
+                      </div>
+                    )}
+
+                    {/* New Arrival Badge - Only show if no sale badge, not coming soon, and not out of stock */}
+                    {!isComingSoon && !isOutOfStock && (!hasSale || discount === 0) && (
+                      <div className="absolute top-4 left-4">
+                        <span className="px-3 py-1 text-xs font-semibold rounded-full bg-gold-500 text-white">
+                          New Arrival
+                        </span>
+                      </div>
+                    )}
                   </div>
-                  <div className="mt-3">
-                    <div className="text-sm font-semibold text-gray-900 line-clamp-2 font-sans">{p.name}</div>
-                    <div className="text-logo-green font-bold font-sans">Rs.{(p.price || 0).toLocaleString()}</div>
+
+                  {/* Product Info */}
+                  <div className="space-y-2">
+                    <h3 className="text-lg font-semibold text-gray-900 group-hover:text-gold-600 transition-colors font-sans">
+                      {prodName}
+                    </h3>
+                    
+                    {/* Rating */}
+                    <div className="flex items-center space-x-1">
+                      <div className="flex items-center">
+                        {[...Array(5)].map((_, i) => (
+                          <Star
+                            key={i}
+                            className={`h-4 w-4 ${
+                              i + 1 <= ratingValue
+                                ? 'text-yellow-400 fill-current'
+                                : 'text-gray-300'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-sm text-gray-600 font-sans">
+                        {ratingValue} ({productReviews} reviews)
+                      </span>
+                    </div>
+
+                    {/* Price */}
+                    <div className="flex items-center space-x-2">
+                      {priceValue !== null ? (
+                        <>
+                          <span className="text-2xl font-bold text-gold-600 font-sans">
+                            Rs.{priceValue.toLocaleString()}
+                          </span>
+                          {originalPriceValue && originalPriceValue > priceValue && (
+                            <span className="text-lg text-gray-400 line-through font-sans">
+                              Rs.{originalPriceValue.toLocaleString()}
+                            </span>
+                          )}
+                          {discount > 0 && (
+                            <span className="text-sm text-green-600 font-medium font-sans">
+                              {discount}% OFF
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        <span className="text-lg font-semibold text-gray-500 uppercase tracking-wide font-sans">
+                          Coming Soon
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               )})}
@@ -1029,7 +1134,7 @@ const ProductDetail = () => {
 
       {/* Ask a Question Modal */}
       {showAskModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/50 z-[120] flex items-center justify-center p-4">
           <div className="bg-white rounded-lg w-full max-w-lg p-6 space-y-4">
             <h3 className="text-lg font-bold font-sans">Ask a Question</h3>
             <input value={questionForm.name} onChange={(e)=>setQuestionForm({...questionForm,name:e.target.value})} placeholder="Your Name" className="w-full border rounded p-2 font-sans" />
@@ -1045,7 +1150,7 @@ const ProductDetail = () => {
 
       {/* Write a Review Modal */}
       {showReviewModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/50 z-[120] flex items-center justify-center p-4">
           <div className="bg-white rounded-lg w-full max-w-lg p-6 space-y-4">
             <h3 className="text-lg font-bold font-sans">{isEditingReview ? 'Edit Review' : 'Write a Review'}</h3>
             <input value={reviewForm.name} onChange={(e)=>setReviewForm({...reviewForm,name:e.target.value})} placeholder="Your Name" className="w-full border rounded p-2 font-sans" />
@@ -1093,20 +1198,120 @@ const RecentlyViewedList = ({ currentId }) => {
   const items = (recentlyViewed || []).filter(p => (p._id || p.id) !== currentId).slice(0, 2);
   if (items.length === 0) return null;
   return (
-    <div className="mt-12">
-      <h2 className="text-xl font-bold text-gray-900 mb-4 font-sans">Recently Viewed</h2>
-      <div className="grid grid-cols-2 gap-4">
-        {items.map((p) => {
+    <div className="mt-8 sm:mt-10 md:mt-12">
+      <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 sm:mb-6 font-sans">Recently Viewed</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-4 md:gap-6">
+        {items.map((p, index) => {
           const prodId = p._id || p.id;
-          const prodImage = (p.images && p.images[0]) || '/4.webp';
+          const prodImage = p.imageUrl || (p.images && p.images[0]) || p.image || '/4.webp';
+          const prodName = p.name || p.title || 'Product';
+          const priceValue = typeof p.price === 'number' ? p.price : null;
+          const originalPriceValue = typeof p.originalPrice === 'number' ? p.originalPrice : priceValue;
+          const isComingSoon = Boolean(p.comingSoon) || priceValue === null;
+          const isOutOfStock = Boolean(p.outOfStock) || (!p.inStock && p.stockCount === 0);
+          const hasSale = !isComingSoon && priceValue !== null && originalPriceValue && originalPriceValue > priceValue;
+          const discount = hasSale ? Math.round(((originalPriceValue - priceValue) / originalPriceValue) * 100) : 0;
+          const ratingValue = getDisplayRating(p);
+          const productReviews = typeof p.numReviews === 'number' ? p.numReviews : 0;
+
           return (
-            <div key={prodId} onClick={() => navigate(`/product/${prodId}`, { state: { product: { ...p, id: prodId, images: p.images || [prodImage], image: prodImage } } })} className="border rounded-lg p-3 hover:shadow transition cursor-pointer">
-              <div className="h-36 bg-gray-50 rounded flex items-center justify-center overflow-hidden">
-                <img src={prodImage} alt={p.name} className="object-contain lg:object-cover w-full h-full p-3" />
+            <div 
+              key={prodId} 
+              className="group card p-3 sm:p-4 md:p-6 animate-slide-up cursor-pointer" 
+              style={{animationDelay: `${index * 0.1}s`}}
+              onClick={() => navigate(`/product/${prodId}`, { state: { product: { ...p, id: prodId, images: p.images || [prodImage], image: prodImage, imageUrl: p.imageUrl || prodImage } } })}
+            >
+              {/* Product Image */}
+              <div className="relative mb-3 sm:mb-4 overflow-hidden rounded-lg">
+                <div className="relative h-48 sm:h-56 md:h-64 lg:h-[22rem] bg-gray-50 rounded-lg overflow-hidden">
+                  <img 
+                    src={prodImage} 
+                    alt={prodName} 
+                    className="w-full h-full object-contain lg:object-cover p-2 sm:p-3 md:p-4 group-hover:scale-110 transition-transform duration-500" 
+                  />
+                </div>
+                
+                {/* Coming Soon Badge - Priority */}
+                {isComingSoon && (
+                  <div className="absolute top-2 left-2 sm:top-3 sm:left-3 md:top-4 md:left-4 z-10">
+                    <span className="px-2 py-1 sm:px-3 sm:py-1.5 text-xs font-semibold rounded-full bg-yellow-500 text-white shadow-lg uppercase">
+                      Coming Soon
+                    </span>
+                  </div>
+                )}
+
+                {/* Out of Stock Badge - Priority after Coming Soon */}
+                {!isComingSoon && isOutOfStock && (
+                  <div className="absolute top-2 left-2 sm:top-3 sm:left-3 md:top-4 md:left-4 z-10">
+                    <span className="px-2 py-1 sm:px-3 sm:py-1.5 text-xs font-semibold rounded-full bg-red-500 text-white shadow-lg uppercase">
+                      Out of Stock
+                    </span>
+                  </div>
+                )}
+
+                {/* Sale Badge - Only show if not coming soon and not out of stock */}
+                {!isComingSoon && !isOutOfStock && hasSale && discount > 0 && (
+                  <div className="absolute top-2 left-2 sm:top-3 sm:left-3 md:top-4 md:left-4 z-10">
+                    <div className="bg-logo-green text-white text-xs sm:text-sm font-bold px-2 py-1 sm:px-3 sm:py-1.5 rounded-full shadow-lg">
+                      Sale {discount}%
+                    </div>
+                  </div>
+                )}
+
+                {/* New Arrival Badge - Only show if no sale badge, not coming soon, and not out of stock */}
+                {!isComingSoon && !isOutOfStock && (!hasSale || discount === 0) && (
+                  <div className="absolute top-2 left-2 sm:top-3 sm:left-3 md:top-4 md:left-4">
+                    <span className="px-2 py-0.5 sm:px-3 sm:py-1 text-xs font-semibold rounded-full bg-gold-500 text-white">
+                      New Arrival
+                    </span>
+                  </div>
+                )}
               </div>
-              <div className="mt-3">
-                <div className="text-sm font-semibold text-gray-900 line-clamp-2 font-sans">{p.name}</div>
-                <div className="text-logo-green font-bold font-sans">Rs.{(p.price || 0).toLocaleString()}</div>
+
+              {/* Product Info */}
+              <div className="space-y-1.5 sm:space-y-2">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 group-hover:text-gold-600 transition-colors font-sans line-clamp-2">
+                  {prodName}
+                </h3>
+                
+                {/* Rating */}
+                <div className="flex items-center space-x-1 flex-wrap">
+                  <div className="flex items-center">
+                    {[...Array(5)].map((_, i) => (
+                      <Star
+                        key={i}
+                        className={`h-3 w-3 sm:h-4 sm:w-4 ${
+                          i + 1 <= ratingValue
+                            ? 'text-yellow-400 fill-current'
+                            : 'text-gray-300'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <span className="text-xs sm:text-sm text-gray-600 font-sans">
+                    {ratingValue} ({productReviews} reviews)
+                  </span>
+                </div>
+
+                {/* Price */}
+                <div className="flex items-center space-x-2 flex-wrap">
+                  {priceValue !== null ? (
+                    <>
+                      <span className="text-lg sm:text-xl md:text-2xl font-bold text-gold-600 font-sans">
+                        Rs.{priceValue.toLocaleString()}
+                      </span>
+                      {originalPriceValue && originalPriceValue > priceValue && (
+                        <span className="text-sm sm:text-base md:text-lg text-gray-400 line-through font-sans">
+                          Rs.{originalPriceValue.toLocaleString()}
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    <span className="text-sm sm:text-base md:text-lg font-semibold text-gray-500 uppercase tracking-wide font-sans">
+                      Coming Soon
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           );

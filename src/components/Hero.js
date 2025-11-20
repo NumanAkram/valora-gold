@@ -8,6 +8,9 @@ const Hero = () => {
   const mobileImages = ['/mobile1.webp', '/mobile2.webp', '/mobile3.webp', '/mobile4.webp', '/mobile5.webp'];
   const images = desktopImages; // For slides count and navigation
   const intervalRef = useRef(null);
+  const touchStartX = useRef(null);
+  const touchEndX = useRef(null);
+  const bannerRef = useRef(null);
 
   // Auto-slide every 5 seconds with smooth transition
   useEffect(() => {
@@ -41,13 +44,47 @@ const Hero = () => {
     goToSlide((currentSlide + 1) % images.length);
   };
 
+  // Minimum swipe distance (in pixels) to trigger slide change
+  const minSwipeDistance = 50;
+
+  const onTouchStart = (e) => {
+    touchEndX.current = null;
+    touchStartX.current = e.targetTouches[0].clientX;
+  };
+
+  const onTouchMove = (e) => {
+    touchEndX.current = e.targetTouches[0].clientX;
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStartX.current || !touchEndX.current) return;
+    
+    const distance = touchStartX.current - touchEndX.current;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (isLeftSwipe) {
+      goToNext();
+    }
+    if (isRightSwipe) {
+      goToPrevious();
+    }
+  };
+
   return (
     <section className="relative w-full bg-transparent lg:bg-white hero-section">
       {/* Responsive container: Full width, NO padding/margin on tablets/mobile - attached like reference website */}
       <div className="w-full max-w-full lg:max-w-none">
         <div className="relative w-full overflow-hidden">
-          {/* Banner container: Full images on mobile/tablet, responsive on desktop */}
-          <div className="relative w-full overflow-hidden rounded-none lg:rounded-none shadow-none bg-transparent hero-banner-container lg:aspect-[16/5.25] xl:aspect-[16/4.8] 2xl:aspect-[16/4.5] lg:min-h-[380px] xl:min-h-[410px]">
+          {/* Banner container: Full images on mobile/tablet, responsive on desktop - Touch swipe enabled */}
+          <div 
+            ref={bannerRef}
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
+            className="relative w-full overflow-hidden rounded-none lg:rounded-none shadow-none bg-transparent hero-banner-container lg:aspect-[16/5.25] xl:aspect-[16/4.8] 2xl:aspect-[16/4.5] lg:min-h-[380px] xl:min-h-[410px] touch-pan-y cursor-grab active:cursor-grabbing"
+            style={{ touchAction: 'pan-y pinch-zoom' }}
+          >
           {images.map((image, index) => {
             const isActive = index === currentSlide;
             const positionClass = (() => {
@@ -101,26 +138,66 @@ const Hero = () => {
             );
           })}
 
-        {/* Navigation Arrows - Responsive positioning */}
-        <button
-          onClick={goToPrevious}
-          className="absolute left-2 sm:left-3 md:left-4 lg:left-6 xl:left-8 top-1/2 -translate-y-1/2 z-30 bg-white/80 hover:bg-white text-gray-800 rounded-full p-2 sm:p-2.5 md:p-3 transition-all duration-300 hover:scale-110 shadow-lg backdrop-blur-sm"
-          aria-label="Previous slide"
-        >
-          <svg className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
-          </svg>
-        </button>
+        {/* Navigation Arrows - Responsive positioning and fully functional on all devices */}
+        <div className="absolute inset-0 z-40 pointer-events-none">
+          {/* Previous Arrow */}
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              goToPrevious();
+            }}
+            onTouchEnd={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              goToPrevious();
+            }}
+            className="absolute left-2 sm:left-3 md:left-4 lg:left-6 xl:left-8 top-1/2 -translate-y-1/2 z-40 bg-white/95 hover:bg-white active:bg-white text-gray-800 rounded-full p-3 sm:p-3.5 md:p-4 lg:p-4 transition-all duration-300 hover:scale-110 active:scale-95 shadow-xl backdrop-blur-sm cursor-pointer pointer-events-auto"
+            style={{ 
+              touchAction: 'manipulation', 
+              WebkitTapHighlightColor: 'transparent',
+              pointerEvents: 'auto',
+              userSelect: 'none',
+              WebkitUserSelect: 'none',
+              msUserSelect: 'none'
+            }}
+            aria-label="Previous slide"
+            type="button"
+          >
+            <svg className="w-6 h-6 sm:w-6 sm:h-6 md:w-7 md:h-7 lg:w-7 lg:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
 
-        <button
-          onClick={goToNext}
-          className="absolute right-2 sm:right-3 md:right-4 lg:right-6 xl:right-8 top-1/2 -translate-y-1/2 z-30 bg-white/80 hover:bg-white text-gray-800 rounded-full p-2 sm:p-2.5 md:p-3 transition-all duration-300 hover:scale-110 shadow-lg backdrop-blur-sm"
-          aria-label="Next slide"
-        >
-          <svg className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
+          {/* Next Arrow */}
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              goToNext();
+            }}
+            onTouchEnd={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              goToNext();
+            }}
+            className="absolute right-2 sm:right-3 md:right-4 lg:right-6 xl:right-8 top-1/2 -translate-y-1/2 z-40 bg-white/95 hover:bg-white active:bg-white text-gray-800 rounded-full p-3 sm:p-3.5 md:p-4 lg:p-4 transition-all duration-300 hover:scale-110 active:scale-95 shadow-xl backdrop-blur-sm cursor-pointer pointer-events-auto"
+            style={{ 
+              touchAction: 'manipulation', 
+              WebkitTapHighlightColor: 'transparent',
+              pointerEvents: 'auto',
+              userSelect: 'none',
+              WebkitUserSelect: 'none',
+              msUserSelect: 'none'
+            }}
+            aria-label="Next slide"
+            type="button"
+          >
+            <svg className="w-6 h-6 sm:w-6 sm:h-6 md:w-7 md:h-7 lg:w-7 lg:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
 
         {/* Dots Indicator - Responsive positioning and sizing */}
         <div className="absolute bottom-3 sm:bottom-4 md:bottom-5 lg:bottom-6 left-1/2 transform -translate-x-1/2 z-30 flex space-x-1.5 sm:space-x-2">

@@ -41,13 +41,74 @@ router.post('/register', [
     } = req.body;
     const normalizedRole = role === 'admin' ? 'admin' : 'user';
 
-    // Check if user exists
-    const userExists = await User.findOne({ email });
-    if (userExists) {
+    // Check if user exists with this email
+    const userExistsByEmail = await User.findOne({ email });
+    if (userExistsByEmail) {
       return res.status(400).json({
         success: false,
         message: 'User already exists with this email'
       });
+    }
+
+    // Check if user exists with this phone number (if phone is provided)
+    if (phone && phone.trim()) {
+      // Normalize phone number: remove all non-digits
+      const incomingPhoneDigits = phone.replace(/\D/g, '');
+      
+      // Get dial code digits (normalized)
+      const dialCodeDigits = phoneDialCode ? phoneDialCode.replace(/\D/g, '') : '';
+      
+      // Extract base phone number (remove dial code if present in phone field)
+      let incomingBasePhone = incomingPhoneDigits;
+      if (dialCodeDigits && incomingPhoneDigits.startsWith(dialCodeDigits)) {
+        incomingBasePhone = incomingPhoneDigits.substring(dialCodeDigits.length);
+      }
+      // Remove leading zeros from base phone
+      incomingBasePhone = incomingBasePhone.replace(/^0+/, '');
+      
+      // Get all users with phone numbers to compare
+      const usersWithPhone = await User.find({ 
+        phone: { $exists: true, $ne: null, $ne: '' } 
+      }).select('phone phoneDialCode');
+
+      // Check if any existing user has the same phone number
+      for (const existingUser of usersWithPhone) {
+        if (!existingUser.phone) continue;
+
+        // Normalize existing user's phone number
+        const existingPhoneDigits = existingUser.phone.replace(/\D/g, '');
+        
+        // Get existing user's dial code
+        const existingDialCode = existingUser.phoneDialCode 
+          ? existingUser.phoneDialCode.replace(/\D/g, '') 
+          : '';
+
+        // Extract base phone number from existing user
+        let existingBasePhone = existingPhoneDigits;
+        if (existingDialCode && existingPhoneDigits.startsWith(existingDialCode)) {
+          existingBasePhone = existingPhoneDigits.substring(existingDialCode.length);
+        }
+        // Remove leading zeros from base phone
+        existingBasePhone = existingBasePhone.replace(/^0+/, '');
+        
+        // Compare base phone numbers (after removing dial codes and leading zeros)
+        if (incomingBasePhone && existingBasePhone && incomingBasePhone === existingBasePhone) {
+          return res.status(400).json({
+            success: false,
+            message: 'User already exists with this number'
+          });
+        }
+        
+        // Also compare full phone numbers (if they match exactly after normalization)
+        const incomingNormalized = incomingPhoneDigits.replace(/^0+/, '');
+        const existingNormalized = existingPhoneDigits.replace(/^0+/, '');
+        if (incomingNormalized === existingNormalized && incomingNormalized.length > 0) {
+          return res.status(400).json({
+            success: false,
+            message: 'User already exists with this number'
+          });
+        }
+      }
     }
 
     // Create user
@@ -212,47 +273,164 @@ router.post('/admin/login', [
   }
 });
 
-// @route   POST /api/auth/admin/reset-password
-// @desc    Reset admin password (direct reset without code)
+// @route   POST /api/auth/admin/forgot-password
+// @desc    Send reset code to admin email
 // @access  Public (validates admin role)
-router.post('/admin/reset-password', [
-  body('email').isEmail().withMessage('Please provide a valid email'),
-  body('newPassword').isLength({ min: 6 }).withMessage('Password must be at least 6 characters')
-], async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
+router.post(
+  '/admin/forgot-password',
+  [body('email').isEmail().withMessage('Please provide a valid email')],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ success: false, errors: errors.array() });
+      }
+
+      const email = req.body.email?.trim().toLowerCase();
+
+      if (!email) {
+        return res.status(400).json({
+          success: false,
+          message: 'A valid email is required',
+        });
+      }
+
+      const user = await User.findOne({ email });
+      if (!user || user.role !== 'admin') {
+        return res.status(200).json({
+          success: true,
+          message: 'If that email is registered as admin, a code has been sent.',
+        });
+      }
+
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      user.resetCode = code;
+      user.resetCodeExpiresAt = new Date(Date.now() + 5 * 60 * 1000);
+      await user.save();
+
+      console.log(`Sending admin password reset code to ${email}`);
+      const emailSent = await sendMail({
+        to: email,
+        subject: 'Valora Gold Admin Password Reset Code',
+        text: `Your admin password reset code is ${code}. This code will expire in 5 minutes.`,
+        html: `<p>Your admin password reset code is <strong>${code}</strong>. This code will expire in 5 minutes.</p>`,
+      });
+
+      if (!emailSent) {
+        console.error(`Failed to send admin password reset email to ${email}`);
+        // Clear the reset code if email failed
+        user.resetCode = undefined;
+        user.resetCodeExpiresAt = undefined;
+        await user.save();
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to send reset code email. Please try again later.',
+        });
+      }
+
+      console.log(`Admin password reset code sent successfully to ${email}`);
+      res.json({ success: true, message: 'Reset code sent to your email.' });
+    } catch (error) {
+      console.error('Admin Forgot Password Error:', error);
+      res.status(500).json({
         success: false,
-        errors: errors.array()
+        message: 'Server error during password reset',
       });
     }
-
-    const { email, newPassword } = req.body;
-
-    const user = await User.findOne({ email }).select('+password');
-    if (!user || user.role !== 'admin') {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid admin email'
-      });
-    }
-
-    user.password = newPassword;
-    await user.save();
-
-    res.json({
-      success: true,
-      message: 'Admin password reset successfully'
-    });
-  } catch (error) {
-    console.error('Admin Reset Password Error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error during password reset'
-    });
   }
-});
+);
+
+// @route   POST /api/auth/admin/verify-reset-code
+// @desc    Verify reset code for admin
+// @access  Public (validates admin role)
+router.post(
+  '/admin/verify-reset-code',
+  [
+    body('email').isEmail().withMessage('Please provide a valid email'),
+    body('code').isLength({ min: 6, max: 6 }).withMessage('Please provide a valid code'),
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ success: false, errors: errors.array() });
+      }
+
+      const email = req.body.email?.trim().toLowerCase();
+      const code = req.body.code?.trim();
+
+      if (!email || !code) {
+        return res.status(400).json({ success: false, message: 'Email and verification code are required' });
+      }
+
+      const user = await User.findOne({ email });
+
+      if (!user || user.role !== 'admin' || !user.resetCode || !user.resetCodeExpiresAt) {
+        return res.status(400).json({ success: false, message: 'Invalid or expired code' });
+      }
+
+      if (user.resetCode !== code || Date.now() > new Date(user.resetCodeExpiresAt).getTime()) {
+        return res.status(400).json({ success: false, message: 'Invalid or expired code' });
+      }
+
+      res.json({ success: true, message: 'Code verified successfully' });
+    } catch (error) {
+      console.error('Admin Verify Code Error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Server error verifying code'
+      });
+    }
+  }
+);
+
+// @route   POST /api/auth/admin/reset-password
+// @desc    Reset admin password using code
+// @access  Public (validates admin role)
+router.post(
+  '/admin/reset-password',
+  [
+    body('email').isEmail().withMessage('Please provide a valid email'),
+    body('code').isLength({ min: 6, max: 6 }).withMessage('Please provide a valid code'),
+    body('newPassword').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ success: false, errors: errors.array() });
+      }
+
+      const email = req.body.email?.trim().toLowerCase();
+      const code = req.body.code?.trim();
+      const newPassword = req.body.newPassword;
+
+      if (!email || !code || !newPassword) {
+        return res.status(400).json({ success: false, message: 'Email, code, and new password are required' });
+      }
+
+      const user = await User.findOne({ email }).select('+password');
+
+      if (!user || user.role !== 'admin' || !user.resetCode || !user.resetCodeExpiresAt) {
+        return res.status(400).json({ success: false, message: 'Invalid or expired code' });
+      }
+
+      if (user.resetCode !== code || Date.now() > new Date(user.resetCodeExpiresAt).getTime()) {
+        return res.status(400).json({ success: false, message: 'Invalid or expired code' });
+      }
+
+      user.password = newPassword;
+      user.resetCode = undefined;
+      user.resetCodeExpiresAt = undefined;
+      await user.save();
+
+      res.json({ success: true, message: 'Password reset successfully' });
+    } catch (error) {
+      console.error('Admin Reset Password Error:', error);
+      res.status(500).json({ success: false, message: 'Server error resetting password' });
+    }
+  }
+);
 
 // @route   PUT /api/auth/profile
 // @desc    Update current user's profile
@@ -431,13 +609,27 @@ router.post(
       user.resetCodeExpiresAt = new Date(Date.now() + 5 * 60 * 1000);
       await user.save();
 
-      await sendMail({
+      console.log(`Sending password reset code to ${email}`);
+      const emailSent = await sendMail({
         to: email,
         subject: 'Valora Gold Password Reset Code',
         text: `Your password reset code is ${code}. This code will expire in 5 minutes.`,
         html: `<p>Your password reset code is <strong>${code}</strong>. This code will expire in 5 minutes.</p>`,
       });
 
+      if (!emailSent) {
+        console.error(`Failed to send password reset email to ${email}`);
+        // Clear the reset code if email failed
+        user.resetCode = undefined;
+        user.resetCodeExpiresAt = undefined;
+        await user.save();
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to send reset code email. Please try again later.',
+        });
+      }
+
+      console.log(`Password reset code sent successfully to ${email}`);
       res.json({ success: true, message: 'Reset code sent to your email.' });
     } catch (error) {
       console.error('Forgot Password Error:', error);

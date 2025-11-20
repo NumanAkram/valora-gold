@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Star, Heart, ShoppingBag, Eye } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import { useWishlist } from '../context/WishlistContext';
@@ -11,6 +12,7 @@ import { getActiveUserRole } from '../utils/authHelper';
 const MAX_FEATURED = 4;
 
 const FeaturedProducts = () => {
+  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const { addToCart } = useCart();
   const { showToast } = useToast();
@@ -118,13 +120,14 @@ const FeaturedProducts = () => {
         </div>
 
         {/* Products Grid */}
-        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {displayProducts.length === 0 ? (
-            <div className="col-span-full text-center text-gray-500 font-sans">
-              No products available yet. Please check back soon.
-            </div>
-          ) : (
-            displayProducts.map((product, index) => {
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {displayProducts.length === 0 ? (
+              <div className="col-span-full text-center text-gray-500 font-sans">
+                No products available yet. Please check back soon.
+              </div>
+            ) : (
+              displayProducts.map((product, index) => {
               const productId = product._id || product.id;
               const productName = product.name || product.title;
               // Priority: imageUrl (primary) > images[0] (first gallery) > image (fallback) > default
@@ -149,7 +152,7 @@ const FeaturedProducts = () => {
                 <img
                   src={productImage}
                   alt={productName}
-                  className="w-full h-64 object-contain lg:object-cover p-4 group-hover:scale-110 transition-transform duration-500"
+                  className="w-full h-64 lg:h-[22rem] object-contain lg:object-cover group-hover:scale-110 transition-transform duration-500"
                 />
                 
                 {/* Coming Soon Badge - Priority */}
@@ -306,15 +309,19 @@ const FeaturedProducts = () => {
                 </div>
               </div>
             </div>
-              );
-            })
-          )}
+                );
+              })
+            )}
+          </div>
         </div>
 
-        {/* View All Button */}
-        <div className="text-center mt-12">
-          <button className="btn-secondary text-lg px-8 py-4">
-            View All Products
+        {/* View More Button - Always visible below products grid */}
+        <div className="text-center mt-8 sm:mt-10 md:mt-12">
+          <button
+            onClick={() => navigate('/all-products')}
+            className="bg-logo-green text-white font-bold py-3 px-8 rounded-lg text-sm uppercase hover:bg-banner-green transition-colors duration-300 font-sans"
+          >
+            View More
           </button>
         </div>
       </div>

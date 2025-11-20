@@ -57,7 +57,7 @@ const Footer = () => {
           {/* Company Information Section */}
           <div className="lg:col-span-2 space-y-4">
             {/* Logo */}
-            <div className="flex items-center space-x-2 sm:space-x-3 mb-4">
+            <div className="flex items-center space-x-1 sm:space-x-1.5 mb-4">
               <a
                 href="#top"
                 onClick={handleScrollToTop}

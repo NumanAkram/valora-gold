@@ -66,15 +66,15 @@ const SocialMediaSidebar = () => {
   };
 
   return (
-    <div className="fixed right-0 top-[38%] -translate-y-1/2 z-[100] flex items-center">
+    <div className="fixed right-0 top-[38%] -translate-y-1/2 z-[120] flex items-center">
       {/* Main Share Button - Green Background */}
       <button
         onClick={toggleExpanded}
-        className="bg-red-500 hover:bg-red-600 text-white p-4 rounded-l-lg shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center w-14 h-14 group"
+        className="bg-red-500 hover:bg-red-600 text-white p-2 sm:p-2.5 md:p-4 rounded-l-lg shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 md:w-14 md:h-14 group"
         aria-label="Share on social media"
         title="Share on social media"
       >
-        <Share2 className="h-6 w-6 transition-transform duration-300 group-hover:rotate-180" />
+        <Share2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-6 md:w-6 transition-transform duration-300 group-hover:rotate-180" />
       </button>
 
       {/* Expanded Social Icons - White Panel */}
@@ -83,7 +83,7 @@ const SocialMediaSidebar = () => {
           isExpanded ? 'w-auto opacity-100 ml-0' : 'w-0 opacity-0 ml-0'
         }`}
       >
-        <div className="py-3 px-3 space-y-2">
+        <div className="py-2 px-2 sm:py-3 sm:px-3 space-y-1.5 sm:space-y-2">
           {socialLinks.map((social, index) => {
             const IconComponent = social.icon;
             return (
@@ -92,14 +92,14 @@ const SocialMediaSidebar = () => {
                 href={social.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="bg-white border border-gray-200 w-12 h-12 rounded-lg flex items-center justify-center hover:bg-gray-50 transition-all duration-300 hover:scale-110 shadow-sm hover:shadow-md"
+                className="bg-white border border-gray-200 w-9 h-9 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-lg flex items-center justify-center hover:bg-gray-50 transition-all duration-300 hover:scale-110 shadow-sm hover:shadow-md"
                 title={social.name}
                 aria-label={`Follow us on ${social.name}`}
                 style={{
                   animationDelay: isExpanded ? `${index * 50}ms` : '0ms'
                 }}
               >
-                <IconComponent className={`h-5 w-5 ${social.color}`} />
+                <IconComponent className={`h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5 ${social.color}`} />
               </a>
             );
           })}

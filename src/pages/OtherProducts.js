@@ -171,15 +171,6 @@ const OtherProducts = () => {
 
                 return (
                   <div key={productId} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden relative">
-                    {/* Sale Badge */}
-                    {!isComingSoon && hasSale && salePercent > 0 && (
-                      <div className="absolute top-2 left-2 z-10">
-                        <div className="bg-logo-green text-white text-sm font-bold px-3 py-1.5 rounded-full shadow-lg">
-                          Sale {salePercent}%
-                        </div>
-                      </div>
-                    )}
-
                     {/* Wishlist Button - Only for users, not admin */}
                     {!isAdmin && (
                       <button
@@ -200,7 +191,7 @@ const OtherProducts = () => {
 
                     {/* Product Image */}
                     <div
-                      className="relative h-64 bg-gray-50 cursor-pointer"
+                      className="relative h-64 lg:h-[22rem] bg-gray-50 cursor-pointer"
                       onClick={() => {
                         // Ensure proper image structure: imageUrl as primary, images as array with imageUrl first
                         const allImages = product.imageUrl 
@@ -229,7 +220,7 @@ const OtherProducts = () => {
                       <img
                         src={productImage}
                         alt={productName}
-                        className="w-full h-full object-contain lg:object-cover p-4"
+                        className="w-full h-full object-contain lg:object-cover"
                       />
                       
                       {/* Coming Soon Badge - Priority */}

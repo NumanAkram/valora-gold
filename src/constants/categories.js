@@ -26,8 +26,8 @@ const CATEGORIES = [
   {
     label: 'Others',
     value: 'Other',
-    path: '/other',
-    image: '/others.webp',
+    path: '/Other',
+    image: '/Others.webp',
   },
 ];
 

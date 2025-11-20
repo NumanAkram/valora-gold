@@ -117,13 +117,13 @@ const RelatedProducts = ({ currentProductId }) => {
           return (
           <div key={productId} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden relative">
             <div
-              className="relative h-48 bg-gray-50 cursor-pointer"
+              className="relative h-48 lg:h-[22rem] bg-gray-50 cursor-pointer"
               onClick={() => navigate(`/product/${productId}`, { state: { product: { ...product, id: productId, image: productImage } } })}
             >
               <img
                 src={productImage}
                 alt={product.name}
-                className="w-full h-full object-contain lg:object-cover p-4"
+                className="w-full h-full object-contain lg:object-cover"
               />
               
               {/* Coming Soon Badge */}

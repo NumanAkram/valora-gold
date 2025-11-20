@@ -219,13 +219,13 @@ const BestSellers = () => {
               <div key={productId} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden relative">
                  {/* Product Image - Clickable */}
                  <div 
-                  className="relative h-64 bg-gray-50 cursor-pointer"
+                  className="relative h-64 lg:h-[22rem] bg-gray-50 cursor-pointer"
                   onClick={() => navigate(`/product/${productId}`, { state: { product: { ...product, id: productId } } })}
                  >
                    <img
                      src={productImage}
                      alt={productName}
-                     className="w-full h-full object-contain lg:object-cover p-4"
+                     className="w-full h-full object-contain lg:object-cover"
                    />
 
                    {/* Coming Soon Badge - Priority */}
@@ -368,6 +368,16 @@ const BestSellers = () => {
               No best sellers available yet. Please check back soon.
             </div>
           )}
+        </div>
+
+        {/* View More Button */}
+        <div className="text-center mt-8 sm:mt-10 md:mt-12">
+          <button
+            onClick={() => navigate('/all-products')}
+            className="bg-logo-green text-white font-bold py-3 px-8 rounded-lg text-sm uppercase hover:bg-banner-green transition-colors duration-300 font-sans"
+          >
+            View More
+          </button>
         </div>
       </div>
     </section>

@@ -32,22 +32,30 @@ export const WishlistProvider = ({ children }) => {
         const response = await wishlistAPI.get();
         if (response.success && Array.isArray(response.data)) {
           // Merge database wishlist with localStorage (database takes priority)
-          const dbWishlist = response.data.map(item => ({
-            id: item._id || item.id,
-            _id: item._id || item.id,
-            name: item.name,
-            title: item.name,
-            price: item.price,
-            originalPrice: item.originalPrice,
-            image: item.images?.[0] || item.imageUrl || '/4.webp',
-            images: item.images || [item.imageUrl || '/4.webp'],
-            category: item.category,
-            rating: item.rating,
-            numReviews: item.numReviews,
-            inStock: item.inStock,
-            stockCount: item.stockCount,
-            comingSoon: item.comingSoon,
-          }));
+          const dbWishlist = response.data.map(item => {
+            const primaryImage = item.imageUrl || (item.images && item.images[0]) || '/4.webp';
+            const allImages = item.images && item.images.length > 0 
+              ? item.images 
+              : (item.imageUrl ? [item.imageUrl] : [primaryImage]);
+            
+            return {
+              id: item._id || item.id,
+              _id: item._id || item.id,
+              name: item.name,
+              title: item.name,
+              price: item.price,
+              originalPrice: item.originalPrice,
+              imageUrl: item.imageUrl || primaryImage,
+              image: primaryImage,
+              images: allImages,
+              category: item.category,
+              rating: item.rating,
+              numReviews: item.numReviews,
+              inStock: item.inStock,
+              stockCount: item.stockCount,
+              comingSoon: item.comingSoon,
+            };
+          });
 
           setWishlistItems(dbWishlist);
         }
@@ -103,7 +111,7 @@ export const WishlistProvider = ({ children }) => {
 
   // Update wishlist item when product is updated
   const updateWishlistItem = useCallback((updatedProduct) => {
-    if (!updatedProduct || !updatedProduct._id && !updatedProduct.id) {
+    if (!updatedProduct || (!updatedProduct._id && !updatedProduct.id)) {
       return;
     }
 
@@ -124,6 +132,16 @@ export const WishlistProvider = ({ children }) => {
       const existingItem = updatedItems[itemIndex];
       
       // Merge updated product data while preserving wishlist-specific properties
+      // Determine primary image from updated product
+      const primaryImage = updatedProduct.imageUrl || 
+                          (updatedProduct.images && updatedProduct.images[0]) || 
+                          updatedProduct.image || 
+                          existingItem.image;
+      
+      const allImages = updatedProduct.images && updatedProduct.images.length > 0
+        ? updatedProduct.images
+        : (updatedProduct.imageUrl ? [updatedProduct.imageUrl] : existingItem.images || [primaryImage]);
+      
       updatedItems[itemIndex] = {
         ...existingItem,
         ...updatedProduct,
@@ -131,18 +149,21 @@ export const WishlistProvider = ({ children }) => {
         id: updatedProduct.id || updatedProduct._id || existingItem.id,
         _id: updatedProduct._id || updatedProduct.id || existingItem._id,
         // Update key fields that admin might change
-        name: updatedProduct.name || existingItem.name || existingItem.title,
+        name: updatedProduct.name !== undefined ? updatedProduct.name : (existingItem.name || existingItem.title),
         title: updatedProduct.name || updatedProduct.title || existingItem.title || existingItem.name,
         price: updatedProduct.price !== undefined ? updatedProduct.price : existingItem.price,
         originalPrice: updatedProduct.originalPrice !== undefined ? updatedProduct.originalPrice : existingItem.originalPrice,
         inStock: updatedProduct.inStock !== undefined ? updatedProduct.inStock : existingItem.inStock,
         stockCount: updatedProduct.stockCount !== undefined ? updatedProduct.stockCount : existingItem.stockCount,
         comingSoon: updatedProduct.comingSoon !== undefined ? updatedProduct.comingSoon : existingItem.comingSoon,
-        images: updatedProduct.images || existingItem.images || [existingItem.image],
-        image: updatedProduct.image || (updatedProduct.images && updatedProduct.images[0]) || existingItem.image,
+        // Update image fields properly
+        imageUrl: updatedProduct.imageUrl !== undefined ? updatedProduct.imageUrl : existingItem.imageUrl,
+        images: allImages,
+        image: primaryImage,
       };
 
-      return updatedItems;
+      // Return new array to trigger re-render
+      return [...updatedItems];
     });
   }, []);
 
