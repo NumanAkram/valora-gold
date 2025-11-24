@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Lock, ShieldCheck, UserPlus, RefreshCw, Home, User } from 'lucide-react';
 import { useAdminAuth } from '../../context/AdminAuthContext';
+import { getActiveUserRole } from '../../utils/authHelper';
 import Spinner from '../../components/Spinner';
 
 const AdminLogin = () => {
@@ -76,8 +77,18 @@ const AdminLogin = () => {
             </div>
 
             <div className="space-y-3">
-              <Link
-                to="/signin"
+              <button
+                onClick={() => {
+                  // Check if admin is logged in
+                  const authInfo = getActiveUserRole();
+                  if (authInfo.isAdmin || (authInfo.role && authInfo.role.toLowerCase() === 'admin')) {
+                    // Admin is logged in, go to My Account page
+                    navigate('/my-account');
+                  } else {
+                    // Not logged in, go to signin page
+                    navigate('/signin');
+                  }
+                }}
                 className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-logo-green text-logo-green text-sm font-semibold hover:bg-logo-green hover:text-white transition-colors"
               >
                 <User className="h-4 w-4" />
@@ -85,7 +96,7 @@ const AdminLogin = () => {
                   <span className="text-xs font-normal">Sign or Register in</span>
                   <span className="text-sm font-bold">My Account</span>
                 </div>
-              </Link>
+              </button>
               
               <button
                 onClick={() => setShowLoginForm(true)}
