@@ -82,7 +82,7 @@ const Hero = () => {
             onTouchStart={onTouchStart}
             onTouchMove={onTouchMove}
             onTouchEnd={onTouchEnd}
-            className="relative w-full overflow-hidden rounded-none lg:rounded-none shadow-none bg-transparent hero-banner-container lg:aspect-[16/5.25] xl:aspect-[16/4.8] 2xl:aspect-[16/4.5] lg:min-h-[380px] xl:min-h-[410px] touch-pan-y cursor-grab active:cursor-grabbing"
+            className="relative w-full overflow-hidden rounded-none lg:rounded-none shadow-none bg-transparent hero-banner-container lg:aspect-[16/5.25] xl:aspect-[16/5.25] 2xl:aspect-[16/5.25] lg:min-h-[380px] xl:min-h-[380px] 2xl:min-h-[380px] touch-pan-y cursor-grab active:cursor-grabbing"
             style={{ touchAction: 'pan-y pinch-zoom' }}
           >
           {images.map((image, index) => {
@@ -129,7 +129,7 @@ const Hero = () => {
               <img
                 src={image}
                 alt={`Hero slide ${index + 1} - Desktop`}
-                className="w-full h-full hero-banner-image"
+                className="w-full h-full hero-banner-image object-contain lg:object-contain xl:object-contain 2xl:object-contain"
                 loading={index === 0 ? 'eager' : 'lazy'}
                 decoding="async"
               />

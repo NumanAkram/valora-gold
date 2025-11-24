@@ -10,12 +10,21 @@ cd server
 npm install
 ```
 
-2. Create `server/.env` (copy from the snippet below or your deployment secrets):
+2. Create `server/.env` (copy from `.env.example` or use the snippet below):
 ```bash
 PORT=5000
 MONGO_URI=mongodb://localhost:27017/valoragold
 JWT_SECRET=your_secret_key_here
-CLIENT_URL=http://localhost:3000
+FRONTEND_URL=http://localhost:3000
+
+# Default Admin Credentials
+# These are used to create/ensure the default admin account on server startup
+# Default: owaisshafqat597@gmail.com / asdfqwer
+# To update credentials when going live:
+# 1. Set these environment variables to your new credentials, OR
+# 2. Update your profile via the admin panel (PUT /api/auth/profile endpoint)
+DEFAULT_ADMIN_EMAIL=owaisshafqat597@gmail.com
+DEFAULT_ADMIN_PASSWORD=asdfqwer
 
 # Email notifications (required for order emails)
 SMTP_HOST=smtp.gmail.com
@@ -33,6 +42,28 @@ TWILIO_AUTH_TOKEN=your_twilio_auth_token
 TWILIO_PHONE_NUMBER=+1234567890
 TWILIO_WHATSAPP_NUMBER=whatsapp:+14155238886
 ```
+
+## Default Admin Account
+
+On server startup, a default admin account is automatically created/ensured with:
+- **Email**: `owaisshafqat597@gmail.com` (or value from `DEFAULT_ADMIN_EMAIL` env var)
+- **Password**: `asdfqwer` (or value from `DEFAULT_ADMIN_PASSWORD` env var)
+
+### Updating Admin Credentials When Going Live
+
+You have two options to update the admin credentials:
+
+**Option 1: Update Environment Variables**
+1. Set `DEFAULT_ADMIN_EMAIL` and `DEFAULT_ADMIN_PASSWORD` in your `.env` file to your new credentials
+2. Restart the server - the admin account will be updated automatically
+
+**Option 2: Update via Admin Panel (Recommended)**
+1. Login to the admin panel with the default credentials
+2. Navigate to your profile/account settings
+3. Update your email and/or password using the profile update endpoint (`PUT /api/auth/profile`)
+4. The new credentials will be saved and you can use them for future logins
+
+> **Note**: The profile update endpoint requires your current password when changing the password for security purposes.
 
 > 💡 Generate an **App Password** for `SMTP_PASS` by enabling 2-Step Verification on the Gmail/Workspace account and creating an app-specific password (Security → App passwords). Paste the 16-character code without spaces.
 

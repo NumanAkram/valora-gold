@@ -1,6 +1,6 @@
 const User = require('../models/User');
 
-const DEFAULT_EMAIL = (process.env.DEFAULT_ADMIN_EMAIL || 'testing@gmail.com').trim().toLowerCase();
+const DEFAULT_EMAIL = (process.env.DEFAULT_ADMIN_EMAIL || 'owaisshafqat597@gmail.com').trim().toLowerCase();
 const DEFAULT_PASSWORD = process.env.DEFAULT_ADMIN_PASSWORD || 'asdfqwer';
 
 const ensureDefaultAdmin = async () => {
@@ -10,31 +10,31 @@ const ensureDefaultAdmin = async () => {
       return;
     }
 
-    // Delete every user that does not match the default admin email
-    const deleted = await User.deleteMany({ email: { $ne: DEFAULT_EMAIL } });
-    if (deleted.deletedCount) {
-      console.log(`Removed ${deleted.deletedCount} user(s) while enforcing default admin credentials.`);
-    }
-
     // Attempt to fetch the admin with password included
     let admin = await User.findOne({ email: DEFAULT_EMAIL }).select('+password');
 
     if (admin) {
       let shouldSave = false;
 
+      // Only update role if it's not admin (don't force it if already admin)
       if (admin.role !== 'admin') {
         admin.role = 'admin';
         shouldSave = true;
       }
 
+      // Only update email verification if not verified
       if (!admin.isEmailVerified) {
         admin.isEmailVerified = true;
         shouldSave = true;
       }
 
-      // Ensure the password matches the configured default
+      // Only reset password if admin was just created (within last minute)
+      // This prevents overwriting user-set passwords on production
       const passwordMatches = await admin.comparePassword(DEFAULT_PASSWORD).catch(() => false);
-      if (!passwordMatches) {
+      const isRecentlyCreated = admin.createdAt && (Date.now() - new Date(admin.createdAt).getTime()) < 60000;
+      
+      if (!passwordMatches && isRecentlyCreated) {
+        // Only reset password if admin was just created (likely first time setup)
         admin.password = DEFAULT_PASSWORD;
         shouldSave = true;
       }
@@ -43,7 +43,7 @@ const ensureDefaultAdmin = async () => {
         await admin.save();
         console.log(`Updated default admin credentials for ${DEFAULT_EMAIL}`);
       } else {
-        console.log(`Default admin ${DEFAULT_EMAIL} already in desired state`);
+        console.log(`Default admin ${DEFAULT_EMAIL} already exists and is configured`);
       }
 
       return;

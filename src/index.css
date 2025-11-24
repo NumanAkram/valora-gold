@@ -393,12 +393,18 @@
   
 }
 
-/* Desktop and larger screens (1024px+) - Same images, cover for better visual effect (like Mama Organic) */
+/* Desktop and larger screens (1024px+) - Use contain to show full banner without cropping */
 @media (min-width: 1024px) {
   .hero-banner-image {
     object-position: center;
     background-position: center;
-    object-fit: cover;
+    object-fit: contain;
+  }
+  
+  .hero-banner-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 }
 

@@ -541,9 +541,21 @@ router.put('/users/:id', async (req, res) => {
     });
   } catch (error) {
     console.error('Admin Update User Error:', error);
+    
+    // Provide more specific error messages
+    let errorMessage = 'Failed to update user';
+    if (error.name === 'ValidationError') {
+      errorMessage = 'Validation error: ' + Object.values(error.errors).map(e => e.message).join(', ');
+    } else if (error.code === 11000) {
+      errorMessage = 'A user with this email already exists';
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    
     res.status(500).json({
       success: false,
-      message: 'Failed to update user',
+      message: errorMessage,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });

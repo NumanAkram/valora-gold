@@ -42,7 +42,6 @@ const ProductDetail = () => {
   const [showAskModal, setShowAskModal] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviewBeingEdited, setReviewBeingEdited] = useState(null);
-  const [featuredProducts, setFeaturedProducts] = useState([]);
   const [questionForm, setQuestionForm] = useState({ name: '', email: '', message: '' });
   const [reviewForm, setReviewForm] = useState({ name: '', rating: 5, reviewText: '' });
   const errorShownRef = useRef(false); // Track if error has been shown
@@ -223,19 +222,6 @@ const ProductDetail = () => {
     
     fetchProduct();
 
-    // Load featured for "Special For You"
-    (async () => {
-      try {
-        const res = await productsAPI.getFeatured();
-        if (res && res.success && Array.isArray(res.data)) {
-          // random 4
-          const shuffled = [...res.data].sort(() => 0.5 - Math.random());
-          setFeaturedProducts(shuffled.slice(0, 4));
-        }
-      } catch (e) {
-        // ignore
-      }
-    })();
     
     // Cleanup function
     return () => {
@@ -997,133 +983,6 @@ const ProductDetail = () => {
           <p className="text-gray-700 font-sans">Add <span className="font-semibold">{productName}</span> to your skincare routine. Use daily for visible, clearer skin.</p>
         </div>
 
-        {/* Special For You */}
-        {featuredProducts.length > 0 && (
-          <div className="mt-12">
-            <h2 className="text-xl font-bold text-gray-900 mb-4 font-sans">Special For You</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-              {featuredProducts.map((p, index) => {
-                const prodId = p._id || p.id;
-                const prodImage = p.imageUrl || (p.images && p.images[0]) || p.image || '/4.webp';
-                const prodName = p.name || p.title || 'Product';
-                const priceValue = typeof p.price === 'number' ? p.price : null;
-                const originalPriceValue = typeof p.originalPrice === 'number' ? p.originalPrice : priceValue;
-                const isComingSoon = Boolean(p.comingSoon) || priceValue === null;
-                const isOutOfStock = Boolean(p.outOfStock) || (!p.inStock && p.stockCount === 0);
-                const hasSale = !isComingSoon && priceValue !== null && originalPriceValue && originalPriceValue > priceValue;
-                const discount = hasSale ? Math.round(((originalPriceValue - priceValue) / originalPriceValue) * 100) : 0;
-                const ratingValue = getDisplayRating(p);
-                const productReviews = typeof p.numReviews === 'number' ? p.numReviews : 0;
-
-                return (
-                <div 
-                  key={prodId} 
-                  className="group card p-6 animate-slide-up cursor-pointer" 
-                  style={{animationDelay: `${index * 0.1}s`}}
-                  onClick={() => navigate(`/product/${prodId}`, { state: { product: { ...p, id: prodId, images: p.images || [prodImage], image: prodImage, imageUrl: p.imageUrl || prodImage } } })}
-                >
-                  {/* Product Image */}
-                  <div className="relative mb-4 overflow-hidden rounded-lg">
-                    <div className="relative h-64 lg:h-[22rem] bg-gray-50 rounded-lg overflow-hidden">
-                      <img 
-                        src={prodImage} 
-                        alt={prodName} 
-                        className="w-full h-full object-contain lg:object-cover group-hover:scale-110 transition-transform duration-500" 
-                      />
-                    </div>
-                    
-                    {/* Coming Soon Badge - Priority */}
-                    {isComingSoon && (
-                      <div className="absolute top-4 left-4 z-10">
-                        <span className="px-3 py-1.5 text-xs font-semibold rounded-full bg-yellow-500 text-white shadow-lg uppercase">
-                          Coming Soon
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Out of Stock Badge - Priority after Coming Soon */}
-                    {!isComingSoon && isOutOfStock && (
-                      <div className="absolute top-4 left-4 z-10">
-                        <span className="px-3 py-1.5 text-xs font-semibold rounded-full bg-red-500 text-white shadow-lg uppercase">
-                          Out of Stock
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Sale Badge - Only show if not coming soon and not out of stock */}
-                    {!isComingSoon && !isOutOfStock && hasSale && discount > 0 && (
-                      <div className="absolute top-4 left-4 z-10">
-                        <div className="bg-logo-green text-white text-sm font-bold px-3 py-1.5 rounded-full shadow-lg">
-                          Sale {discount}%
-                        </div>
-                      </div>
-                    )}
-
-                    {/* New Arrival Badge - Only show if no sale badge, not coming soon, and not out of stock */}
-                    {!isComingSoon && !isOutOfStock && (!hasSale || discount === 0) && (
-                      <div className="absolute top-4 left-4">
-                        <span className="px-3 py-1 text-xs font-semibold rounded-full bg-gold-500 text-white">
-                          New Arrival
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Product Info */}
-                  <div className="space-y-2">
-                    <h3 className="text-lg font-semibold text-gray-900 group-hover:text-gold-600 transition-colors font-sans">
-                      {prodName}
-                    </h3>
-                    
-                    {/* Rating */}
-                    <div className="flex items-center space-x-1">
-                      <div className="flex items-center">
-                        {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            className={`h-4 w-4 ${
-                              i + 1 <= ratingValue
-                                ? 'text-yellow-400 fill-current'
-                                : 'text-gray-300'
-                            }`}
-                          />
-                        ))}
-                      </div>
-                      <span className="text-sm text-gray-600 font-sans">
-                        {ratingValue} ({productReviews} reviews)
-                      </span>
-                    </div>
-
-                    {/* Price */}
-                    <div className="flex items-center space-x-2">
-                      {priceValue !== null ? (
-                        <>
-                          <span className="text-2xl font-bold text-gold-600 font-sans">
-                            Rs.{priceValue.toLocaleString()}
-                          </span>
-                          {originalPriceValue && originalPriceValue > priceValue && (
-                            <span className="text-lg text-gray-400 line-through font-sans">
-                              Rs.{originalPriceValue.toLocaleString()}
-                            </span>
-                          )}
-                          {discount > 0 && (
-                            <span className="text-sm text-green-600 font-medium font-sans">
-                              {discount}% OFF
-                            </span>
-                          )}
-                        </>
-                      ) : (
-                        <span className="text-lg font-semibold text-gray-500 uppercase tracking-wide font-sans">
-                          Coming Soon
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )})}
-            </div>
-          </div>
-        )}
 
         {/* Recently Viewed */}
         <RecentlyViewedList currentId={productId} />

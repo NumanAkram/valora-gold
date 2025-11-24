@@ -11,7 +11,7 @@ const createAdmin = async () => {
     await connectDB();
     console.log('Connected to MongoDB');
 
-    const email = process.env.DEFAULT_ADMIN_EMAIL || 'testing@gmail.com';
+    const email = process.env.DEFAULT_ADMIN_EMAIL || 'owaisshafqat597@gmail.com';
     const password = process.env.DEFAULT_ADMIN_PASSWORD || 'asdfqwer';
     const name = 'Administrator';
 
