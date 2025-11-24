@@ -630,7 +630,7 @@ const ProductDetail = () => {
             </div>
             
             {/* Thumbnail Images */}
-            <div className="flex space-x-2">
+            <div className="flex space-x-2 overflow-x-auto pb-2 scrollbar-hide scroll-smooth">
               {productImages.map((image, index) => (
                 <button
                   key={index}
