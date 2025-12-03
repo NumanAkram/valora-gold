@@ -114,32 +114,11 @@ const SearchResults = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50 py-4 sm:py-6 lg:py-8">
+      <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
         <Breadcrumbs items={[
           { label: 'Search', path: '/search' }
         ]} />
-
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <form onSubmit={handleSearch} className="flex gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by product name, category, keywords..."
-                className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-logo-green font-sans"
-              />
-            </div>
-            <button
-              type="submit"
-              className="bg-logo-green text-white px-8 py-3 rounded-lg hover:bg-banner-green transition-colors font-sans font-medium"
-            >
-              Search
-            </button>
-          </form>
-        </div>
 
         {loading ? (
           <div className="bg-white rounded-lg shadow-md p-12 text-center">

@@ -4,17 +4,25 @@ import { useAdminAuth } from '../../context/AdminAuthContext';
 import { useAdminNotifications } from '../context/AdminNotificationContext';
 import AdminNotificationsPanel from './AdminNotificationsPanel';
 
-const AdminHeader = ({ onToggleSidebar }) => {
+const AdminHeader = ({ onToggleSidebar, onToggleMobileMenu, isMobileMenuOpen }) => {
   const { admin } = useAdminAuth();
   const { unreadCount, notifications, loading, error, markAsRead, clearAll } = useAdminNotifications();
   const [open, setOpen] = React.useState(false);
 
   return (
-    <header className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3 flex items-center justify-between">
-      <div className="flex items-center gap-3">
+    <header className="bg-white border-b border-gray-200 px-2 sm:px-4 lg:px-6 py-3 flex items-center justify-between sticky top-0 z-30">
+      <div className="flex items-center gap-2 sm:gap-3">
+        {/* Mobile Menu Button */}
+        <button
+          onClick={onToggleMobileMenu}
+          className="lg:hidden inline-flex items-center justify-center p-2 rounded-md text-gray-600 hover:bg-gray-100"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+        {/* Desktop Toggle Button */}
         <button
           onClick={onToggleSidebar}
-          className="inline-flex items-center justify-center p-2 rounded-md text-gray-600 hover:bg-gray-100"
+          className="hidden lg:inline-flex items-center justify-center p-2 rounded-md text-gray-600 hover:bg-gray-100"
         >
           <Menu className="h-5 w-5" />
         </button>

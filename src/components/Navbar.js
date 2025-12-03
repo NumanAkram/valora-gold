@@ -14,6 +14,9 @@ const Navbar = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [userRole, setUserRole] = useState(null);
   const [userInfo, setUserInfo] = useState(null);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchBarTop, setSearchBarTop] = useState('64px');
+  const navbarRef = useRef(null);
   const navigate = useNavigate();
   const { getCartItemsCount, openCartSidebar } = useCart();
   const { getWishlistCount } = useWishlist();
@@ -70,6 +73,35 @@ const Navbar = () => {
     syncUserRole();
   }, [syncUserRole, isAdminAuthenticated]);
 
+  // Calculate search bar position based on navbar height
+  useEffect(() => {
+    const updateSearchBarPosition = () => {
+      if (navbarRef.current) {
+        const navbarHeight = navbarRef.current.offsetHeight;
+        setSearchBarTop(`${navbarHeight}px`);
+      }
+    };
+
+    updateSearchBarPosition();
+    window.addEventListener('resize', updateSearchBarPosition);
+    
+    // Update when banner visibility changes
+    const observer = new MutationObserver(updateSearchBarPosition);
+    if (navbarRef.current) {
+      observer.observe(navbarRef.current, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['style', 'class']
+      });
+    }
+
+    return () => {
+      window.removeEventListener('resize', updateSearchBarPosition);
+      observer.disconnect();
+    };
+  }, [showBanner, isSearchOpen]);
+
   const canManageProducts = Boolean(
     isAdminAuthenticated || (userRole && userRole.toLowerCase() === 'admin')
   );
@@ -101,15 +133,30 @@ const Navbar = () => {
     if (searchQuery.trim()) {
       navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
       setSearchQuery('');
+      setIsSearchOpen(false); // Close search bar after search
     }
   };
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
+    if (isSearchOpen) {
+      setIsSearchOpen(false); // Close search when menu opens
+      setSearchQuery('');
+    }
+  };
+
+  const toggleSearch = () => {
+    setIsSearchOpen(!isSearchOpen);
+    if (isSearchOpen) {
+      setSearchQuery(''); // Clear search query when closing
+    }
+    if (isMenuOpen) {
+      setIsMenuOpen(false); // Close menu when search opens
+    }
   };
 
   return (
-    <div className="bg-white sticky top-0 z-[110] shadow-sm" id="top">
+    <div ref={navbarRef} className="bg-white sticky top-0 z-[110] shadow-sm" id="top">
       {/* Top Promotional Banner */}
       {showBanner && (
         <div className="bg-banner-green text-white py-2 sm:py-2.5">
@@ -307,13 +354,48 @@ const Navbar = () => {
 
                 {/* Search Icon */}
                 <button 
-                  onClick={() => navigate('/search')}
+                  onClick={toggleSearch}
                   className="flex items-center justify-center p-2 text-text-gray hover:text-logo-green transition-colors"
                 >
                   <Search className="h-5 w-5" />
                 </button>
               </div>
             </div>
+            
+        {/* Tablet Floating Search Bar - Toggle on Search Icon Click */}
+        {isSearchOpen && (
+          <div 
+            className="hidden md:flex lg:hidden fixed left-0 right-0 z-[120] bg-white border-b border-gray-200 shadow-lg px-4 py-3"
+            style={{ top: searchBarTop }}
+          >
+            <form onSubmit={handleSearch} className="flex gap-2 items-center max-w-7xl mx-auto w-full">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search the store"
+                  className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg text-text-gray placeholder-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-logo-green focus:border-transparent font-sans"
+                  autoFocus
+                />
+              </div>
+              <button
+                type="submit"
+                className="bg-logo-green text-white px-4 py-2.5 rounded-lg hover:bg-banner-green transition-colors font-sans font-medium text-sm whitespace-nowrap flex-shrink-0"
+              >
+                Search
+              </button>
+              <button
+                type="button"
+                onClick={toggleSearch}
+                className="flex items-center justify-center p-2 text-text-gray hover:text-logo-green transition-colors flex-shrink-0"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </form>
+          </div>
+        )}
 
             {/* Mobile View - Below 768px (0px to 767px) */}
             <div className="flex md:hidden items-center justify-between h-16 min-h-[64px]">
@@ -375,7 +457,7 @@ const Navbar = () => {
                   )}
                 </button>
                 <button 
-                  onClick={() => navigate('/search')}
+                  onClick={toggleSearch}
                   className="flex items-center justify-center p-1.5 text-text-gray hover:text-logo-green transition-colors"
                 >
                   <Search className="h-4 w-4" />
@@ -384,6 +466,41 @@ const Navbar = () => {
             </div>
           </div>
         </div>
+
+        {/* Mobile Floating Search Bar - Toggle on Search Icon Click */}
+        {isSearchOpen && (
+          <div 
+            className="md:hidden fixed left-0 right-0 z-[120] bg-white border-b border-gray-200 shadow-lg px-4 py-3"
+            style={{ top: searchBarTop }}
+          >
+            <form onSubmit={handleSearch} className="flex gap-2 items-center">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search the store"
+                  className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg text-text-gray placeholder-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-logo-green focus:border-transparent font-sans"
+                  autoFocus
+                />
+              </div>
+              <button
+                type="submit"
+                className="bg-logo-green text-white px-4 py-2.5 rounded-lg hover:bg-banner-green transition-colors font-sans font-medium text-sm whitespace-nowrap flex-shrink-0"
+              >
+                Search
+              </button>
+              <button
+                type="button"
+                onClick={toggleSearch}
+                className="flex items-center justify-center p-2 text-text-gray hover:text-logo-green transition-colors flex-shrink-0"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </form>
+          </div>
+        )}
 
         {/* Navigation Bar - Hidden on mobile and tablet, shown on desktop (1024px+) */}
         <div className="bg-white border-b border-gray-200 hidden lg:block">
