@@ -1106,7 +1106,7 @@ const RecentlyViewedList = ({ currentId }) => {
   return (
     <div className="mt-8 sm:mt-10 md:mt-12">
       <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 sm:mb-6 font-sans">Recently Viewed</h2>
-      <div className="flex justify-start md:justify-center space-x-2 sm:space-x-3 md:space-x-4 px-2 sm:px-4 md:px-8 lg:px-20 overflow-x-auto scrollbar-hide">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         {items.map((p, index) => {
           const prodId = p._id || p.id;
           const prodImage = p.imageUrl || (p.images && p.images[0]) || p.image || '/4.webp';
@@ -1123,7 +1123,7 @@ const RecentlyViewedList = ({ currentId }) => {
           return (
             <div 
               key={prodId} 
-              className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden flex-shrink-0 w-[280px] sm:w-[300px] md:w-80 relative"
+              className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden relative"
             >
               {/* Wishlist Button - Only for users, not admin */}
               {!isAdmin && (

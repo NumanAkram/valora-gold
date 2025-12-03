@@ -151,7 +151,7 @@ const Bundles = () => {
               No products available right now. Please check back soon.
             </div>
           ) : (
-          <div className="flex justify-start md:justify-center space-x-2 sm:space-x-3 md:space-x-4 px-2 sm:px-4 md:px-8 lg:px-20 overflow-x-auto scrollbar-hide">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             {displayBundles.slice(0, 4).map((bundle) => {
               // Format bundle data from API
               const bundleId = bundle._id || bundle.id;
@@ -167,7 +167,7 @@ const Bundles = () => {
               const salePercent = hasSale ? Math.round(((bundleOriginalPrice - bundlePrice) / bundleOriginalPrice) * 100) : 0;
               
               return (
-              <div key={bundleId} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden flex-shrink-0 w-[280px] sm:w-[300px] md:w-80 relative">
+              <div key={bundleId} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden relative">
 
                 {/* Wishlist Button - Only for users, not admin */}
                 {!isAdmin && (
