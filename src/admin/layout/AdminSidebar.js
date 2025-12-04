@@ -30,16 +30,6 @@ const AdminSidebar = ({ isCollapsed, isMobileMenuOpen, onCloseMobileMenu }) => {
     }
   };
 
-  const handleClose = (e) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    // Force close the sidebar
-    if (typeof onCloseMobileMenu === 'function') {
-      onCloseMobileMenu();
-    }
-  };
 
   return (
     <>
@@ -58,9 +48,9 @@ const AdminSidebar = ({ isCollapsed, isMobileMenuOpen, onCloseMobileMenu }) => {
             <p className="text-yellow-600 text-xs font-semibold tracking-[0.4em]">ADMIN</p>
           </div>
           <button
-            onClick={handleClose}
-            className="p-2 rounded-md text-gray-600 hover:bg-gray-100 transition-colors"
             type="button"
+            onClick={onCloseMobileMenu}
+            className="text-gray-500 hover:text-gray-700 transition-colors p-2 rounded-md hover:bg-gray-100"
             aria-label="Close sidebar"
           >
             <X className="h-5 w-5" />
@@ -85,7 +75,7 @@ const AdminSidebar = ({ isCollapsed, isMobileMenuOpen, onCloseMobileMenu }) => {
               end={end}
               onClick={handleLinkClick}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                `flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                   isActive ? 'bg-logo-green text-white' : 'text-gray-600 hover:bg-gray-100'
                 }`
               }
@@ -102,7 +92,7 @@ const AdminSidebar = ({ isCollapsed, isMobileMenuOpen, onCloseMobileMenu }) => {
               navigate('/');
               handleLinkClick();
             }}
-            className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-100 transition-colors"
+            className="w-full inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-100 transition-colors"
           >
             <Home className="h-4 w-4 flex-shrink-0" />
             {(!isCollapsed || isMobileMenuOpen) && <span>Switch to Home</span>}
@@ -112,7 +102,7 @@ const AdminSidebar = ({ isCollapsed, isMobileMenuOpen, onCloseMobileMenu }) => {
               logout();
               handleLinkClick();
             }}
-            className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-100 transition-colors"
+            className="w-full inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-100 transition-colors"
           >
             <LogOut className="h-4 w-4 flex-shrink-0" />
             {(!isCollapsed || isMobileMenuOpen) && <span>Logout</span>}

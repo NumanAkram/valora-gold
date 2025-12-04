@@ -92,8 +92,8 @@ const AdminShipping = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="md:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             {loading ? (
               <Spinner label="Loading current delivery charge..." />
             ) : (
@@ -158,7 +158,7 @@ const AdminShipping = () => {
             )}
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-4">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-4 w-full">
             <div className="flex items-center gap-3">
               <TrendingUp className="h-10 w-10 text-logo-green shrink-0" />
               <div>

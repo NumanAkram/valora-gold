@@ -1187,7 +1187,7 @@ const RecentlyViewedList = ({ currentId }) => {
               <div className="p-4 space-y-3 font-sans">
                 {/* Product Title - Clickable */}
                 <h3 
-                  className="text-sm font-medium text-gray-800 leading-tight h-12 overflow-hidden cursor-pointer hover:text-logo-green transition-colors"
+                  className="text-sm font-medium text-gray-800 leading-tight overflow-hidden cursor-pointer hover:text-logo-green transition-colors"
                   onClick={() => navigate(`/product/${prodId}`, { state: { product: { ...p, id: prodId, _id: prodId, name: prodName, title: prodName, price: priceValue, originalPrice: originalPriceValue, images: p.images || [prodImage], image: prodImage, rating: ratingValue, numReviews: productReviews } } })}
                 >
                   {prodName}

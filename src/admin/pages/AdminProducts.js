@@ -107,7 +107,7 @@ const AdminProducts = () => {
 
   return (
     <AdminLayout>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 font-sans">Product Management</h1>
           <p className="text-sm text-gray-500 font-sans">
@@ -119,7 +119,7 @@ const AdminProducts = () => {
             setSelectedProduct(null);
             setIsFormOpen(true);
           }}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-logo-green text-white text-sm font-semibold shadow hover:bg-banner-green transition-colors"
+          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 sm:py-2 rounded-lg bg-logo-green text-white text-sm font-semibold shadow hover:bg-banner-green transition-colors"
         >
           <PlusCircle className="h-4 w-4" />
           Add Product

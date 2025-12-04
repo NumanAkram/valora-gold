@@ -278,7 +278,7 @@ const BestSellers = () => {
                  <div className="p-4 space-y-3 font-sans">
                    {/* Product Name - Clickable */}
                    <h3 
-                     className="text-sm font-medium text-gray-800 leading-tight h-10 overflow-hidden cursor-pointer hover:text-logo-green transition-colors"
+                     className="text-sm font-medium text-gray-800 leading-tight overflow-hidden cursor-pointer hover:text-logo-green transition-colors"
                     onClick={() => navigate(`/product/${productId}`, { state: { product: { ...product, id: productId } } })}
                    >
                      {productName}

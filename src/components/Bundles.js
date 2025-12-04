@@ -230,7 +230,7 @@ const Bundles = () => {
                 <div className="p-4 space-y-3 font-sans">
                   {/* Bundle Title - Clickable */}
                   <h3 
-                    className="text-sm font-medium text-gray-800 leading-tight h-12 overflow-hidden cursor-pointer hover:text-logo-green transition-colors"
+                    className="text-sm font-medium text-gray-800 leading-tight overflow-hidden cursor-pointer hover:text-logo-green transition-colors"
                     onClick={() => navigate(`/product/${bundleId}`, { state: { product: { ...bundle, id: bundleId, _id: bundleId, name: bundleTitle, title: bundleTitle, price: bundlePrice, originalPrice: bundleOriginalPrice, images: bundle.images || [bundleImage], image: bundleImage, rating: bundleRating, numReviews: bundleReviews } } })}
                   >
                     {bundleTitle}
